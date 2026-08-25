@@ -4,7 +4,9 @@ an endless synthesized field recording of anywhere on earth.
 
 **listen: https://432meadow.github.io/elsewhere/**
 
-one html file. click the map and you are standing there, now: the right
+one html file. spin the globe — it turns on its own, drag it, pinch or
+scroll to zoom, watch night cross the terminator — and tap anywhere:
+you are standing there, now: the right
 birds for that place singing at the right minute of its solar day,
 crickets chirping at the rate its temperature says they should
 (Dolbear's law), the wood thrush waiting for dusk, the whip-poor-will
@@ -53,6 +55,13 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   creeks come and go, and every ten or twenty minutes you cross into
   another biome and the whole cast turns over (the journey is seeded by
   the day and the starting place, so a shared link wanders the same way)
+- **[ dub ]** runs the land through a tape echo, after topdown dialectic:
+  a rhythmic throw gate catches whatever the place is singing into a
+  wobbling saturated feedback delay, over muted chord stabs and a soft
+  sub pulse rooted in the site's own key (every place has one, from its
+  coordinates). the treatment drifts on its own seeded weather — washing,
+  sparse, deep, receding — and the field recording underneath stays
+  untouched. a depth fader sets how deep it sits
 - **[ keep .wav ]** downloads the last 90 seconds (recorded linear,
   before the live safety compressor — album convention)
 

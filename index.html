@@ -37,7 +37,7 @@
   .g { color: var(--s2); }
 
   #stage { position: relative; border-bottom: 1px solid var(--rule); }
-  #map { display: block; width: 100%; height: 380px; cursor: crosshair; touch-action: manipulation; }
+  #map { display: block; width: 100%; height: 380px; cursor: crosshair; touch-action: none; }
   #begin {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     background: transparent; border: 0; cursor: pointer; color: var(--s1);
@@ -156,6 +156,17 @@
   <input type="range" id="wind" min="0" max="100" value="35" aria-label="Wind strength"></div>
 <div class="ctl"><div class="row2"><label for="space">space</label><output id="spaceV">40</output></div>
   <input type="range" id="space" min="0" max="100" value="40" aria-label="Openness of the air"></div>
+
+<div class="sect">dub</div>
+<div class="inline">
+  <button class="switch" id="dub" role="switch" aria-checked="false"
+    aria-label="Dub: the land through a tape echo">[ dub ]</button>
+  <span class="g">the land through a tape echo — it drifts on its own</span>
+</div>
+<div class="ctl cool">
+  <div class="row2"><label for="dubDepth">depth</label><output id="dubDepthV">55</output></div>
+  <input type="range" id="dubDepth" min="0" max="100" value="55" aria-label="How deep the dub sits">
+</div>
 
 <div class="sect">voices</div>
 <div class="ctl warm"><div class="row2"><label for="vBird">birds</label><output id="vBirdV">70</output></div>
@@ -277,8 +288,9 @@ function kgBiome(cls) {
 /* biogeographic realm, coarsely — which cast sings here */
 function realmAt(lon, lat) {
   if (lon < -30) return lat > 22 ? "nearctic" : "neotropic";
+  if (lat < -33 && lon >= 165) return "nz";
   if (lat < -8 && lon >= 110) return "austral";
-  if (lat < -28 && lon >= 160) return "austral";                 /* nz */
+  if (lat < -28 && lon >= 160) return "austral";
   if (lat < 12 && lon >= 90 && lon < 160) return "indo";         /* maritime se asia */
   if (lat < 30 && lat > -12 && lon >= 60 && lon < 110) return "indo";
   if (lon >= -20 && lon < 52 && lat < 16) return "afro";
@@ -606,6 +618,7 @@ const P = {
   doy: (() => { const d = new Date(dayStr + "T12:00:00");
     return Math.max(1, Math.min(365, Math.round((d - new Date(d.getFullYear(), 0, 0)) / 86400000))); })(),
   density: 0.6, wind: 0.35, space: 0.4, drift: false,
+  dub: false, dubDepth: 0.55,
   vBird: 0.7, vBug: 0.7, vFrog: 0.7, vFauna: 0.7, vAir: 0.7,
 };
 let lapseBase = null;  /* {real: performance.now()/1000, hour: minutes} */
@@ -2885,6 +2898,222 @@ const CASTS = {
   pcoast: ["gull_west","oyster","guillemot","murre","sealion","eagle","raven","peeps",
            "foghorn","bellbuoy","rockfall","pacfrog","jet"],
 };
+/* ------------------------------------ the deep pass: more of the world --- */
+/* western palearctic, second round */
+def("songthrush", { name: "song thrush", g: "bird",
+  act: A({ doy: [45, 195], dawn: 1.5, day: 0.4, dusk: 1.4 }), gap: [3, 7], dist: [0.15, 0.5], n: [1, 1], rev: 0.3,
+  gen() { const parts = [];
+    for (let k = 0, m = ri(2, 3); k < m; k++) {   /* each phrase said 2-4 times */
+      const f0 = ru(1900, 3400), shape = pick([0, 1, 2]);
+      const phrase = () => {
+        if (shape === 0) return cat(
+          tone(0.09, [[0, f0], [1, f0 * 1.2]], { harm: [1, 0.25], atk: 0.005, rel: 0.02 }), gapN(0.04),
+          tone(0.11, [[0, f0 * 1.25], [1, f0 * 0.95]], { harm: [1, 0.25], atk: 0.005, rel: 0.02 }));
+        if (shape === 1) return cat(
+          tone(0.07, [[0, f0], [1, f0 * 0.9]], { harm: [1, 0.25], atk: 0.004, rel: 0.015 }), gapN(0.03),
+          tone(0.07, [[0, f0], [1, f0 * 0.9]], { harm: [1, 0.25], atk: 0.004, rel: 0.015 }), gapN(0.03),
+          tone(0.13, [[0, f0 * 1.15], [1, f0 * 1.3]], { harm: [1, 0.25], atk: 0.005, rel: 0.03 }));
+        return tone(0.2, [[0, f0], [0.5, f0 * 1.35], [1, f0 * 1.1]],
+          { harm: [1, 0.3, 0.06], vib: [20, 40], atk: 0.006, rel: 0.03 });
+      };
+      const rep = ri(2, 4);
+      for (let r = 0; r < rep; r++) { parts.push(phrase()); parts.push(gapN(ru(0.1, 0.18))); }
+      parts.push(gapN(ru(0.2, 0.4)));
+    } return cat(...parts); } });
+def("blackcap", { name: "blackcap", g: "bird",
+  act: A({ doy: [100, 190], dawn: 1.3, day: 0.6 }), gap: [5, 10], dist: [0.2, 0.55], n: [1, 1],
+  gen() { const parts = [];
+    for (let k = 0, m = ri(6, 10); k < m; k++) {   /* scratchy warm-up */
+      const f = ru(2800, 4600);
+      parts.push(scaleA(tone(ru(0.03, 0.06), [[0, f], [1, f * ru(0.85, 1.15)]],
+        { harm: [1, 0.35], noise: 0.35, atk: 0.003, rel: 0.008 }), 0.55));
+      parts.push(gapN(ru(0.01, 0.04)));
+    }
+    let f = ru(2400, 2900);
+    for (let k = 0, m = ri(4, 6); k < m; k++) {    /* the clear flute finish */
+      parts.push(tone(ru(0.1, 0.16), [[0, f], [1, f * ru(0.94, 1.1)]],
+        { harm: [1, 0.2, 0.05], atk: 0.006, rel: 0.025 }));
+      parts.push(gapN(ru(0.03, 0.07)));
+      f *= pick([1.15, 0.88, 1.22]);
+      f = Math.min(Math.max(f, 1900), 3800);
+    } return cat(...parts); } });
+def("yellowhammer", { name: "yellowhammer", g: "bird",
+  act: A({ doy: [90, 220], day: 1, dawn: 1 }), gap: [5, 10], dist: [0.2, 0.55], n: [1, 1],
+  gen() { const parts = []; const f = ru(5400, 6200); let g = 0.09;
+    for (let k = 0, m = ri(7, 11); k < m; k++) {   /* a little bit of bread and no— */
+      parts.push(tone(0.05, [[0, f], [1, f * 1.03]], { harm: [1, 0.12], atk: 0.004, rel: 0.01 }));
+      parts.push(gapN(Math.max(0.025, g))); g *= 0.88;
+    }
+    parts.push(tone(ru(0.4, 0.6), [[0, f * 1.15], [1, f * 1.12]], { harm: [1, 0.08], atk: 0.02, rel: 0.08 }));  /* cheeeese */
+    return cat(...parts); } });
+def("collared_dove", { name: "collared dove", g: "bird",
+  act: A({ doy: [50, 280], dawn: 1.1, day: 0.7 }), gap: [6, 12], dist: [0.2, 0.55], n: [1, 2],
+  gen() { const b = ru(470, 530); const parts = [];
+    for (let k = 0, m = ri(2, 4); k < m; k++) {
+      parts.push(tone(0.16, [[0, b], [1, b * 0.98]], { harm: [1, 0.3, 0.08], noise: 0.08, atk: 0.025, rel: 0.05 }));
+      parts.push(gapN(0.06));
+      parts.push(tone(0.3, [[0, b * 1.1], [1, b * 1.04]], { harm: [1, 0.3, 0.08], noise: 0.08, atk: 0.02, rel: 0.06 }));
+      parts.push(gapN(0.05));
+      parts.push(scaleA(tone(0.1, [[0, b * 0.92], [1, b * 0.85]], { harm: [1, 0.3, 0.08], noise: 0.1, atk: 0.015, rel: 0.04 }), 0.7));
+      parts.push(gapN(0.2));
+    } return cat(...parts); } });
+def("goldenoriole", { name: "golden oriole", g: "bird",
+  act: A({ doy: [125, 200], dawn: 1.3, day: 0.6 }), gap: [8, 15], dist: [0.3, 0.65], n: [1, 1], rev: 0.35,
+  gen() { const f = ru(1500, 1900);
+    return cat(
+      tone(0.14, [[0, f], [1, f * 1.25]], { harm: [1, 0.15], atk: 0.015, rel: 0.03 }), gapN(0.04),
+      tone(0.12, [[0, f * 1.3], [1, f * 1.1]], { harm: [1, 0.15], atk: 0.01, rel: 0.03 }), gapN(0.03),
+      tone(0.22, [[0, f * 1.15], [0.5, f * 1.45], [1, f * 0.95]], { harm: [1, 0.15], atk: 0.01, rel: 0.05 })); } });
+def("corncrake", { name: "corncrake", g: "bird",
+  act: A({ doy: [135, 200], night: 1.3, dusk: 0.8, sunMax: -3 }), gap: [1.2, 3], dist: [0.25, 0.6], n: [1, 1],
+  gen() { const raspy = () => { const mk = () => scaleA(rasp(0.008, ru(4200, 5200), 1.2, { win: 0.3 }), 1);
+      return pulses(ri(16, 22), 42, mk, { jit: 0.06 }); };
+    return cat(raspy(), gapN(ru(0.15, 0.22)), raspy()); } });
+def("magpie_eu", { name: "eurasian magpie", g: "bird",
+  act: A({ doy: [1, 365], day: 0.6, dawn: 0.7 }), gap: [10, 22], dist: [0.2, 0.55], n: [1, 1],
+  gen() { const mk = () => rasp(0.045, ru(1800, 2600), 0.9, { win: 0.4 });
+    return pulses(ri(6, 14), ru(9, 13), mk, { jit: 0.08 }); } });
+def("jackdaw", { name: "jackdaws", g: "bird",
+  act: A({ doy: [1, 365], dawn: 1, day: 0.6, dusk: 1 }), gap: [8, 18], dist: [0.25, 0.6], n: [1, 2],
+  gen() { const parts = [];
+    for (let k = 0, m = ri(2, 5); k < m; k++) {
+      const f = ru(1400, 1900);
+      parts.push(tone(0.09, [[0, f], [1, f * 1.15]],
+        { harm: [1, 0.7, 0.4, 0.2], noise: 0.25, atk: 0.004, rel: 0.02 }));
+      parts.push(gapN(ru(0.12, 0.35)));
+    } return cat(...parts); } });
+def("wren_eu", { ...SP.pacwren, id: "wren_eu", name: "eurasian wren" });
+
+/* east asia, autumn & everyday */
+def("suzumushi", { name: "suzumushi — bell crickets", g: "bug",
+  act: A({ doy: [235, 325], tMin: 54, night: 1.2, dusk: 1.1 }), gap: [0.5, 1.5], dist: [0.2, 0.6], n: [2, 3],
+  gen() { const dur = ru(1, 2), n = (dur * SR) | 0, x = new Float32Array(n);
+    const f = ru(4200, 4600); let ph = 0;
+    for (let i = 0; i < n; i++) {
+      const am = Math.pow(0.5 + 0.5 * Math.sin(2 * Math.PI * 42 * i / SR), 1.1);
+      ph += 2 * Math.PI * f / SR;
+      x[i] = (Math.sin(ph) + 0.06 * Math.sin(2 * ph)) * am;
+    } return env3(x, 0.06, 0.12); } });
+def("bulbul_je", { name: "brown-eared bulbul", g: "bird",
+  act: A({ doy: [1, 365], day: 0.8, dawn: 1 }), gap: [6, 14], dist: [0.2, 0.55], n: [1, 2],
+  gen() { const parts = [];
+    for (let k = 0, m = ri(1, 3); k < m; k++) {
+      const f = ru(2600, 3400);
+      parts.push(tone(ru(0.25, 0.45), [[0, f * 1.2], [0.3, f * 1.35], [1, f * 0.8]],
+        { harm: [1, 0.45, 0.15], noise: 0.3, vib: [12, 60], atk: 0.008, rel: 0.06 }));
+      parts.push(gapN(ru(0.15, 0.35)));
+    } return cat(...parts); } });
+
+/* indomalaya, second round */
+def("bulbul_rv", { name: "red-vented bulbul", g: "bird",
+  act: A({ doy: [1, 365], dawn: 1.2, day: 0.7 }), gap: [4, 9], dist: [0.15, 0.5], n: [1, 2],
+  gen() { const parts = []; const f0 = ru(1800, 2400);
+    for (let k = 0, m = ri(3, 5); k < m; k++) {
+      const f = f0 * pick([1, 1.2, 1.35, 0.85]);
+      parts.push(tone(ru(0.08, 0.14), [[0, f], [1, f * pick([1.15, 0.9])]],
+        { harm: [1, 0.25, 0.06], atk: 0.006, rel: 0.02 }));
+      parts.push(gapN(ru(0.04, 0.1)));
+    } return cat(...parts); } });
+def("magpierobin", { name: "oriental magpie-robin", g: "bird",
+  act: A({ doy: [1, 365], dawn: 1.6, day: 0.5, dusk: 1 }), gap: [4, 8], dist: [0.15, 0.5], n: [1, 1], rev: 0.3,
+  gen() { const parts = [];
+    for (let k = 0, m = ri(4, 7); k < m; k++) {
+      const f0 = ru(2000, 3600), arc = pick([1, -1]);
+      parts.push(tone(ru(0.1, 0.2), [[0, f0], [0.5, f0 * (1 + arc * 0.2)], [1, f0 * (1 - arc * 0.06)]],
+        { harm: [1, 0.25, 0.06], vib: [16, 30], atk: 0.008, rel: 0.03 }));
+      parts.push(gapN(ru(0.05, 0.12)));
+    } return cat(...parts); } });
+def("lapwing_rw", { name: "red-wattled lapwing", g: "bird",
+  act: A({ doy: [1, 365], day: 0.8, dusk: 1, night: 0.5, dawn: 1 }), gap: [8, 18], dist: [0.25, 0.6], n: [1, 1],
+  gen() { const parts = []; const b = ru(1600, 2000);
+    for (let k = 0, m = ri(2, 4); k < m; k++) {   /* did-he-do-it! */
+      parts.push(tone(0.08, [[0, b], [1, b * 1.1]], { harm: [1, 0.3], atk: 0.005, rel: 0.015 }));
+      parts.push(gapN(0.04));
+      parts.push(tone(0.07, [[0, b * 1.15], [1, b * 1.2]], { harm: [1, 0.3], atk: 0.005, rel: 0.015 }));
+      parts.push(gapN(0.035));
+      parts.push(tone(0.07, [[0, b * 1.1], [1, b * 1.05]], { harm: [1, 0.3], atk: 0.005, rel: 0.015 }));
+      parts.push(gapN(0.03));
+      parts.push(tone(0.12, [[0, b * 1.3], [1, b * 1.15]], { harm: [1, 0.3], atk: 0.005, rel: 0.03 }));
+      parts.push(gapN(ru(0.15, 0.3)));
+    } return cat(...parts); } });
+def("tokay", { name: "tokay gecko", g: "beast",
+  act: A({ doy: [1, 365], tMin: 66, night: 1.1, dusk: 0.8 }), gap: [60, 150], dist: [0.15, 0.45], n: [1, 1],
+  gen() { const parts = [];
+    parts.push(scaleA(rasp(0.7, 1100, 0.8, { am: 26, amd: 0.8, win: 0.6 }), 0.5));   /* wind-up rattle */
+    parts.push(gapN(0.15));
+    let g = 1;
+    for (let k = 0, m = ri(4, 8); k < m; k++) {   /* TO-kay! TO-kay! fading */
+      parts.push(scaleA(tone(0.13, [[0, 1350], [1, 1100]],
+        { harm: [1, 0.6, 0.3, 0.1], noise: 0.2, atk: 0.005, rel: 0.03 }), g));
+      parts.push(gapN(0.09));
+      parts.push(scaleA(tone(0.16, [[0, 850], [1, 700]],
+        { harm: [1, 0.6, 0.3, 0.1], noise: 0.2, atk: 0.008, rel: 0.04 }), g));
+      parts.push(gapN(ru(0.25, 0.4)));
+      g *= 0.88;
+    } return cat(...parts); } });
+
+/* africa: the boubou duet */
+def("boubou", { name: "boubou duet", g: "bird",
+  act: A({ doy: [1, 365], dawn: 1.3, day: 0.6 }), gap: [8, 16], dist: [0.2, 0.55], n: [1, 1],
+  gen() { const b = ru(650, 780);
+    return cat(   /* his bell notes; her instant rasping answer */
+      tone(0.18, [[0, b], [1, b * 0.98]], { harm: [1, 0.12], atk: 0.008, rel: 0.04 }),
+      gapN(0.07),
+      tone(0.18, [[0, b * 0.95], [1, b * 0.93]], { harm: [1, 0.12], atk: 0.008, rel: 0.04 }),
+      gapN(0.05),
+      tone(0.22, [[0, 1150], [1, 1450]], { harm: [1, 0.4, 0.15], noise: 0.25, atk: 0.008, rel: 0.05 })); } });
+
+/* australasia & nz, second round */
+def("lyrebird", { name: "superb lyrebird", g: "bird",
+  act: A({ doy: [320, 75], dawn: 1.4, day: 0.7 }), gap: [2, 5], dist: [0.2, 0.5], n: [1, 1], rev: 0.35,
+  gen() { /* the mimic of mimics: runs through everyone else's material */
+    const pool = ["kookaburra", "whipbird", "magpie_au", "cockatoo", "butcherbird", "lorikeet"];
+    const parts = [];
+    for (let k = 0, m = ri(2, 3); k < m; k++) {
+      let ph = SP[pick(pool)].gen(envNow());
+      if (ph.length > SR * 2.2) ph = ph.subarray(0, (SR * 2.2) | 0);
+      parts.push(ph); parts.push(gapN(ru(0.1, 0.3)));
+    } return cat(...parts); } });
+def("tui", { name: "tui", g: "bird",
+  act: A({ doy: [1, 365], dawn: 1.4, day: 0.7 }), gap: [5, 10], dist: [0.15, 0.5], n: [1, 1], rev: 0.3,
+  gen() { const parts = [];
+    for (let k = 0, m = ri(4, 8); k < m; k++) {
+      const r = Math.random();
+      if (r < 0.45) {   /* liquid bell note */
+        const f = ru(1400, 2600);
+        parts.push(tone(ru(0.12, 0.25), [[0, f], [1, f * ru(0.96, 1.04)]],
+          { harm: [1, 0.3, 0.4, 0.1], atk: 0.006, rel: 0.05, decay: 0.3 }));
+      } else if (r < 0.75) {   /* click / cough */
+        parts.push(scaleA(rasp(ru(0.02, 0.05), ru(2000, 4000), 0.8, { win: 0.3 }), 0.8));
+      } else {   /* the wheeze */
+        parts.push(rasp(ru(0.15, 0.3), ru(3400, 4800), 2, { am: 40, amd: 0.6, win: 0.6 }));
+      }
+      parts.push(gapN(ru(0.06, 0.2)));
+    } return cat(...parts); } });
+def("bellbird_nz", { name: "new zealand bellbird", g: "bird",
+  act: A({ doy: [1, 365], dawn: 1.5, day: 0.6 }), gap: [5, 10], dist: [0.2, 0.55], n: [1, 2], rev: 0.35,
+  gen() { const parts = []; const f0 = ru(1900, 2400);
+    for (let k = 0, m = ri(3, 6); k < m; k++) {
+      const f = f0 * pick([1, 1.12, 1.25, 0.9]);
+      parts.push(tone(ru(0.16, 0.26), [[0, f], [1, f * 0.995]],
+        { harm: [1, 0.15, 0.3, 0.06], atk: 0.004, rel: 0.06, decay: 0.35 }));
+      parts.push(gapN(ru(0.08, 0.16)));
+    } return cat(...parts); } });
+def("morepork", { ...SP.boobook, id: "morepork", name: "morepork" });
+
+/* the amazon's flute */
+def("musicianwren", { name: "musician wren", g: "bird",
+  act: A({ doy: [1, 365], dawn: 1.2, day: 0.8 }), gap: [6, 12], dist: [0.15, 0.5], n: [1, 1], rev: 0.4,
+  gen() { const parts = []; const scale = [0, 2, 3, 5, 7, 8, 10, 12];
+    const f0 = ru(1300, 1700); let deg = ri(0, 4);
+    for (let k = 0, m = ri(6, 10); k < m; k++) {
+      deg = Math.max(0, Math.min(7, deg + pick([-3, -2, -1, 1, 2, 3])));
+      const f = f0 * Math.pow(2, scale[deg] / 12);
+      parts.push(tone(ru(0.16, 0.24), [[0, f], [1, f * 1.003]],
+        { harm: [1, 0.1], atk: 0.012, rel: 0.04, decay: 0.12 }));
+      parts.push(gapN(ru(0.03, 0.09)));
+    } return cat(...parts); } });
+
 /* ------------------------------------------- the world's cast tables ----- */
 /* a base bed per climate biome, then each realm's voices on top */
 const WBASE = {
@@ -2905,12 +3134,15 @@ const WBASE = {
 const WREALM = {
   wpale: {
     all: ["crow", "fardog", "rooster", "cattle", "churchbell"],
-    tfor: ["blackbird_eu", "chaffinch", "greattit", "cuckoo", "nightingale", "robin_eu",
-           "woodpigeon", "tawny", "yaffle", "wolf", "squirrelR", "geese"],
-    toce: ["blackbird_eu", "chaffinch", "greattit", "cuckoo", "robin_eu", "woodpigeon",
-           "tawny", "yaffle", "skylark", "swifts", "geese"],
-    med: ["nightingale", "blackbird_eu", "greattit", "robin_eu", "woodpigeon", "tawny", "swifts"],
-    subtrop: ["blackbird_eu", "greattit", "nightingale", "robin_eu", "swifts"],
+    tfor: ["blackbird_eu", "songthrush", "blackcap", "chaffinch", "greattit", "cuckoo",
+           "nightingale", "robin_eu", "wren_eu", "goldenoriole", "woodpigeon", "tawny",
+           "yaffle", "magpie_eu", "jackdaw", "wolf", "squirrelR", "geese"],
+    toce: ["blackbird_eu", "songthrush", "blackcap", "chaffinch", "greattit", "cuckoo",
+           "robin_eu", "wren_eu", "yellowhammer", "collared_dove", "woodpigeon", "tawny",
+           "yaffle", "skylark", "swifts", "magpie_eu", "jackdaw", "corncrake", "geese"],
+    med: ["nightingale", "blackbird_eu", "goldenoriole", "collared_dove", "greattit",
+          "robin_eu", "woodpigeon", "tawny", "swifts", "magpie_eu"],
+    subtrop: ["blackbird_eu", "greattit", "nightingale", "robin_eu", "swifts", "collared_dove"],
     steppe: ["skylark", "hornedlark", "cuckoo", "wolf"],
     bor: ["diver", "cuckoo", "raven", "wolf", "rgrouse", "swainson", "junco"],
     sav: ["ringdove", "skylark"],
@@ -2920,9 +3152,10 @@ const WREALM = {
   },
   epale: {
     all: ["jcrow", "fardog", "rooster", "cattle", "templebell"],
-    tfor: ["uguisu", "otdove", "cuckoo", "greattit", "tawny", "higurashi", "minmin", "squirrelR", "geese"],
-    toce: ["uguisu", "otdove", "cuckoo", "greattit", "tawny", "higurashi", "geese"],
-    subtrop: ["uguisu", "koel", "otdove", "minmin", "higurashi", "myna"],
+    tfor: ["uguisu", "bulbul_je", "otdove", "cuckoo", "greattit", "tawny",
+           "higurashi", "minmin", "suzumushi", "squirrelR", "geese"],
+    toce: ["uguisu", "bulbul_je", "otdove", "cuckoo", "greattit", "tawny", "higurashi", "suzumushi", "geese"],
+    subtrop: ["uguisu", "koel", "bulbul_je", "otdove", "minmin", "higurashi", "suzumushi", "myna"],
     steppe: ["skylark", "cuckoo", "wolf", "hornedlark"],
     bor: ["diver", "cuckoo", "raven", "wolf", "rgrouse"],
     des: ["hornedlark", "raven"],
@@ -2931,18 +3164,18 @@ const WREALM = {
   },
   indo: {
     all: ["myna", "jcrow", "fardog", "rooster", "cattle"],
-    trf: ["koel", "brainfever", "gibbon", "peafowl", "gecko"],
-    sav: ["peafowl", "koel", "ringdove", "brainfever"],
-    subtrop: ["koel", "brainfever", "peafowl", "gecko"],
+    trf: ["koel", "brainfever", "gibbon", "peafowl", "magpierobin", "tokay", "gecko"],
+    sav: ["peafowl", "koel", "ringdove", "brainfever", "bulbul_rv", "magpierobin", "lapwing_rw"],
+    subtrop: ["koel", "brainfever", "peafowl", "bulbul_rv", "magpierobin", "lapwing_rw", "tokay", "gecko"],
     tfor: ["cuckoo", "greattit"],
-    des: ["peafowl", "ringdove"],
+    des: ["peafowl", "ringdove", "lapwing_rw"],
     med: [], steppe: [], bor: [], tundra: [], toce: [],
     shore: ["gecko"],
   },
   afro: {
     all: ["ringdove", "fardog", "rooster", "cattle"],
-    sav: ["fisheagle", "hadada", "turaco", "goaway", "fnightjar", "hyena", "lion", "jackals"],
-    trf: ["turaco", "parrots", "fnightjar"],
+    sav: ["fisheagle", "hadada", "turaco", "goaway", "boubou", "fnightjar", "hyena", "lion", "jackals"],
+    trf: ["turaco", "parrots", "boubou", "fnightjar"],
     subtrop: ["hadada", "turaco", "fnightjar"],
     toce: ["hadada"],
     med: ["nightingale", "blackbird_eu"],
@@ -2953,19 +3186,24 @@ const WREALM = {
   },
   austral: {
     all: ["magpie_au", "fardog", "rooster", "cattle"],
-    trf: ["whipbird", "lorikeet", "cockatoo", "kookaburra", "boobook", "cicada_au", "gecko"],
+    trf: ["whipbird", "lorikeet", "cockatoo", "kookaburra", "lyrebird", "boobook", "cicada_au", "gecko"],
     sav: ["kookaburra", "butcherbird", "cockatoo", "boobook", "dingoes", "cicada_au"],
-    subtrop: ["kookaburra", "whipbird", "lorikeet", "cockatoo", "boobook", "cicada_au"],
+    subtrop: ["kookaburra", "whipbird", "lorikeet", "cockatoo", "lyrebird", "boobook", "cicada_au"],
     med: ["butcherbird", "lorikeet", "boobook", "cockatoo"],
     des: ["butcherbird", "dingoes", "boobook"],
     steppe: ["butcherbird", "dingoes", "boobook"],
-    toce: ["kookaburra", "boobook", "lorikeet"],
-    tfor: ["kookaburra", "whipbird", "boobook"],
+    toce: ["kookaburra", "boobook", "lorikeet", "lyrebird"],
+    tfor: ["kookaburra", "whipbird", "lyrebird", "boobook"],
     bor: [], tundra: [], shore: [],
+  },
+  nz: {
+    all: ["tui", "bellbird_nz", "morepork", "fardog", "rooster", "cattle"],
+    toce: ["gulls"], tfor: [], med: [], shore: [],
+    trf: [], sav: [], subtrop: [], des: [], steppe: [], bor: [], tundra: [],
   },
   neotropic: {
     all: ["parrots", "fardog", "rooster", "cattle"],
-    trf: ["piha", "howler", "oropendola", "toucan", "potoo", "tinamou", "gecko"],
+    trf: ["piha", "howler", "oropendola", "toucan", "potoo", "tinamou", "musicianwren", "gecko"],
     sav: ["tinamou", "potoo", "burrowowl"],
     subtrop: ["oropendola", "toucan", "tinamou", "potoo"],
     tfor: ["tinamou", "potoo"],
@@ -3061,6 +3299,11 @@ function play(x, when, o = {}) {
   wet.gain.value = (o.rev ?? 0.15) + 0.55 * dist;
   pan.connect(wet); wet.connect(grp.wet);
   if (o.echo) { const eg = ctx.createGain(); eg.gain.value = 0.5; pan.connect(eg); eg.connect(echoNode); }
+  if (DUB.on && DUB.n) {   /* offer this voice to the dub's throw gate */
+    const ds = ctx.createGain();
+    ds.gain.value = { bird: 0.9, frog: 0.7, fauna: 0.6, bug: 0.22, air: 0.12 }[o.group || "air"] ?? 0.3;
+    pan.connect(ds); ds.connect(DUB.n.throw);
+  }
   src.start(when);
   const durS = x.length / SR;
   src.stop(when + durS + 0.1);
@@ -3262,6 +3505,175 @@ function scheduleWater(now, horizon) {
   }
 }
 
+/* =============================================================== dub ===== */
+/* [ dub ] — the land through a tape echo. the field recording keeps
+   playing untouched; a rhythmic throw gate catches voices into a wobbling,
+   saturated feedback delay, under muted chord stabs and a soft sub pulse
+   rooted in the site's own key. the treatment drifts on its own weather
+   (washing / sparse / deep / receding), seeded by the day. after topdown
+   dialectic — smear, haze, no drums. */
+const DUB = {
+  on: false, beat: 0, nextT: -1, bpm: 72,
+  drng: Math.random, state: "washing", stateBeats: 64,
+  pattern: [1, 0, 0, 1, 0, 1, 0, 0], throwLevel: 0.75,
+  fb: 0.58, lpf: 1600, chordEvery: 8, chordProb: 0.6, chordSoft: false,
+  voicing: 0, subLevel: 0.5, n: null,
+};
+const DUB_VOICINGS = [[0, 3, 7, 10, 14], [0, 5, 10, 15], [0, 5, 7, 12], [0, 3, 10, 17]];
+function dubRoot() {   /* the place has a key */
+  let hz = 55 * Math.pow(2, (fnv(site ? site.key : "nowhere") % 12) / 12);
+  while (hz > 62) hz /= 2; while (hz < 38) hz *= 2;
+  return hz;
+}
+function buildDub() {
+  if (DUB.n) return;
+  const n = {};
+  n.throw = ctx.createGain(); n.throw.gain.value = 0;
+  n.in = ctx.createGain(); n.in.gain.value = 1;
+  n.lp = ctx.createBiquadFilter(); n.lp.type = "lowpass"; n.lp.frequency.value = DUB.lpf; n.lp.Q.value = 0.6;
+  n.hp = ctx.createBiquadFilter(); n.hp.type = "highpass"; n.hp.frequency.value = 210;
+  n.shaper = ctx.createWaveShaper();
+  /* unity small-signal slope, or the feedback loop self-oscillates */
+  const curve = new Float32Array(1024);
+  for (let i = 0; i < 1024; i++) { const x = i / 511.5 - 1; curve[i] = Math.tanh(1.7 * x) / 1.7; }
+  n.shaper.curve = curve;
+  n.dA = ctx.createDelay(3); n.dB = ctx.createDelay(3);
+  n.fbA = ctx.createGain(); n.fbA.gain.value = DUB.fb;
+  n.fbB = ctx.createGain(); n.fbB.gain.value = DUB.fb * 0.7;
+  for (const [d, rate, depth] of [[n.dA, 0.29, 0.0035], [n.dB, 0.21, 0.005]]) {
+    const o = ctx.createOscillator(), og = ctx.createGain();   /* tape wow */
+    o.frequency.value = rate; og.gain.value = depth;
+    o.connect(og); og.connect(d.delayTime); o.start();
+  }
+  n.throw.connect(n.in); n.in.connect(n.lp); n.lp.connect(n.hp); n.hp.connect(n.shaper);
+  n.shaper.connect(n.dA); n.shaper.connect(n.dB);
+  n.dA.connect(n.fbA); n.fbA.connect(n.lp);
+  n.dB.connect(n.fbB); n.fbB.connect(n.lp);
+  n.pA = ctx.createStereoPanner(); n.pA.pan.value = -0.32;
+  n.pB = ctx.createStereoPanner(); n.pB.pan.value = 0.34;
+  n.echoOut = ctx.createGain(); n.echoOut.gain.value = 1.5;
+  n.dA.connect(n.pA); n.pA.connect(n.echoOut);
+  n.dB.connect(n.pB); n.pB.connect(n.echoOut);
+  n.mix = ctx.createGain(); n.mix.gain.value = 0;
+  n.echoOut.connect(n.mix);
+  n.chDry = ctx.createGain(); n.chDry.gain.value = 0.16; n.chDry.connect(n.mix);
+  n.subG = ctx.createGain(); n.subG.gain.value = 1; n.subG.connect(n.mix);
+  n.mix.connect(sum);
+  n.wet = ctx.createGain(); n.wet.gain.value = 0.22;
+  n.mix.connect(n.wet); n.wet.connect(wetGain);
+  DUB.n = n;
+}
+function dubSpb() { return 60 / DUB.bpm; }
+function startDub() {
+  buildDub();
+  DUB.drng = mulberry32(fnv("dub:" + (site ? site.key : "x") + ":" + dayStr));
+  DUB.bpm = 66 + Math.floor(DUB.drng() * 12);
+  DUB.beat = 0; DUB.nextT = ctx.currentTime + 0.3;
+  dubDelays(ctx.currentTime);
+  dubDrift(true);
+  DUB.n.mix.gain.setTargetAtTime(P.dubDepth * 0.85, ctx.currentTime, 2.5);
+}
+function stopDub() {
+  if (!DUB.n) return;
+  DUB.n.mix.gain.setTargetAtTime(0, ctx.currentTime, 1.8);
+  DUB.n.throw.gain.setTargetAtTime(0, ctx.currentTime, 0.5);
+}
+function dubDelays(t) {   /* tempo-synced; retunes glide like tape */
+  const spb = dubSpb();
+  DUB.n.dA.delayTime.setTargetAtTime(spb * DUB.divA, t, 0.6);
+  DUB.n.dB.delayTime.setTargetAtTime(spb * DUB.divB, t, 0.8);
+}
+DUB.divA = 0.75; DUB.divB = 1.5;
+function chordStab(t) {
+  const root = dubRoot() * 2, v = DUB_VOICINGS[DUB.voicing];
+  const dur = DUB.chordSoft ? ru(0.9, 1.4) : ru(0.35, 0.6);
+  const nn = (dur * SR) | 0, x = new Float32Array(nn);
+  for (const semi of v) {
+    for (const det of [-0.0012, 0.0014]) {
+      const f = root * Math.pow(2, semi / 12) * (1 + det);
+      let ph = ru(0, 6.28);
+      for (let i = 0; i < nn; i++) {
+        ph += 2 * Math.PI * f / SR;
+        x[i] += Math.sin(ph) + 0.4 * Math.sin(2 * ph) + 0.12 * Math.sin(3 * ph);
+      }
+    }
+  }
+  lpA(x, DUB.lpf * 0.8); lpA(x, DUB.lpf * 0.8);
+  const atk = DUB.chordSoft ? 0.12 : 0.006;
+  for (let i = 0; i < nn; i++) {
+    const tt = i / SR;
+    x[i] *= Math.min(1, tt / atk) * Math.exp(-tt / (dur * 0.45));
+  }
+  normA(x);
+  const src = ctx.createBufferSource(); src.buffer = mkbuf(x);
+  const g = ctx.createGain(); g.gain.value = ru(0.3, 0.5);
+  src.connect(g);
+  g.connect(DUB.n.in);       /* the stab lives mostly in its echoes */
+  g.connect(DUB.n.chDry);
+  src.start(t); src.stop(t + dur + 0.1);
+}
+function subPulse(t, amt) {
+  const f = dubRoot(), dur = 0.4, nn = (dur * SR) | 0, x = new Float32Array(nn);
+  let ph = 0;
+  for (let i = 0; i < nn; i++) {
+    const tt = i / SR;
+    ph += 2 * Math.PI * f / SR;
+    x[i] = (Math.sin(ph) + 0.15 * Math.sin(2 * ph)) * Math.min(1, tt / 0.02) * Math.exp(-tt / 0.14);
+  }
+  const src = ctx.createBufferSource(); src.buffer = mkbuf(x);
+  const g = ctx.createGain(); g.gain.value = 0.5 * amt * DUB.subLevel;
+  src.connect(g); g.connect(DUB.n.subG);
+  src.start(t); src.stop(t + dur + 0.05);
+}
+function dubDrift(first) {
+  const r = DUB.drng;
+  if (!first) {
+    const states = ["washing", "sparse", "deep", "receding"];
+    if (r() < 0.55) DUB.state = states[(r() * states.length) | 0];
+  }
+  const S = {
+    washing:  { fb: 0.58, lpf: 1650, throw: 0.75, chordProb: 0.55, chordEvery: 8, soft: false, sub: 0.5, dens: 0.5 },
+    sparse:   { fb: 0.48, lpf: 1900, throw: 0.55, chordProb: 0.25, chordEvery: 16, soft: false, sub: 0.35, dens: 0.3 },
+    deep:     { fb: 0.7,  lpf: 1150, throw: 0.9,  chordProb: 0.8,  chordEvery: 8, soft: true,  sub: 0.7, dens: 0.65 },
+    receding: { fb: 0.62, lpf: 1350, throw: 0.4,  chordProb: 0.15, chordEvery: 16, soft: true,  sub: 0.25, dens: 0.2 },
+  }[DUB.state];
+  DUB.fb = S.fb * ru2(r, 0.92, 1.06);
+  DUB.lpf = S.lpf * ru2(r, 0.85, 1.15);
+  DUB.throwLevel = S.throw; DUB.chordProb = S.chordProb;
+  DUB.chordEvery = S.chordEvery; DUB.chordSoft = S.soft; DUB.subLevel = S.sub;
+  if (r() < 0.4) { DUB.divA = [0.75, 0.5, 1][(r() * 3) | 0]; DUB.divB = [1.5, 1, 0.75][(r() * 3) | 0]; }
+  if (r() < 0.35) DUB.voicing = (r() * DUB_VOICINGS.length) | 0;
+  /* reroll the throw pattern at the state's density */
+  DUB.pattern = DUB.pattern.map(() => r() < S.dens ? 1 : 0);
+  if (!DUB.pattern.includes(1)) DUB.pattern[(r() * 8) | 0] = 1;
+  DUB.stateBeats = 32 + ((r() * 10) | 0) * 8;
+  if (DUB.n && ctx) {
+    const t = ctx.currentTime;
+    DUB.n.fbA.gain.setTargetAtTime(DUB.fb, t, 1.5);
+    DUB.n.fbB.gain.setTargetAtTime(DUB.fb * 0.7, t, 1.5);
+    DUB.n.lp.frequency.setTargetAtTime(DUB.lpf, t, 2);
+    dubDelays(t);
+  }
+}
+function dubTick(now, horizon) {
+  if (!DUB.on || !DUB.n) return;
+  const spb = dubSpb();
+  if (DUB.nextT < now - 1) DUB.nextT = now + 0.1;
+  while (DUB.nextT < now + horizon) {
+    const t = DUB.nextT, b = DUB.beat;
+    const g = DUB.n.throw.gain;
+    for (let e = 0; e < 2; e++) {   /* the throw gate, on eighths */
+      const open = DUB.pattern[(b * 2 + e) % DUB.pattern.length];
+      g.setTargetAtTime(open ? DUB.throwLevel : 0, t + e * spb / 2, 0.03);
+    }
+    if (b % DUB.chordEvery === 2 && DUB.drng() < DUB.chordProb) chordStab(t);
+    if (b % 4 === 0) subPulse(t, 1);
+    else if (b % 4 === 2 && DUB.drng() < 0.3) subPulse(t + spb * 0.5, 0.55);
+    if (b > 0 && b % DUB.stateBeats === 0) dubDrift();
+    DUB.beat++; DUB.nextT += spb;
+  }
+}
+
 /* ----------------------------------------------------------- weather ----- */
 let weather = { wind: 0.35, rain: 0, drip: 0, fog: 0, thunder: false, snow: 0, plan: null };
 function planWeather() {
@@ -3416,6 +3828,7 @@ function driftApply(lon, lat) {
     }
     buildBed(); buildWaterEvents(); buildCast();
   }
+  if (viewMode === "world") globeCenter(site.lon, site.lat);   /* the globe follows */
   statusLine(envNow());
 }
 
@@ -3429,6 +3842,7 @@ function tick() {
   stepWeather(e);
   steerBed(now);
   scheduleWater(now, horizon);
+  dubTick(now, horizon);
   /* thunder */
   if (weather.thunder && now > thunderNext) {
     const far = arng() < 0.75;
@@ -3486,8 +3900,9 @@ function statusLine(e) {
   if (!site) return;
   const hm = solarHour();
   const hh = String((hm / 60) | 0).padStart(2, "0"), mm = String((hm % 60) | 0).padStart(2, "0");
-  const wx = weather.snow > 0.05 ? " · snow" : weather.rain > 0.4 ? " · rain"
-    : weather.rain > 0.05 ? " · light rain" : weather.fog > 0.4 ? " · fog" : "";
+  const wx = (weather.snow > 0.05 ? " · snow" : weather.rain > 0.4 ? " · rain"
+    : weather.rain > 0.05 ? " · light rain" : weather.fog > 0.4 ? " · fog" : "")
+    + (P.dub ? " · dub " + DUB.state : "");
   document.getElementById("siteline").innerHTML =
     `${Math.abs(site.lat).toFixed(1)}°${site.lat < 0 ? "S" : "N"} ` +
     `${Math.abs(site.lon).toFixed(1)}°${site.lon < 0 ? "W" : "E"} · ` +
@@ -3497,27 +3912,153 @@ function statusLine(e) {
 
 /* ============================================================== map ====== */
 const cv = document.getElementById("map"), g2 = cv.getContext("2d");
-let mapCache = null, view = null;   /* view: {s, ox, oy, proj} projected -> px */
-let viewMode = "world";             /* "world" (equal earth) | "usa" (albers) */
+let mapCache = null, view = null;   /* usa view: {s, ox, oy} albers -> px */
+let viewMode = "world";             /* "world" (the globe) | "usa" (albers) */
 function computeView(W, H) {
-  const proj = viewMode === "world" ? EE : AB;
   let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
-  const scan = (lo, la) => { const [x, y] = proj.fwd(lo, la);
-    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; };
-  if (viewMode === "world") {
-    for (let lo = -180; lo <= 180; lo += 10) { scan(lo, -56); scan(lo, 78); }
-    for (let la = -56; la <= 78; la += 5) { scan(-180, la); scan(180, la); }
-  } else {
-    for (const s of STATES) for (const r of s.rings) for (const [lo, la] of r) scan(lo, la);
+  for (const s of STATES) for (const r of s.rings) for (const [lo, la] of r) {
+    const [x, y] = AB.fwd(lo, la);
+    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
   }
   const m = 0.03;
   const sc = Math.min(W * (1 - m * 2) / (x1 - x0), H * (1 - m * 2) / (y1 - y0));
-  return { s: sc, ox: W / 2 - sc * (x0 + x1) / 2, oy: H / 2 + sc * (y0 + y1) / 2, proj };
+  return { s: sc, ox: W / 2 - sc * (x0 + x1) / 2, oy: H / 2 + sc * (y0 + y1) / 2 };
 }
-function toPx(lon, lat) { const [x, y] = view.proj.fwd(lon, lat);
-  return [view.ox + view.s * x, view.oy - view.s * y]; }
-function fromPx(px, py) { return view.proj.inv((px - view.ox) / view.s, (view.oy - py) / view.s); }
 function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function isDark() { return !matchMedia("(prefers-color-scheme: light)").matches
+  || document.documentElement.dataset.theme === "dark"; }
+
+/* ------------------------------------------------ the spinning globe ----- */
+const RAD = Math.PI / 180;
+const GLOBE = { lam: -96, phi: 30, zoom: 1.0, minZ: 0.85, maxZ: 7,
+  tw: 2160, th: 1080, tex: null, target: null, lastTouch: 0 };
+function globeTexture() {
+  if (GLOBE.tex) return GLOBE.tex;
+  const w = GLOBE.tw, h = GLOBE.th;
+  const oc = document.createElement("canvas"); oc.width = w; oc.height = h;
+  const g = oc.getContext("2d");
+  const dark = isDark();
+  g.fillStyle = dark ? "#14171c" : "#e2e7ea"; g.fillRect(0, 0, w, h);   /* the sea */
+  const X = lon => (lon + 180) / 360 * w, Y = lat => (90 - lat) / 180 * h;
+  const paths = polys => { g.beginPath();
+    for (const p of polys) for (const r of p.rings) {
+      r.forEach(([lo, la], i) => i ? g.lineTo(X(lo), Y(la)) : g.moveTo(X(lo), Y(la)));
+      g.closePath();
+    } };
+  const landBase = dark ? [36, 39, 44] : [207, 207, 200];
+  const mixHue = hue => {   /* pre-blend so overlapping cells leave no seams */
+    const r = parseInt(hue.slice(1, 3), 16), gc = parseInt(hue.slice(3, 5), 16), b = parseInt(hue.slice(5, 7), 16);
+    const a = dark ? 0.55 : 0.6;
+    return `rgb(${(landBase[0] * (1 - a) + r * a) | 0},${(landBase[1] * (1 - a) + gc * a) | 0},${(landBase[2] * (1 - a) + b * a) | 0})`;
+  };
+  const hueCache = {};
+  const tint = id => hueCache[id] || (hueCache[id] = mixHue(BIOME_INFO[id].hue));
+  g.fillStyle = `rgb(${landBase[0]},${landBase[1]},${landBase[2]})`;
+  paths(COUNTRIES); g.fill();
+  g.save(); paths(COUNTRIES); g.clip();
+  for (let gy = 0; gy < 180; gy++) for (let gx = 0; gx < 360; gx++) {
+    const v = KG[gy * 360 + gx]; if (v === 255) continue;
+    g.fillStyle = tint(kgBiome(KG_CLASSES[v]));
+    g.fillRect(gx / 360 * w, (179 - gy) / 180 * h, w / 360 + 1, h / 180 + 1);
+  }
+  for (let la = 24.5; la < 49.5; la += 0.5) for (let lo = -125; lo < -66.5; lo += 0.5) {
+    if (!stateAt(lo + 0.25, la + 0.25)) continue;   /* US at finer grain */
+    g.fillStyle = tint(biomeAt(lo + 0.25, la + 0.25, true).biome);
+    g.fillRect(X(lo), Y(la + 0.5), w / 720 + 1, h / 360 + 1);
+  }
+  g.restore(); g.globalAlpha = 1;
+  g.strokeStyle = dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"; g.lineWidth = 1;
+  g.beginPath();
+  for (let lo = -150; lo <= 180; lo += 30) { g.moveTo(X(lo), 0); g.lineTo(X(lo), h); }
+  for (let la = -60; la <= 60; la += 30) { g.moveTo(0, Y(la)); g.lineTo(w, Y(la)); }
+  g.stroke();
+  g.strokeStyle = dark ? "rgba(255,255,255,0.17)" : "rgba(0,0,0,0.2)"; g.lineWidth = 1;
+  paths(COUNTRIES); g.stroke();
+  g.globalAlpha = 0.55; g.lineWidth = 0.6; paths(STATES); g.stroke(); g.globalAlpha = 1;
+  GLOBE.tex = new Uint32Array(g.getImageData(0, 0, w, h).data.buffer);
+  return GLOBE.tex;
+}
+let gCanvas = null, gCtx = null, gImg = null;
+function drawGlobeFrame() {
+  const S = 640;
+  if (!gCanvas) {
+    gCanvas = document.createElement("canvas"); gCanvas.width = S; gCanvas.height = S;
+    gCtx = gCanvas.getContext("2d");
+    gImg = gCtx.createImageData(S, S);
+  }
+  const tex = globeTexture(), tw = GLOBE.tw, th = GLOBE.th;
+  const out = new Uint32Array(gImg.data.buffer);
+  out.fill(0);
+  const R = S * 0.485 * GLOBE.zoom, cx = S / 2, cy = S / 2;
+  const sp = Math.sin(GLOBE.phi * RAD), cp = Math.cos(GLOBE.phi * RAD);
+  /* the sun, for the terminator: the app's own clock decides day and night */
+  const decl = -23.44 * Math.cos(2 * Math.PI * (P.doy + 10) / 365) * RAD;
+  const sd = Math.sin(decl), cd = Math.cos(decl);
+  const hm = site ? solarHour() : ((Date.now() / 60000) % 1440);
+  const lamS = ((site ? site.lon : 0) - (hm / 60 - 12) * 15) * RAD;
+  const y0 = Math.max(0, cy - R) | 0, y1 = Math.min(S, cy + R + 1) | 0;
+  for (let y = y0; y < y1; y++) {
+    const dy = (cy - y) / R;
+    const x0 = Math.max(0, cx - R) | 0, x1 = Math.min(S, cx + R + 1) | 0;
+    for (let x = x0; x < x1; x++) {
+      const dx = (x - cx) / R;
+      const d2 = dx * dx + dy * dy;
+      if (d2 > 1) continue;
+      const z = Math.sqrt(1 - d2);
+      const sinLat = z * sp + dy * cp;
+      const latR = Math.asin(Math.max(-1, Math.min(1, sinLat)));
+      const lonD = GLOBE.lam + Math.atan2(dx, z * cp - dy * sp) / RAD;
+      let tx = (((lonD + 180) / 360 * tw) | 0) % tw; if (tx < 0) tx += tw;
+      let ty = ((90 - latR / RAD) / 180 * th) | 0;
+      if (ty < 0) ty = 0; else if (ty >= th) ty = th - 1;
+      const v = tex[ty * tw + tx];
+      let r = v & 255, gg = (v >> 8) & 255, b = (v >> 16) & 255;
+      const cosz = sinLat * sd + Math.cos(latR) * cd * Math.cos(lonD * RAD - lamS);
+      let sh = 0.84 + 0.16 * z;                          /* the limb */
+      if (cosz < 0.05) sh *= cosz < -0.09 ? 0.66 : 0.66 + 0.34 * (cosz + 0.09) / 0.14;
+      r = (r * sh) | 0; gg = (gg * sh) | 0; b = (b * sh) | 0;
+      out[y * S + x] = 0xFF000000 | (b << 16) | (gg << 8) | r;
+    }
+  }
+  gCtx.putImageData(gImg, 0, 0);
+  return gCanvas;
+}
+/* globe <-> screen, in device pixels of the display canvas */
+function globeGeom(W, H) {
+  const disp = Math.min(W, H);
+  return { Rd: disp * 0.485 * GLOBE.zoom, cx: W / 2, cy: H / 2, disp };
+}
+function globeToPx(lon, lat, W, H) {
+  const { Rd, cx, cy } = globeGeom(W, H);
+  const sp = Math.sin(GLOBE.phi * RAD), cp = Math.cos(GLOBE.phi * RAD);
+  const latR = lat * RAD, dl = (lon - GLOBE.lam) * RAD;
+  const cl = Math.cos(latR), sl = Math.sin(latR);
+  const cosc = sp * sl + cp * cl * Math.cos(dl);
+  if (cosc < 0.02) return null;                          /* the far side */
+  return [cx + cl * Math.sin(dl) * Rd, cy - (cp * sl - sp * cl * Math.cos(dl)) * Rd];
+}
+function globeFromPx(px, py, W, H) {
+  const { Rd, cx, cy } = globeGeom(W, H);
+  const dx = (px - cx) / Rd, dy = (cy - py) / Rd;
+  const d2 = dx * dx + dy * dy;
+  if (d2 > 1) return null;
+  const z = Math.sqrt(1 - d2);
+  const sp = Math.sin(GLOBE.phi * RAD), cp = Math.cos(GLOBE.phi * RAD);
+  const lat = Math.asin(Math.max(-1, Math.min(1, z * sp + dy * cp))) / RAD;
+  const lon = GLOBE.lam + Math.atan2(dx, z * cp - dy * sp) / RAD;
+  return [((lon + 180) % 360 + 360) % 360 - 180, lat];
+}
+function globeCenter(lon, lat) { GLOBE.target = { lam: lon, phi: Math.max(-80, Math.min(80, lat)) }; }
+
+function toPx(lon, lat) {
+  if (viewMode === "world") return globeToPx(lon, lat, cv.width, cv.height);
+  const [x, y] = AB.fwd(lon, lat);
+  return [view.ox + view.s * x, view.oy - view.s * y];
+}
+function fromPx(px, py) {
+  if (viewMode === "world") return globeFromPx(px, py, cv.width, cv.height);
+  return AB.inv((px - view.ox) / view.s, (view.oy - py) / view.s);
+}
 
 function tracePath(g, polys) {
   g.beginPath();
@@ -3527,30 +4068,17 @@ function tracePath(g, polys) {
     g.closePath();
   }
 }
-function drawBase(W, H) {
+function drawBase(W, H) {   /* the flat albers usa, cached */
   const off = document.createElement("canvas"); off.width = W; off.height = H;
   const g = off.getContext("2d");
-  const dark = !matchMedia("(prefers-color-scheme: light)").matches
-            || document.documentElement.dataset.theme === "dark";
-  const world = viewMode === "world";
   g.save();
-  tracePath(g, world ? COUNTRIES : STATES);
+  tracePath(g, STATES);
   g.clip();
-  g.globalAlpha = dark ? 0.5 : 0.55;
-  const step = world ? 1.1 : 0.35;
-  const la0 = world ? -56 : 24, la1 = world ? 74 : 49.5;
-  const lo0 = world ? -180 : -125, lo1 = world ? 180 : -66.5;
-  for (let la = la0; la < la1; la += step) {
-    for (let lo = lo0; lo < lo1; lo += step) {
-      let hue;
-      if (world) {
-        const b = kgBiome(kgAt(lo + step / 2, la + step / 2));
-        if (!b) continue;
-        hue = BIOME_INFO[b].hue;
-      } else {
-        hue = BIOME_INFO[biomeAt(lo + step / 2, la + step / 2, true).biome].hue;
-      }
-      g.fillStyle = hue;
+  g.globalAlpha = isDark() ? 0.5 : 0.55;
+  const step = 0.35;
+  for (let la = 24; la < 49.5; la += step) {
+    for (let lo = -125; lo < -66.5; lo += step) {
+      g.fillStyle = BIOME_INFO[biomeAt(lo + step / 2, la + step / 2, true).biome].hue;
       const p0 = toPx(lo, la), p1 = toPx(lo + step, la), p2 = toPx(lo + step, la + step), p3 = toPx(lo, la + step);
       g.beginPath(); g.moveTo(p0[0], p0[1]); g.lineTo(p1[0], p1[1]);
       g.lineTo(p2[0], p2[1]); g.lineTo(p3[0], p3[1]); g.closePath(); g.fill();
@@ -3558,59 +4086,84 @@ function drawBase(W, H) {
   }
   g.restore();
   g.globalAlpha = 1;
-  g.strokeStyle = cssVar("--rule"); g.lineWidth = world ? 0.5 : 0.7;
-  tracePath(g, world ? COUNTRIES : STATES); g.stroke();
-  if (!world) return off;
-  /* faint state lines inside the US, even at world scale */
-  g.globalAlpha = 0.5; g.lineWidth = 0.35;
-  tracePath(g, STATES); g.stroke(); g.globalAlpha = 1;
+  g.strokeStyle = cssVar("--rule"); g.lineWidth = 0.7;
+  tracePath(g, STATES); g.stroke();
   return off;
+}
+let drawLive = false, rafQueued = false, frameFlip = false;
+const ptrs = new Map();
+function queueDraw() {
+  if (rafQueued) return;
+  rafQueued = true;
+  requestAnimationFrame(() => { rafQueued = false; drawMap(); });
 }
 function drawMap() {
   const wantW = Math.round(cv.clientWidth * devicePixelRatio),
         wantH = Math.round(cv.clientHeight * devicePixelRatio);
-  if (cv.width !== wantW || cv.height !== wantH || !mapCache) {
-    cv.width = wantW; cv.height = wantH;
-    view = computeView(wantW, wantH);
-    mapCache = drawBase(wantW, wantH);
-  }
+  if (cv.width !== wantW || cv.height !== wantH) { cv.width = wantW; cv.height = wantH; mapCache = null; }
   const W = cv.width, H = cv.height;
-  g2.clearRect(0, 0, W, H);
-  g2.drawImage(mapCache, 0, 0);
-  /* night veil follows the site's sun */
+  if (!W || !H) { queueDraw(); return; }
+  if (viewMode === "world") {
+    const nowMs = performance.now();
+    const dt = Math.min(0.1, (nowMs - (GLOBE.lastMs || nowMs)) / 1000);
+    GLOBE.lastMs = nowMs;
+    const ease = 1 - Math.exp(-5 * dt);
+    if (GLOBE.target) {   /* ease toward a chosen place */
+      let dl = GLOBE.target.lam - GLOBE.lam; dl = ((dl + 540) % 360) - 180;
+      GLOBE.lam += dl * ease; GLOBE.phi += (GLOBE.target.phi - GLOBE.phi) * ease;
+      if (Math.abs(dl) < 0.4 && Math.abs(GLOBE.target.phi - GLOBE.phi) < 0.4) GLOBE.target = null;
+    } else if (!ptrs.size && nowMs - GLOBE.lastTouch > 4000) {
+      GLOBE.lam -= 1.6 * dt;   /* the idle spin: one turn in ~4 minutes */
+      if (GLOBE.lam < -180) GLOBE.lam += 360;
+    }
+    if (!gCanvas || nowMs - (GLOBE.lastRender || 0) >= 31) {
+      drawGlobeFrame(); GLOBE.lastRender = nowMs;
+    }
+    g2.clearRect(0, 0, W, H);
+    const disp = Math.min(W, H);
+    g2.imageSmoothingEnabled = true;
+    g2.drawImage(gCanvas, (W - disp) / 2, (H - disp) / 2, disp, disp);
+  } else {
+    if (!mapCache) { view = computeView(W, H); mapCache = drawBase(W, H); }
+    g2.clearRect(0, 0, W, H);
+    g2.drawImage(mapCache, 0, 0);
+    if (site) {   /* night veil (the globe has its own terminator) */
+      const e = envNow();
+      const veil = Math.max(0, Math.min(1, (-e.el + 2) / 14)) * 0.22;
+      if (veil > 0.01) { g2.fillStyle = "#06070c"; g2.globalAlpha = veil;
+        g2.fillRect(0, 0, W, H); g2.globalAlpha = 1; }
+    }
+  }
   if (site) {
-    const e = envNow();
-    const veil = Math.max(0, Math.min(1, (-e.el + 2) / 14)) * 0.22;
-    if (veil > 0.01) { g2.fillStyle = "#06070c"; g2.globalAlpha = veil;
-      g2.fillRect(0, 0, W, H); g2.globalAlpha = 1; }
-    const [mx, my] = toPx(site.lon, site.lat);
-    g2.strokeStyle = cssVar("--s1"); g2.lineWidth = devicePixelRatio;
-    g2.beginPath(); g2.moveTo(mx - 7 * devicePixelRatio, my); g2.lineTo(mx + 7 * devicePixelRatio, my);
-    g2.moveTo(mx, my - 7 * devicePixelRatio); g2.lineTo(mx, my + 7 * devicePixelRatio); g2.stroke();
-    /* sound ripples around the listener */
-    if (running) {
-      const now = ctx.currentTime;
-      for (let i = visEvents.length - 1; i >= 0; i--) {
-        const ev = visEvents[i], age = now - ev.t;
-        const life = Math.min(4, ev.dur + 1);
-        if (age > life) { visEvents.splice(i, 1); continue; }
-        if (age < 0) continue;
-        const u = age / life;
-        const ang = -Math.PI / 2 + ev.pan * 1.1;
-        const rr = (10 + ev.dist * 42) * devicePixelRatio;
-        const x = mx + Math.cos(ang) * rr, y = my + Math.sin(ang) * rr;
-        g2.beginPath();
-        g2.arc(x, y, (2 + u * 26) * devicePixelRatio, 0, 6.284);
-        g2.strokeStyle = cssVar(ev.name && ev.name.includes("thunder") ? "--cool" : "--warm");
-        g2.globalAlpha = (1 - u) * 0.55;
-        g2.lineWidth = devicePixelRatio;
-        g2.stroke(); g2.globalAlpha = 1;
+    const m = toPx(site.lon, site.lat);
+    if (m) {
+      const [mx, my] = m;
+      g2.strokeStyle = cssVar("--s1"); g2.lineWidth = devicePixelRatio;
+      g2.beginPath(); g2.moveTo(mx - 7 * devicePixelRatio, my); g2.lineTo(mx + 7 * devicePixelRatio, my);
+      g2.moveTo(mx, my - 7 * devicePixelRatio); g2.lineTo(mx, my + 7 * devicePixelRatio); g2.stroke();
+      if (running) {
+        const now = ctx.currentTime;
+        for (let i = visEvents.length - 1; i >= 0; i--) {
+          const ev = visEvents[i], age = now - ev.t;
+          const life = Math.min(4, ev.dur + 1);
+          if (age > life) { visEvents.splice(i, 1); continue; }
+          if (age < 0) continue;
+          const u = age / life;
+          const ang = -Math.PI / 2 + ev.pan * 1.1;
+          const rr = (10 + ev.dist * 42) * devicePixelRatio;
+          const x = mx + Math.cos(ang) * rr, y = my + Math.sin(ang) * rr;
+          g2.beginPath();
+          g2.arc(x, y, (2 + u * 26) * devicePixelRatio, 0, 6.284);
+          g2.strokeStyle = cssVar(ev.name && ev.name.includes("thunder") ? "--cool" : "--warm");
+          g2.globalAlpha = (1 - u) * 0.55;
+          g2.lineWidth = devicePixelRatio;
+          g2.stroke(); g2.globalAlpha = 1;
+        }
       }
     }
   }
-  requestAnimationFrame(() => { if (drawLive) drawMap(); });
+  if (drawLive || viewMode === "world") queueDraw();
 }
-let drawLive = false;
 
 /* ----------------------------------------------------- interactions ------ */
 function setSite(lon, lat, announceIt = true) {
@@ -3655,13 +4208,62 @@ function setSite(lon, lat, announceIt = true) {
     drawMap();   /* one frame; the rAF loop stays off until begin */
   }
 }
+/* the hands on the globe: drag spins, pinch and wheel zoom, a tap lands */
+let dragInfo = null, pinch0 = null;
 cv.addEventListener("pointerdown", e => {
+  cv.setPointerCapture(e.pointerId);
+  ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+  GLOBE.lastTouch = performance.now();
+  if (ptrs.size === 1) dragInfo = { moved: 0, t: performance.now() };
+  else if (ptrs.size === 2) {
+    const [a, b] = [...ptrs.values()];
+    pinch0 = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), z: GLOBE.zoom };
+    dragInfo = null;
+  }
+});
+cv.addEventListener("pointermove", e => {
+  if (!ptrs.has(e.pointerId)) return;
+  const prev = ptrs.get(e.pointerId);
+  ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+  if (viewMode !== "world") return;
+  GLOBE.lastTouch = performance.now();
+  if (ptrs.size === 1 && dragInfo) {
+    const dx = e.clientX - prev[0], dy = e.clientY - prev[1];
+    dragInfo.moved += Math.abs(dx) + Math.abs(dy);
+    const r = cv.getBoundingClientRect();
+    const Rcss = Math.min(r.width, r.height) * 0.485 * GLOBE.zoom;
+    const k = 52 / Rcss;   /* degrees per css pixel */
+    GLOBE.lam -= dx * k;
+    GLOBE.phi = Math.max(-80, Math.min(80, GLOBE.phi + dy * k));
+    GLOBE.target = null;
+  } else if (ptrs.size === 2 && pinch0) {
+    const [a, b] = [...ptrs.values()];
+    const d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+    GLOBE.zoom = Math.max(GLOBE.minZ, Math.min(GLOBE.maxZ, pinch0.z * d / Math.max(20, pinch0.d)));
+  }
+});
+function endPointer(e) {
+  const had = dragInfo;
+  ptrs.delete(e.pointerId);
+  if (ptrs.size < 2) pinch0 = null;
+  if (ptrs.size === 0) dragInfo = null;
+  if (e.type === "pointercancel") return;
+  const isTap = had && had.moved < 8 && performance.now() - had.t < 600;
+  if (!isTap || ptrs.size) return;
   const r = cv.getBoundingClientRect();
   const px = (e.clientX - r.left) * devicePixelRatio, py = (e.clientY - r.top) * devicePixelRatio;
-  if (!view) return;
-  const [lon, lat] = fromPx(px, py);
-  setSite(lon, lat);
-}, { passive: true });
+  if (viewMode === "usa" && !view) return;
+  const ll = fromPx(px, py);
+  if (ll) setSite(ll[0], ll[1]);
+}
+cv.addEventListener("pointerup", endPointer);
+cv.addEventListener("pointercancel", endPointer);
+cv.addEventListener("wheel", e => {
+  if (viewMode !== "world") return;
+  e.preventDefault();
+  GLOBE.lastTouch = performance.now();
+  GLOBE.zoom = Math.max(GLOBE.minZ, Math.min(GLOBE.maxZ, GLOBE.zoom * Math.exp(-e.deltaY * 0.0013)));
+}, { passive: false });
 
 function randomSite() {
   for (let k = 0; k < 400; k++) {
@@ -3675,7 +4277,9 @@ function randomSite() {
       lon = ru(-180, 180); lat = ru(-55, 72);
       if (!landAt(lon, lat)) continue;
     }
-    setSite(lon, lat); return;
+    setSite(lon, lat);
+    if (viewMode === "world" && site) globeCenter(site.lon, site.lat);
+    return;
   }
 }
 
@@ -3738,6 +4342,16 @@ el.drift.addEventListener("click", () => {
   P.drift = !P.drift;
   el.drift.setAttribute("aria-checked", String(P.drift));
   if (P.drift) engageDrift();
+});
+el.dub.addEventListener("click", () => {
+  P.dub = !P.dub;
+  el.dub.setAttribute("aria-checked", String(P.dub));
+  DUB.on = P.dub;
+  if (running) P.dub ? startDub() : stopDub();
+});
+bind("dubDepth", "dubDepth", v => {
+  if (DUB.n && P.dub && ctx) DUB.n.mix.gain.setTargetAtTime(v * 0.85, ctx.currentTime, 0.4);
+  return Math.round(v * 100);
 });
 out("doy").textContent = doyLabel(P.doy); el.doy.value = P.doy;
 out("wind").textContent = WINDWORDS[Math.min(6, (P.wind * 7) | 0)];
@@ -3879,6 +4493,7 @@ el.begin.addEventListener("click", async () => {
   running = true;
   buildBed(); buildWaterEvents(); buildCast();
   startRecorder();
+  if (P.dub) { DUB.on = true; startDub(); }
   el.begin.remove();
   reflectHour();
   drawLive = true;
@@ -3888,7 +4503,9 @@ el.begin.addEventListener("click", async () => {
 /* ------------------------------------------------- url site + initial ---- */
 (() => {
   const qlat = parseFloat(params.get("lat")), qlon = parseFloat(params.get("lon"));
-  requestAnimationFrame(() => { drawMap(); if (!isNaN(qlat) && !isNaN(qlon)) setSite(qlon, qlat); });
+  requestAnimationFrame(() => { drawMap();
+    if (!isNaN(qlat) && !isNaN(qlon)) { setSite(qlon, qlat);
+      if (site) globeCenter(site.lon, site.lat); } });
   addEventListener("resize", () => { if (!drawLive) drawMap(); });
   const qh = parseFloat(params.get("h"));
   if (!isNaN(qh)) { P.now = false; P.hour = qh * 60;
