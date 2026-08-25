@@ -29,8 +29,23 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   ([ share this place ] copies the link)
 - **the hyperreal details**: a high jet once or twice an hour, a far
   train horn on prairie nights, sea lions and a bell buoy off the
-  pacific rocks, a farm dog answering the coyotes
-- **[ keep .wav ]** downloads the last 90 seconds
+  pacific rocks, a farm dog answering the coyotes — and the land itself:
+  leaf-rustle riding each gust, aspen flutter, tree creaks, seed-head
+  rattle, autumn acorns dropping, frost cracks, lake ice singing its
+  dispersion chirp across a frozen boreal lake
+- **a fauna stem**: deer snorting and bounding off, squirrels scolding,
+  chipmunks, prairie-dog towns, raccoons at night, bison on the
+  shortgrass — alongside the coyotes, wolves and september elk — on
+  their own fader
+- **[ ∞ drift ]** sets the listener wandering: a slow seeded walk whose
+  bearing meanders and reflects off the coasts — creeks come and go,
+  and every ten or twenty minutes you cross into another biome and the
+  whole cast turns over (the journey is seeded by the day and the
+  starting place, so a shared link wanders the same way)
+- **[ keep .wav ]** downloads the last 90 seconds; **[ keep stems ]**
+  downloads the same 90 seconds as birds / insects / frogs / fauna /
+  air / space WAVs that sum back to the mix exactly (the recorded mix
+  is linear, album convention — the live compressor is not printed)
 
 the field research behind the casts — species by species, with
 frequencies and timing for synthesis — is in the album's

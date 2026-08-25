@@ -160,15 +160,23 @@
   <input type="range" id="vBird" min="0" max="100" value="70" aria-label="Bird level"></div>
 <div class="ctl"><div class="row2"><label for="vBug">insects</label><output id="vBugV">70</output></div>
   <input type="range" id="vBug" min="0" max="100" value="70" aria-label="Insect level"></div>
-<div class="ctl cool"><div class="row2"><label for="vFrog">frogs &amp; beasts</label><output id="vFrogV">70</output></div>
-  <input type="range" id="vFrog" min="0" max="100" value="70" aria-label="Frogs and mammals level"></div>
+<div class="ctl cool"><div class="row2"><label for="vFrog">frogs</label><output id="vFrogV">70</output></div>
+  <input type="range" id="vFrog" min="0" max="100" value="70" aria-label="Frog level"></div>
+<div class="ctl cool"><div class="row2"><label for="vFauna">fauna</label><output id="vFaunaV">70</output></div>
+  <input type="range" id="vFauna" min="0" max="100" value="70" aria-label="Mammal and beast level"></div>
 <div class="ctl"><div class="row2"><label for="vAir">air &amp; water</label><output id="vAirV">70</output></div>
   <input type="range" id="vAir" min="0" max="100" value="70" aria-label="Wind and water level"></div>
 
+<div class="inline">
+  <button class="switch" id="drift" role="switch" aria-checked="false"
+    aria-label="Drift: the listener wanders the land">[ &infin; drift ]</button>
+  <span class="g">the listener wanders the land</span>
+</div>
 <div class="inline between">
   <div class="seg">
     <button class="act" id="jump" aria-label="Go somewhere else at random">[ elsewhere ]</button>
     <button class="act" id="keep" aria-label="Download the last 90 seconds as WAV">[ keep .wav ]</button>
+    <button class="act" id="stems" aria-label="Download the last 90 seconds as separate stems">[ keep stems ]</button>
     <span class="g">the last 90 seconds</span>
   </div>
   <button class="act" id="share" aria-label="Copy a link to this site and day">[ share this place ]</button>
@@ -430,8 +438,8 @@ const P = {
   hour: 6 * 60,          /* minutes of local solar day when !now */
   doy: (() => { const d = new Date(dayStr + "T12:00:00");
     return Math.max(1, Math.min(365, Math.round((d - new Date(d.getFullYear(), 0, 0)) / 86400000))); })(),
-  density: 0.6, wind: 0.35, space: 0.4,
-  vBird: 0.7, vBug: 0.7, vFrog: 0.7, vAir: 0.7,
+  density: 0.6, wind: 0.35, space: 0.4, drift: false,
+  vBird: 0.7, vBug: 0.7, vFrog: 0.7, vFauna: 0.7, vAir: 0.7,
 };
 let lapseBase = null;  /* {real: performance.now()/1000, hour: minutes} */
 function solarHour() {
@@ -461,7 +469,8 @@ function envNow() {
   const day = smooth((el - 4) / 8);
   const night = smooth((-el - 8) / 6);
   const twilight = Math.max(dawn, dusk);
-  return { hour, el, rising, tF, doy: P.doy, dawn, dusk, day, night, twilight };
+  return { hour, el, rising, tF, doy: P.doy, dawn, dusk, day, night, twilight,
+           gust: (typeof bed !== "undefined" && bed) ? bed.gust : 0.3 };
 }
 function gauss(x, mu, sig) { const d = (x - mu) / sig; return Math.exp(-d * d / 2); }
 function smooth(x) { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); }
@@ -1910,56 +1919,241 @@ def("bellbuoy", { name: "a bell buoy", g: "air",
       parts.push(gapN(ru(0.4, 1.6)));
     } return cat(...parts); } });
 
+/* ===================================================== ground fauna ====== */
+def("deer", { name: "a deer, startled", g: "beast",
+  act: A({ doy: [1, 365], dusk: 1, night: 0.6, dawn: 0.8, day: 0.2 }), gap: [240, 600], dist: [0.12, 0.4], n: [1, 1],
+  gen() { const parts = [];
+    for (let k = 0, m = ri(1, 2); k < m; k++) {   /* the explosive snort */
+      const n = (0.32 * SR) | 0, x = hpA(noiseA(n), 900);
+      for (let i = 0; i < n; i++) x[i] *= Math.exp(-i / (SR * 0.07)) * Math.min(1, i / (SR * 0.006));
+      parts.push(scaleA(normA(x), 1.1)); parts.push(gapN(ru(0.5, 1.2)));
+    }
+    for (let k = 0, m = ri(4, 7); k < m; k++) {   /* bounding away: receding thumps */
+      const n = (0.09 * SR) | 0, x = new Float32Array(n);
+      for (let i = 0; i < n; i++) x[i] = Math.sin(2 * Math.PI * 58 * i / SR) * Math.exp(-i / (SR * 0.03));
+      const rustle = bpA(noiseA(n), 2600, 0.8);
+      for (let i = 0; i < n; i++) x[i] += rustle[i] * 0.18 * Math.exp(-i / (SR * 0.02));
+      parts.push(scaleA(x, 1.3 * Math.pow(0.75, k)));
+      parts.push(gapN(ru(0.3, 0.45)));
+    } return cat(...parts); } });
+def("squirrelG", { name: "gray squirrel", g: "beast",
+  act: A({ doy: [1, 365], day: 0.7, dawn: 0.5 }), gap: [60, 180], dist: [0.15, 0.5], n: [1, 1],
+  gen() { const parts = [];
+    for (let k = 0, m = ri(4, 8); k < m; k++) {   /* kuk kuk kuk */
+      parts.push(tone(0.06, [[0, 1250], [1, 1050]],
+        { harm: [1, 0.7, 0.4], noise: 0.45, nfc: 1800, atk: 0.003, rel: 0.015 }));
+      parts.push(gapN(ru(0.12, 0.2)));
+    }
+    parts.push(tone(ru(0.4, 0.7), [[0, 1700], [0.3, 1500], [1, 900]],   /* quaaa */
+      { harm: [1, 0.6, 0.3], noise: 0.45, vib: [14, 60], atk: 0.02, rel: 0.12 }));
+    return cat(...parts); } });
+def("squirrelR", { name: "red squirrel", g: "beast",
+  act: A({ doy: [1, 365], day: 0.7, dawn: 0.5 }), gap: [50, 150], dist: [0.15, 0.5], n: [1, 1],
+  gen() { const mk = () => rasp(0.022, ru(3400, 4200), 2, { win: 0.4 });
+    return pulses(ri(28, 55), ru(13, 17), mk, { jit: 0.12 }); } });
+def("chipmunk", { name: "chipmunk", g: "beast",
+  act: A({ doy: [70, 300], day: 0.7 }), gap: [45, 140], dist: [0.1, 0.4], n: [1, 1],
+  gen() { const parts = []; const f = ru(2600, 3000), m = ri(8, 26);
+    for (let k = 0; k < m; k++) {
+      parts.push(tone(0.045, [[0, f], [1, f * 0.92]],
+        { harm: [1, 0.5, 0.2], noise: 0.2, atk: 0.002, rel: 0.012 }));
+      parts.push(gapN(ru(0.22, 0.4)));
+    } return cat(...parts); } });
+def("pdog", { name: "prairie dogs", g: "beast",
+  act: A({ doy: [60, 300], day: 1 }), gap: [15, 40], dist: [0.25, 0.6], n: [1, 2],
+  gen() { const dur = ru(3, 6), n = (dur * SR) | 0, x = new Float32Array(n);
+    for (let v = 0, nv = ri(2, 4); v < nv; v++) {
+      const f = ru(1700, 2200); let t = ru(0, 1);
+      while (t < dur - 0.3) {
+        const yip = cat(
+          tone(0.06, [[0, f * 1.2], [1, f * 1.35]], { harm: [1, 0.5, 0.2], noise: 0.2, atk: 0.003, rel: 0.012 }),
+          tone(0.09, [[0, f], [1, f * 0.8]], { harm: [1, 0.5, 0.2], noise: 0.2, atk: 0.003, rel: 0.02 }));
+        addTo(x, scaleA(yip, ru(0.4, 0.9)), (t * SR) | 0);
+        t += ru(0.5, 1.4);
+      }
+    } return normA(x); } });
+def("raccoon", { name: "raccoons quarreling", g: "beast",
+  act: A({ doy: [1, 365], night: 0.8 }), gap: [400, 900], dist: [0.25, 0.55], n: [1, 1],
+  gen() { const dur = ru(1.5, 3.5), n = (dur * SR) | 0, x = new Float32Array(n); let ph = 0;
+    for (let i = 0; i < n; i++) {
+      const am = 0.4 + 0.6 * Math.pow(0.5 + 0.5 * Math.sin(2 * Math.PI * 15 * i / SR), 1.2);
+      const f = ru(850, 950) * (1 + 0.25 * Math.sin(2 * Math.PI * 1.7 * i / SR));
+      ph += 2 * Math.PI * f / SR;
+      x[i] = (Math.sin(ph) + 0.6 * Math.sin(2 * ph) + 0.3 * Math.sin(3 * ph)) * am;
+    }
+    const nz = scaleA(normA(bpA(noiseA(n), 1600, 0.8)), 0.4); addTo(x, nz);
+    for (let i = 0; i < n; i++) x[i] *= Math.pow(Math.sin(Math.PI * i / n), 0.8);
+    return normA(x); } });
+def("bison", { name: "bison", g: "beast",
+  act: A({ doy: [150, 270], day: 0.4, dawn: 0.5 }), gap: [200, 500], dist: [0.5, 0.8], n: [1, 1],
+  gen() { const f = ru(95, 150);
+    const x = tone(ru(1.5, 2.8), [[0, f * 0.9], [0.4, f * 1.1], [1, f * 0.8]],
+      { harm: [1, 0.9, 0.7, 0.5, 0.35, 0.2], noise: 0.25, nfc: f * 4, vib: [11, 40], atk: 0.15, rel: 0.4 });
+    return scaleA(x, 1.4); } });
+def("brush", { name: "something in the brush", g: "beast",
+  act: A({ doy: [1, 365], night: 0.7, dusk: 0.6, dawn: 0.4, day: 0.15 }), gap: [90, 260], dist: [0.05, 0.25], n: [1, 1],
+  gen() { const parts = [];
+    for (let k = 0, m = ri(3, 9); k < m; k++) {
+      const d = ru(0.06, 0.22), n = (d * SR) | 0;
+      const x = bpA(noiseA(n), ru(1800, 4200), 0.7);
+      for (let i = 0; i < n; i++)
+        x[i] *= Math.pow(Math.sin(Math.PI * i / n), 0.5) * (0.5 + 0.5 * Math.random());
+      parts.push(scaleA(normA(x), ru(0.25, 0.6)));
+      parts.push(gapN(ru(0.1, 0.55)));
+    } return cat(...parts); } });
+
+/* ================================================ the land itself ======== */
+def("leafrustle", { name: "leaves in a gust", g: "air",
+  act: e => inDoy(e.doy, 115, 325) ? Math.max(0, (e.gust - 0.35) * 1.7) : 0,
+  gap: [2, 6], dist: [0.05, 0.4], n: [2, 3],
+  gen(e) { const dur = ru(0.9, 2.4), n = (dur * SR) | 0;
+    const x = bpA(noiseA(n), ru(2200, 3200), 0.7);
+    let g = 0;
+    for (let i = 0; i < n; i++) {
+      g = 0.92 * g + 0.08 * (Math.random() < 0.4 ? Math.random() : 0);   /* flickering grains */
+      x[i] *= g * Math.pow(Math.sin(Math.PI * i / n), 0.8);
+    } return scaleA(normA(x), 0.5 * Math.min(1, e.gust)); } });
+def("aspen", { name: "aspen leaves", g: "air",
+  act: e => inDoy(e.doy, 135, 290) ? Math.max(0, (e.gust - 0.22) * 1.5) : 0,
+  gap: [3, 8], dist: [0.1, 0.45], n: [1, 2],
+  gen(e) { const dur = ru(2, 4), n = (dur * SR) | 0;
+    const x = bpA(noiseA(n), 2700, 1);
+    const fr = ru(9, 13);
+    for (let i = 0; i < n; i++) {
+      const am = Math.pow(0.5 + 0.5 * Math.sin(2 * Math.PI * fr * i / SR), 1.4);
+      x[i] *= am * Math.pow(Math.sin(Math.PI * i / n), 0.9);
+    } return scaleA(normA(x), 0.45 * Math.min(1, e.gust)); } });
+def("creak", { name: "a tree creaking", g: "air",
+  act: e => e.gust > 0.55 ? 0.5 : 0, gap: [25, 80], dist: [0.1, 0.4], n: [1, 1],
+  gen() { const f = ru(95, 150);
+    return scaleA(tone(ru(0.6, 1.4), [[0, f], [0.4, f * 1.25], [1, f * 0.9]],
+      { harm: [1, 0.65, 0.4, 0.25, 0.12], vib: [7, 90], noise: 0.2, nfc: f * 5, atk: 0.12, rel: 0.2 }), 0.9); } });
+def("seedrattle", { name: "seed heads", g: "air",
+  act: e => inDoy(e.doy, 190, 305) ? Math.max(0, (e.gust - 0.3) * 1.5) : 0,
+  gap: [3, 9], dist: [0.05, 0.3], n: [1, 2],
+  gen(e) { const mk = () => scaleA(rasp(0.008, ru(6000, 9500), 1.5, { win: 0.3 }), ru(0.3, 1));
+    return scaleA(pulses(ri(15, 40), ru(20, 35), mk, { jit: 0.5 }), 0.4 * Math.min(1, e.gust)); } });
+def("acorn", { name: "an acorn falling", g: "air",
+  act: A({ doy: [245, 335], day: 0.5, dawn: 0.4, dusk: 0.4 }), gap: [40, 120], dist: [0.08, 0.35], n: [1, 1],
+  gen() { const parts = [];
+    for (let k = 0, m = ri(2, 5); k < m; k++) {   /* ticking down through the leaves */
+      parts.push(scaleA(rasp(0.02, ru(2500, 4000), 1, { win: 0.4 }), ru(0.3, 0.6)));
+      parts.push(gapN(ru(0.06, 0.2) * (1 - k * 0.15)));
+    }
+    const n = (0.07 * SR) | 0, x = new Float32Array(n);   /* the thock */
+    for (let i = 0; i < n; i++)
+      x[i] = Math.sin(2 * Math.PI * 820 * i / SR) * Math.exp(-i / (SR * 0.008))
+           + Math.sin(2 * Math.PI * 240 * i / SR) * Math.exp(-i / (SR * 0.02)) * 0.6;
+    parts.push(scaleA(x, 0.9));
+    return cat(...parts); } });
+def("frostcrack", { name: "a tree cracking in the cold", g: "air",
+  act: e => e.tF < 16 ? 0.25 + 0.5 * e.night : 0, gap: [240, 700], dist: [0.2, 0.6], n: [1, 1], rev: 0.4,
+  gen() { const n = (0.5 * SR) | 0, x = new Float32Array(n);
+    const nz = bpA(noiseA(n), 1500, 1.6);
+    const f = ru(600, 900);
+    for (let i = 0; i < n; i++)
+      x[i] = nz[i] * Math.exp(-i / (SR * 0.015)) * 2
+           + Math.sin(2 * Math.PI * f * i / SR) * Math.exp(-i / (SR * 0.06)) * 0.5;
+    return scaleA(normA(x), 1.2); } });
+def("icewhine", { name: "the lake ice singing", g: "air",
+  act: e => (e.tF < 28 && inDoy(e.doy, 320, 80)) ? 0.35 + 0.3 * e.dawn : 0,
+  gap: [90, 300], dist: [0.3, 0.7], n: [1, 1], rev: 0.55, echo: true,
+  gen() { /* dispersion: the crack arrives high and chirps down into a boom */
+    const dur = ru(0.9, 1.6), n = (dur * SR) | 0, x = new Float32Array(n); let ph = 0;
+    for (let i = 0; i < n; i++) {
+      const tf = i / n;
+      const f = 180 + 1400 * Math.exp(-tf * 7) * (1 + 0.15 * Math.sin(2 * Math.PI * 38 * i / SR));
+      ph += 2 * Math.PI * f / SR;
+      x[i] = (Math.sin(ph) + 0.4 * Math.sin(2 * ph)) * Math.pow(1 - tf, 0.6);
+    }
+    const bn = (0.6 * SR) | 0, boom = new Float32Array(bn);   /* the body under it */
+    for (let i = 0; i < bn; i++)
+      boom[i] = Math.sin(2 * Math.PI * 55 * i / SR) * Math.exp(-i / (SR * 0.16));
+    addTo(x, scaleA(boom, 0.9), (0.05 * SR) | 0);
+    return scaleA(normA(x), 1.3); } });
+def("yucca", { name: "yucca stalks knocking", g: "air",
+  act: e => Math.max(0, (e.gust - 0.4) * 1.4), gap: [6, 20], dist: [0.1, 0.4], n: [1, 1],
+  gen() { const parts = [];
+    for (let k = 0, m = ri(2, 4); k < m; k++) {
+      const n = (0.05 * SR) | 0, x = new Float32Array(n);
+      const f = ru(420, 560);
+      for (let i = 0; i < n; i++)
+        x[i] = Math.sin(2 * Math.PI * f * i / SR) * Math.exp(-i / (SR * 0.01));
+      parts.push(scaleA(x, ru(0.5, 0.9))); parts.push(gapN(ru(0.1, 0.35)));
+    } return cat(...parts); } });
+def("rockfall", { name: "stones letting go", g: "air",
+  act: A({ doy: [1, 365], day: 0.22, dawn: 0.15 }), gap: [400, 1000], dist: [0.35, 0.7], n: [1, 1], rev: 0.5, echo: true,
+  gen() { const parts = [];
+    for (let k = 0, m = ri(5, 14); k < m; k++) {
+      const n = (0.04 * SR) | 0, x = bpA(noiseA(n), ru(900, 2200) * (1 - k * 0.03), 2);
+      for (let i = 0; i < n; i++) x[i] *= Math.exp(-i / (SR * 0.008));
+      parts.push(scaleA(normA(x), ru(0.5, 1) * (1 - k * 0.05)));
+      parts.push(gapN(ru(0.04, 0.2) * (k < 4 ? 1.6 : 0.7)));
+    }
+    parts.push(scaleA(rasp(0.5, 1500, 0.6, { win: 1.2 }), 0.35));   /* gravel wash-out */
+    return cat(...parts); } });
+
 /* ============================================================ casts ====== */
 const CASTS = {
   efor: ["robin","woodthrush","reovireo","ovenbird","cardinal","chickadee","titmouse",
          "wbnut","bluejay","crow","pewee","veery","tanager","pileated","drummer","flicker",
          "turkey","rgrouse","etowhee","songsparrow","modove","redtail","geese",
          "barred","screech","ghowl","whip","rooster","fardog","coyote",
+         "deer","squirrelG","chipmunk","raccoon","brush",
+         "leafrustle","creak","acorn","frostcrack",
          "fcricket","treecricket","katydid","groundcricket","cicada_dd","cicada_sg","mosquito","flypass",
          "peeper","woodfrog","toad","graytree","greenfrog","bullfrog","jet","train"],
   bor: ["loon","hermitthrush","wtsparrow","pacwren","rbnut","raven","swainson","kinglet_gc",
         "chickadee","junco","rgrouse","drummer","olive_sided","crossbill","redtail",
-        "barred","ghowl","wolf","moose","mosquito","fcricket","treecricket",
+        "barred","ghowl","wolf","moose","squirrelR","deer","brush",
+        "creak","frostcrack","icewhine","mosquito","fcricket","treecricket",
         "peeper","toad","jet"],
   sepine: ["mocker","carwren","cardinal","titmouse","bluejay","etowhee","trillbird","thrasher",
            "bobwhite","modove","redtail","rshoulder","chuck","barred","ghowl","screech","rooster","fardog","coyote",
+           "deer","squirrelG","brush","leafrustle","creak",
            "fcricket","treecricket","katydid","groundcricket","trig","conehead","cicada_dd","cicada_sg","mosquito",
            "greentree","cricketfrog","narrowmouth","bullfrog","greenfrog","jet","train"],
   flwet: ["limpkin","sandhill","barred","heron","rshoulder","osprey","grackle","crow",
-          "gator","pigfrog","greentree","cricketfrog","narrowmouth","mosquito",
+          "gator","raccoon","pigfrog","greentree","cricketfrog","narrowmouth","mosquito",
           "trig","conehead","groundcricket","jet"],
   tgrass: ["meadowlark_w","meadowlark_e","dickcissel","bobolink","grassparrow","uplandsand",
            "bobwhite","killdeer","pchicken","nighthawk","redtail","modove","crow","geese",
-           "coyote","fardog","cattle","rooster","ghowl","burrowowl",
+           "coyote","fardog","cattle","rooster","ghowl","burrowowl","deer",
+           "seedrattle",
            "fcricket","treecricket","meadowkaty","groundcricket","ghopper","flypass",
            "peeper","toad","graytree","bullfrog","jet","train"],
   sgrass: ["hornedlark","meadowlark_w","curlew","killdeer","burrowowl","nighthawk","redtail",
-           "coyote","cattle","ghowl","geese",
+           "coyote","cattle","ghowl","geese","pdog","bison",
+           "seedrattle",
            "fcricket","meadowkaty","ghopper","jet","train"],
   son: ["cactuswren","curvebill","gambels","wwdove","modove","verdin","phainopepla",
         "canyonwren","rockwren","scottoriole","redtail","poorwill","elfowl","ghowl","coyote","rattler",
+        "brush","rockfall",
         "cicada_w","fcricket","groundcricket","jet"],
   chih: ["btsparrow","scottoriole","roadrunner","cactuswren","curvebill","rockwren","canyonwren",
          "redtail","poorwill","elfowl","ghowl","coyote","rattler",
+         "brush","yucca","rockfall",
          "cicada_w","fcricket","groundcricket","ghopper","jet","train"],
   sage: ["brewers","sagethrash","meadowlark_w","hornedlark","rockwren","canyonwren","raven",
          "sagegrouse","nighthawk","poorwill","ghowl","coyote","redtail",
+         "brush","rockfall",
          "cicada_w","fcricket","ghopper","jet"],
   mont: ["hermitthrush","kinglet_rc","mtchick","stellers","raven","junco","wtanager","solitaire",
          "crossbill","hummer","flicker","drummer","olive_sided","redtail","pika",
-         "sawwhet","ghowl","coyote","elk","wolf",
+         "sawwhet","ghowl","coyote","elk","wolf","squirrelR","deer","brush",
+         "aspen","creak","rockfall","frostcrack","icewhine",
          "fcricket","ghopper","jet"],
   pnw: ["vthrush","pacwren","swainson","kinglet_gc","raven","sooty","murrelet","eagle",
-        "barred","ghowl","pacfrog","mosquito","jet"],
+        "barred","ghowl","squirrelR","brush","creak","pacfrog","mosquito","jet"],
   cal: ["wrentit","calquail","caltowhee","spottowhee","scrubjay","acornwood","annas","mocker",
-        "meadowlark_w","modove","redtail","wscreech","ghowl","coyote","fardog",
+        "meadowlark_w","modove","redtail","wscreech","ghowl","coyote","fardog","deer","brush",
+        "leafrustle","acorn",
         "fcricket","treecricket","groundcricket","flypass","pacfrog","jet","train"],
   acoast: ["gull_laugh","gull_herring","willet","oyster","tern","peeps","rail","osprey","heron",
            "grackle","crow","nighthawk","ghowl","foghorn","jet",
-           "fcricket","groundcricket","greentree"],
+           "seedrattle","fcricket","groundcricket","greentree"],
   pcoast: ["gull_west","oyster","guillemot","murre","sealion","eagle","raven","peeps",
-           "foghorn","bellbuoy","pacfrog","jet"],
+           "foghorn","bellbuoy","rockfall","pacfrog","jet"],
 };
 /* a couple of small species referenced above */
 def("olive_sided", { name: "olive-sided flycatcher", g: "bird",
@@ -1987,9 +2181,10 @@ def("moose", { name: "a distant moose", g: "beast",
 
 /* ============================================================ engine ===== */
 let running = false, wetGain, echoNode, echoGain, comp, master, conv = null;
-const groups = {};          /* bird/bug/frog/air -> {dry, wet} */
-const GROUP_OF = { bird: "bird", bug: "bug", frog: "frog", beast: "frog", air: "air" };
-const FADER_OF = { bird: "vBird", bug: "vBug", frog: "vFrog", air: "vAir" };
+let sum = null, space = null;   /* linear pre-comp mix bus + the reverb/echo return */
+const groups = {};          /* bird/bug/frog/fauna/air -> {dry, wet} */
+const GROUP_OF = { bird: "bird", bug: "bug", frog: "frog", beast: "fauna", air: "air" };
+const FADER_OF = { bird: "vBird", bug: "vBug", frog: "vFrog", fauna: "vFauna", air: "vAir" };
 let arng = Math.random;     /* scheduling rng, reseeded per site+day */
 let wrng = Math.random;     /* weather rng */
 
@@ -2059,8 +2254,20 @@ function tap(src, type, freq, q, gain, dest) {
   return { f, g };
 }
 function buildBed() {
-  if (bed) { try { bed.src.stop(); } catch (e) {} for (const n of bed.nodes) { try { n.disconnect(); } catch (e) {} } }
-  const dest = groups.air.dry, wet = groups.air.wet;
+  if (bed) {   /* let the old country fade behind us */
+    const old = bed, now = ctx.currentTime;
+    old.out.gain.setTargetAtTime(0, now, 0.9);
+    old.outWet.gain.setTargetAtTime(0, now, 0.9);
+    try { old.src.stop(now + 4.5); } catch (e) {}
+    setTimeout(() => { for (const n of old.nodes) { try { n.disconnect(); } catch (e) {} }
+      try { old.out.disconnect(); old.outWet.disconnect(); } catch (e) {} }, 5000);
+  }
+  const out = ctx.createGain(), outWet = ctx.createGain();
+  out.gain.value = 0; outWet.gain.value = 0;
+  out.connect(groups.air.dry); outWet.connect(groups.air.wet);
+  out.gain.setTargetAtTime(1, ctx.currentTime + 0.05, 1.1);
+  outWet.gain.setTargetAtTime(1, ctx.currentTime + 0.05, 1.1);
+  const dest = out, wet = outWet;
   const src = noiseLoopSrc();
   const nodes = [src];
   const t = {};
@@ -2087,7 +2294,7 @@ function buildBed() {
     t.swash = tap(src, "bandpass", 1100, 0.7, 0.0, dest);
   }
   t.rain = tap(src, "bandpass", 3800, 0.5, 0.0, dest);      /* rain hiss */
-  bed = { src, nodes, t, veg, gust: 0.3, gustV: 0 };
+  bed = { src, nodes, t, veg, out, outWet, gust: bed ? bed.gust : 0.3, gustV: 0 };
 }
 /* per-tick bed steering: one random-walk gust shared by all wind taps */
 function steerBed(now) {
@@ -2189,16 +2396,17 @@ function scheduleWater(now, horizon) {
     if (ev.nextT < now - 1) ev.nextT = now + ru(0, 1);
     while (ev.nextT < now + horizon) {
       const t = ev.nextT;
+      const vA = P.vAir;
       if (ev.kind === "wave")
-        play(waveBuf(ru(0.7, 1.15)), t, { dist: ru(0.15, 0.35), pan: ru(-0.7, 0.7), gain: 0.75, group: "air", rev: 0.08 });
+        play(waveBuf(ru(0.7, 1.15)), t, { dist: ru(0.15, 0.35), pan: ru(-0.7, 0.7), gain: 0.75 * vA, group: "air", rev: 0.08 });
       else if (ev.kind === "lakewave")
-        play(waveBuf(ru(0.25, 0.5)), t, { dist: ru(0.25, 0.5), pan: ru(-0.7, 0.7), gain: 0.4, group: "air", rev: 0.1 });
+        play(waveBuf(ru(0.25, 0.5)), t, { dist: ru(0.25, 0.5), pan: ru(-0.7, 0.7), gain: 0.4 * vA, group: "air", rev: 0.1 });
       else if (ev.kind === "lap")
-        play(lapBuf(), t, { dist: ru(0.2, 0.5), pan: ru(-0.8, 0.8), gain: 0.28, group: "air", rev: 0.1 });
+        play(lapBuf(), t, { dist: ru(0.2, 0.5), pan: ru(-0.8, 0.8), gain: 0.28 * vA, group: "air", rev: 0.1 });
       else if (ev.kind === "bubble")
-        play(bubbleBuf(), t, { dist: ru(0.1, 0.4), pan: ru(-0.5, 0.5), gain: ru(0.1, 0.3), group: "air", rev: 0.1 });
+        play(bubbleBuf(), t, { dist: ru(0.1, 0.4), pan: ru(-0.5, 0.5), gain: ru(0.1, 0.3) * vA, group: "air", rev: 0.1 });
       else if (ev.kind === "plop")
-        play(bubbleBuf(), t, { dist: ru(0.3, 0.6), pan: ru(-0.8, 0.8), gain: ru(0.15, 0.4), group: "air", rev: 0.25 });
+        play(bubbleBuf(), t, { dist: ru(0.3, 0.6), pan: ru(-0.8, 0.8), gain: ru(0.15, 0.4) * vA, group: "air", rev: 0.25 });
       ev.nextT = t + ru(ev.per[0], ev.per[1]);
     }
   }
@@ -2207,12 +2415,12 @@ function scheduleWater(now, horizon) {
     const rate = 4 + weather.rain * 30;
     let t = now + ru(0, 1 / rate);
     while (t < now + horizon) {
-      play(dripBuf(), t, { dist: ru(0.05, 0.5), pan: ru(-0.9, 0.9), gain: ru(0.1, 0.4) * weather.rain, group: "air", rev: 0.1 });
+      play(dripBuf(), t, { dist: ru(0.05, 0.5), pan: ru(-0.9, 0.9), gain: ru(0.1, 0.4) * weather.rain * P.vAir, group: "air", rev: 0.1 });
       t += ru(0.3, 1.5) / rate * 2;
     }
   }
   if (weather.drip > 0.05 && arng() < weather.drip * 0.5) {
-    play(dripBuf(), now + ru(0, horizon), { dist: ru(0.05, 0.4), pan: ru(-0.9, 0.9), gain: ru(0.1, 0.35), group: "air", rev: 0.2 });
+    play(dripBuf(), now + ru(0, horizon), { dist: ru(0.05, 0.4), pan: ru(-0.9, 0.9), gain: ru(0.1, 0.35) * P.vAir, group: "air", rev: 0.2 });
   }
 }
 
@@ -2275,7 +2483,8 @@ function buildCast() {
     if (id === "loon" && !w.lake) continue;
     if (id === "train" && !site.town) continue;
     if ((id === "rooster" || id === "fardog" || id === "cattle") && !site.farm) continue;
-    if (id === "canyonwren" && !site.rocky) continue;
+    if ((id === "canyonwren" || id === "rockfall") && !site.rocky) continue;
+    if (id === "icewhine" && !w.lake) continue;
     if (id === "sandhill" && !(w.marsh || site.biome === "flwet" || site.biome === "tgrass")) continue;
     const nn = ri2(arng, sp.n ? sp.n[0] : 1, sp.n ? sp.n[1] : 1);
     for (let k = 0; k < nn; k++) {
@@ -2315,11 +2524,55 @@ setInterval(() => {
   renderNames();
 }, 3000);
 
+/* ------------------------------------------------------------- drift ----- */
+/* [ ∞ drift ]: the listener wanders the land — a slow seeded walk whose
+   bearing meanders and reflects off the coasts and borders. seeded by the
+   day and the starting place, so a shared link wanders the same way. */
+const drift = { rng: null, bearing: 0, nextT: 0 };
+function engageDrift() {
+  drift.rng = mulberry32(fnv("drift:" + dayStr + ":" + (site ? site.key : "start")));
+  drift.bearing = drift.rng() * 6.283;
+  drift.nextT = ctx ? ctx.currentTime + 10 : 0;
+}
+function driftStep(now) {
+  const step = 0.06, rad = Math.PI / 180;
+  drift.bearing += (drift.rng() - 0.5) * 0.7;
+  let moved = null;
+  for (let tries = 0; tries < 5 && !moved; tries++) {
+    const b = drift.bearing + tries * (drift.rng() < 0.5 ? 1.4 : -1.4);
+    const na = site.lat + Math.cos(b) * step;
+    const nl = site.lon + Math.sin(b) * step / Math.cos(site.lat * rad);
+    if (stateAt(nl, na)) { moved = [nl, na]; if (tries) drift.bearing = b; }
+  }
+  if (moved) driftApply(moved[0], moved[1]);
+  drift.nextT = now + 20 + drift.rng() * 12;
+}
+function driftApply(lon, lat) {
+  const s = makeSite(lon, lat);
+  if (!s) return;
+  const sameWorld = s.biome === site.biome
+    && JSON.stringify(s.water) === JSON.stringify(site.water)
+    && s.rocky === site.rocky && s.farm === site.farm && s.town === site.town;
+  const crossed = s.biome !== site.biome;
+  site = s;
+  if (!sameWorld && running) {
+    if (crossed) {
+      planWeather();
+      conv.buffer = makeIR(BIOME_INFO[site.biome].family);
+      echoNode.delayTime.setTargetAtTime(site.rocky ? 1.1 : 1.5, ctx.currentTime, 0.5);
+      announce(BIOME_INFO[site.biome].name, 0);
+    }
+    buildBed(); buildWaterEvents(); buildCast();
+  }
+  statusLine(envNow());
+}
+
 /* --------------------------------------------------------- scheduler ----- */
 let lastTick = 0;
 function tick() {
   if (!running) return;
   const now = ctx.currentTime, horizon = 0.7;
+  if (P.drift && drift.rng && now > drift.nextT) driftStep(now);
   const e = envNow();
   stepWeather(e);
   steerBed(now);
@@ -2328,7 +2581,7 @@ function tick() {
   if (weather.thunder && now > thunderNext) {
     const far = arng() < 0.75;
     play(thunderBuf(far), now + ru(0.2, 2), { dist: far ? ru(0.6, 0.85) : ru(0.2, 0.45),
-      pan: ru(-0.6, 0.6), gain: far ? 0.8 : 1.3, group: "air", rev: 0.5, name: "thunder" });
+      pan: ru(-0.6, 0.6), gain: (far ? 0.8 : 1.3) * P.vAir, group: "air", rev: 0.5, name: "thunder" });
     thunderNext = now + ru(20, 70);
   }
   const densGate = P.density;
@@ -2597,7 +2850,13 @@ bind("space", "space", v => { if (wetGain) wetGain.gain.value = v * 0.9; return 
 bind("vBird", "vBird", v => Math.round(v * 100));
 bind("vBug", "vBug", v => Math.round(v * 100));
 bind("vFrog", "vFrog", v => Math.round(v * 100));
+bind("vFauna", "vFauna", v => Math.round(v * 100));
 bind("vAir", "vAir", v => Math.round(v * 100));
+el.drift.addEventListener("click", () => {
+  P.drift = !P.drift;
+  el.drift.setAttribute("aria-checked", String(P.drift));
+  if (P.drift) engageDrift();
+});
 out("doy").textContent = doyLabel(P.doy); el.doy.value = P.doy;
 out("wind").textContent = WINDWORDS[Math.min(6, (P.wind * 7) | 0)];
 
@@ -2612,26 +2871,40 @@ el.share.addEventListener("click", async () => {
 });
 
 /* --------------------------------------------------------- recorder ------ */
+/* one multichannel tap: the linear mix plus each stem (album convention:
+   birds + insects + frogs + fauna + air + space sum back to the mix exactly;
+   the live compressor sits after this point and is not recorded). */
 const REC_S = 90;
-let recRing = null, recPos = 0, recFill = 0, recNode = null;
+const STEMS = ["mix", "birds", "insects", "frogs", "fauna", "air", "space"];
+let recRing = null, recCh = 2, recPos = 0, recFill = 0, recNode = null;
 function startRecorder() {
-  recRing = new Int16Array(REC_S * SR * 2);
-  recNode = ctx.createScriptProcessor(4096, 2, 1);
+  const buses = [sum, groups.bird.dry, groups.bug.dry, groups.frog.dry,
+                 groups.fauna.dry, groups.air.dry, space];
+  let taps = buses;
+  try { recRing = new Int16Array(REC_S * SR * 2 * buses.length); recCh = buses.length * 2; }
+  catch (e) { recRing = new Int16Array(REC_S * SR * 2); recCh = 2; taps = [sum]; }
+  const merger = ctx.createChannelMerger(recCh);
+  taps.forEach((b, i) => { const sp = ctx.createChannelSplitter(2); b.connect(sp);
+    sp.connect(merger, 0, i * 2); sp.connect(merger, 1, i * 2 + 1); });
+  recNode = ctx.createScriptProcessor(4096, recCh, 1);
+  merger.connect(recNode);
   recNode.onaudioprocess = ev => {
-    const L = ev.inputBuffer.getChannelData(0), R = ev.inputBuffer.getChannelData(1);
-    for (let i = 0; i < L.length; i++) {
-      recRing[recPos++] = Math.max(-32768, Math.min(32767, L[i] * 32767));
-      recRing[recPos++] = Math.max(-32768, Math.min(32767, R[i] * 32767));
+    const L = ev.inputBuffer.length, nCh = ev.inputBuffer.numberOfChannels;
+    const ch = []; for (let c = 0; c < recCh; c++) ch.push(c < nCh ? ev.inputBuffer.getChannelData(c) : null);
+    for (let i = 0; i < L; i++) {
+      for (let c = 0; c < recCh; c++) {
+        const v = (ch[c] ? ch[c][i] : 0) * 0.7;      /* headroom on the linear sum */
+        recRing[recPos++] = Math.max(-32768, Math.min(32767, (v * 32767) | 0));
+      }
       if (recPos >= recRing.length) recPos = 0;
     }
-    recFill = Math.min(recFill + L.length, REC_S * SR);
+    recFill = Math.min(recFill + L, REC_S * SR);
   };
-  master.connect(recNode);
   const mute = ctx.createGain(); mute.gain.value = 0;
   recNode.connect(mute); mute.connect(ctx.destination);
 }
-function buildWav() {
-  if (!recFill) return null;
+function buildWavPair(pair) {
+  if (!recFill || pair * 2 + 1 >= recCh) return null;
   const frames = recFill, bytes = frames * 4;
   const buf = new ArrayBuffer(44 + bytes), dv = new DataView(buf);
   const ws = (o, s) => { for (let i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); };
@@ -2640,39 +2913,91 @@ function buildWav() {
   dv.setUint32(24, SR, true); dv.setUint32(28, SR * 4, true);
   dv.setUint16(32, 4, true); dv.setUint16(34, 16, true);
   ws(36, "data"); dv.setUint32(40, bytes, true);
-  let src = recPos - frames * 2;
-  if (src < 0) src += recRing.length;
-  for (let i = 0; i < frames * 2; i++) {
-    dv.setInt16(44 + i * 2, recRing[src++], true);
-    if (src >= recRing.length) src = 0;
+  let base = recPos - frames * recCh;
+  if (base < 0) base += recRing.length;
+  for (let i = 0; i < frames; i++) {
+    dv.setInt16(44 + i * 4, recRing[base + pair * 2], true);
+    dv.setInt16(44 + i * 4 + 2, recRing[base + pair * 2 + 1], true);
+    base += recCh; if (base >= recRing.length) base -= recRing.length;
   }
   return new Uint8Array(buf);
 }
-el.keep.addEventListener("click", async () => {
-  const btn = el.keep;
-  const say = (t, ms) => { btn.textContent = t;
-    if (ms) setTimeout(() => btn.textContent = "[ keep .wav ]", ms); };
-  const bytes = buildWav();
-  if (!bytes) { say("[ nothing yet ]", 1400); return; }
+/* store-method zip, written by hand in the house manner */
+const CRC_T = (() => { const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0; } return t; })();
+function crc32(u8) { let c = 0xFFFFFFFF;
+  for (let i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 255] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0; }
+function zipStore(files) {
+  const enc = new TextEncoder(), chunks = [], central = [];
+  const u32 = v => [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255];
+  const u16 = v => [v & 255, (v >>> 8) & 255];
+  let off = 0;
+  for (const f of files) {
+    const nm = enc.encode(f.name), crc = crc32(f.data);
+    const head = new Uint8Array([0x50, 0x4B, 3, 4, ...u16(20), ...u16(0), ...u16(0), ...u16(0), ...u16(0),
+      ...u32(crc), ...u32(f.data.length), ...u32(f.data.length), ...u16(nm.length), ...u16(0), ...nm]);
+    central.push({ nm, crc, size: f.data.length, off });
+    chunks.push(head, f.data); off += head.length + f.data.length;
+  }
+  const cdStart = off; let cdLen = 0;
+  for (const c of central) {
+    const rec = new Uint8Array([0x50, 0x4B, 1, 2, ...u16(20), ...u16(20), ...u16(0), ...u16(0), ...u16(0), ...u16(0),
+      ...u32(c.crc), ...u32(c.size), ...u32(c.size), ...u16(c.nm.length), ...u16(0), ...u16(0),
+      ...u16(0), ...u16(0), ...u32(0), ...u32(c.off), ...c.nm]);
+    chunks.push(rec); cdLen += rec.length;
+  }
+  chunks.push(new Uint8Array([0x50, 0x4B, 5, 6, ...u16(0), ...u16(0), ...u16(central.length), ...u16(central.length),
+    ...u32(cdLen), ...u32(cdStart), ...u16(0)]));
+  return new Blob(chunks, { type: "application/zip" });
+}
+function keepName(ext) {
   const hm = new Date();
-  const name = "elsewhere-" + (site ? site.key.replace(/[.,]/g, "_") : "somewhere") + "-"
+  return "elsewhere-" + (site ? site.key.replace(/[.,]/g, "_") : "somewhere") + "-"
     + dayStr.replaceAll("-", "")
-    + String(hm.getHours()).padStart(2, "0") + String(hm.getMinutes()).padStart(2, "0") + ".wav";
+    + String(hm.getHours()).padStart(2, "0") + String(hm.getMinutes()).padStart(2, "0") + ext;
+}
+async function saveFile(btn, idleLabel, name, bytes, mime) {
+  const say = (t, ms) => { btn.textContent = t;
+    if (ms) setTimeout(() => btn.textContent = idleLabel, ms); };
   const dl = (window.claude && window.claude.use) ? await window.claude.use("downloads") : null;
   if (dl) {
     try { await dl.save({ filename: name, data: bytes }); say("[ kept ]", 1400); }
     catch (err) {
-      if (err && err.code === "declined") say("[ keep .wav ]");
+      if (err && err.code === "declined") say(idleLabel);
       else say("[ unavailable here ]", 1600);
     }
     return;
   }
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([bytes], { type: "audio/wav" }));
+  a.href = URL.createObjectURL(new Blob([bytes], { type: mime }));
   a.download = name;
   a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  setTimeout(() => URL.revokeObjectURL(a.href), 6000);
   say("[ kept ]", 1400);
+}
+el.keep.addEventListener("click", async () => {
+  const bytes = buildWavPair(0);
+  if (!bytes) { el.keep.textContent = "[ nothing yet ]";
+    setTimeout(() => el.keep.textContent = "[ keep .wav ]", 1400); return; }
+  await saveFile(el.keep, "[ keep .wav ]", keepName(".wav"), bytes, "audio/wav");
+});
+el.stems.addEventListener("click", async () => {
+  const btn = el.stems;
+  if (!recFill || recCh < 4) { btn.textContent = recCh < 4 ? "[ unavailable here ]" : "[ nothing yet ]";
+    setTimeout(() => btn.textContent = "[ keep stems ]", 1600); return; }
+  btn.textContent = "[ gathering… ]";
+  await new Promise(r => setTimeout(r, 30));   /* let the label paint */
+  const files = [];
+  for (let p = 0; p < STEMS.length; p++) {
+    const w = buildWavPair(p);
+    if (w) files.push({ name: STEMS[p] + ".wav", data: w });
+  }
+  const blob = zipStore(files);
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  await saveFile(btn, "[ keep stems ]", keepName("-stems.zip"), bytes, "application/zip");
 });
 
 /* ------------------------------------------------------------ begin ------ */
@@ -2699,24 +3024,28 @@ el.begin.addEventListener("click", async () => {
   comp.threshold.value = -18; comp.ratio.value = 2.5; comp.attack.value = 0.012; comp.release.value = 0.25;
   master = ctx.createGain(); master.gain.value = 0.9;
   comp.connect(master); master.connect(ctx.destination);
+  /* the mix is LINEAR at `sum` (stems sum back exactly, album convention);
+     the compressor after it only guards live playback */
+  sum = ctx.createGain(); sum.connect(comp);
+  space = ctx.createGain(); space.connect(sum);
   wetGain = ctx.createGain(); wetGain.gain.value = P.space * 0.9;
-  for (const gname of ["bird", "bug", "frog", "air"]) {
+  for (const gname of ["bird", "bug", "frog", "fauna", "air"]) {
     const dry = ctx.createGain(), wet = ctx.createGain();
     dry.gain.value = 0.85; wet.gain.value = 1;
-    dry.connect(comp); wet.connect(wetGain);
+    dry.connect(sum); wet.connect(wetGain);
     groups[gname] = { dry, wet };
   }
   if (!site) randomSite();
   conv = ctx.createConvolver();
   conv.buffer = makeIR(BIOME_INFO[site.biome].family);
-  wetGain.connect(conv); conv.connect(comp);
+  wetGain.connect(conv); conv.connect(space);
   /* discrete echo (canyons, lake loons) */
   echoNode = ctx.createDelay(3); echoNode.delayTime.value = site.rocky ? 1.1 : 1.5;
   const efb = ctx.createGain(); efb.gain.value = 0.3;
   const elp = ctx.createBiquadFilter(); elp.type = "lowpass"; elp.frequency.value = 2100;
   echoGain = ctx.createGain(); echoGain.gain.value = 0.35;
   echoNode.connect(elp); elp.connect(efb); efb.connect(echoNode);
-  elp.connect(echoGain); echoGain.connect(comp);
+  elp.connect(echoGain); echoGain.connect(space);
 
   running = true;
   buildBed(); buildWaterEvents(); buildCast();
