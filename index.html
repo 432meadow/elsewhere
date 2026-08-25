@@ -132,7 +132,7 @@
     aria-label="The globe. Arrow keys turn it, plus and minus zoom, enter stands where it faces."></canvas>
   <button id="begin">[ begin ]</button>
 </div>
-<div id="siteline">spin the globe — tap land to stand there</div>
+<div id="siteline">spin the globe and tap land to stand</div>
 <div id="voicesline"></div>
 
 <div class="inline between">
@@ -2808,6 +2808,8 @@ const CASTS = {
   efor: ["robin","woodthrush","reovireo","ovenbird","cardinal","chickadee","titmouse",
          "wbnut","bluejay","crow","pewee","veery","tanager","pileated","drummer","flicker",
          "turkey","rgrouse","etowhee","songsparrow","modove","redtail","geese",
+         "catbird","housewren","phoebe","goldfinch","swallows",
+         "mallard","kingfisher","heron","woodcock",
          "barred","screech","ghowl","whip","rooster","fardog","coyote",
          "deer","squirrelG","chipmunk","raccoon","brush",
          "leafrustle","creak","acorn","frostcrack",
@@ -2815,11 +2817,13 @@ const CASTS = {
          "peeper","woodfrog","toad","graytree","greenfrog","bullfrog","jet","train"],
   bor: ["loon","hermitthrush","wtsparrow","pacwren","rbnut","raven","swainson","kinglet_gc",
         "chickadee","junco","rgrouse","drummer","olive_sided","crossbill","redtail",
+        "snipe","mallard","kingfisher","heron",
         "barred","ghowl","wolf","moose","squirrelR","deer","brush",
         "creak","frostcrack","icewhine","mosquito","fcricket","treecricket",
         "peeper","toad","jet"],
   sepine: ["mocker","carwren","cardinal","titmouse","bluejay","etowhee","trillbird","thrasher",
            "bobwhite","modove","redtail","rshoulder","chuck","barred","ghowl","screech","rooster","fardog","coyote",
+           "catbird","swallows","mallard","kingfisher","heron",
            "deer","squirrelG","brush","leafrustle","creak",
            "fcricket","treecricket","katydid","groundcricket","trig","conehead","cicada_dd","cicada_sg","mosquito",
            "greentree","cricketfrog","narrowmouth","bullfrog","greenfrog","jet","train"],
@@ -2828,6 +2832,7 @@ const CASTS = {
           "trig","conehead","groundcricket","jet"],
   tgrass: ["meadowlark_w","meadowlark_e","dickcissel","bobolink","grassparrow","uplandsand",
            "bobwhite","killdeer","pchicken","nighthawk","redtail","modove","crow","geese",
+           "swallows","goldfinch","mallard","kingfisher","heron","snipe","woodcock",
            "coyote","fardog","cattle","rooster","ghowl","burrowowl","deer",
            "seedrattle",
            "fcricket","treecricket","meadowkaty","groundcricket","ghopper","flypass",
@@ -2850,17 +2855,20 @@ const CASTS = {
          "cicada_w","fcricket","ghopper","jet"],
   mont: ["hermitthrush","kinglet_rc","mtchick","stellers","raven","junco","wtanager","solitaire",
          "crossbill","hummer","flicker","drummer","olive_sided","redtail","pika",
+         "mallard","kingfisher",
          "sawwhet","ghowl","coyote","elk","wolf","squirrelR","deer","brush",
          "aspen","creak","rockfall","frostcrack","icewhine",
          "fcricket","ghopper","jet"],
   pnw: ["vthrush","pacwren","swainson","kinglet_gc","raven","sooty","murrelet","eagle",
+        "mallard","kingfisher","heron",
         "barred","ghowl","squirrelR","brush","creak","pacfrog","mosquito","jet"],
   cal: ["wrentit","calquail","caltowhee","spottowhee","scrubjay","acornwood","annas","mocker",
         "meadowlark_w","modove","redtail","wscreech","ghowl","coyote","fardog","deer","brush",
+        "swallows","goldfinch","mallard","kingfisher","heron",
         "leafrustle","acorn",
         "fcricket","treecricket","groundcricket","flypass","pacfrog","jet","train"],
   acoast: ["gull_laugh","gull_herring","willet","oyster","tern","peeps","rail","osprey","heron",
-           "grackle","crow","nighthawk","ghowl","foghorn","jet",
+           "grackle","crow","nighthawk","ghowl","foghorn","jet","swallows","mallard",
            "seedrattle","fcricket","groundcricket","greentree"],
   pcoast: ["gull_west","oyster","guillemot","murre","sealion","eagle","raven","peeps",
            "foghorn","bellbuoy","rockfall","pacfrog","jet"],
@@ -3081,59 +3089,304 @@ def("musicianwren", { name: "musician wren", g: "bird",
       parts.push(gapN(ru(0.03, 0.09)));
     } return cat(...parts); } });
 
+/* ------------------------------ the waterside & density pass ------------- */
+def("mallard", { name: "mallard", g: "bird",
+  act: A({ doy: [1, 365], day: 0.7, dawn: 1, dusk: 0.9 }), gap: [10, 22], dist: [0.25, 0.6], n: [1, 2],
+  gen() { const parts = []; const b = ru(850, 1050); let g = 1;
+    for (let k = 0, m = ri(4, 8); k < m; k++) {   /* the descending laugh */
+      parts.push(scaleA(tone(ru(0.12, 0.18), [[0, b * 1.15], [0.3, b], [1, b * 0.9]],
+        { harm: [1, 0.75, 0.5, 0.3, 0.15], noise: 0.3, nfc: b * 2.2, atk: 0.006, rel: 0.03 }), g));
+      parts.push(gapN(ru(0.1, 0.16)));
+      g *= 0.87;
+    } return cat(...parts); } });
+def("kingfisher", { name: "belted kingfisher", g: "bird",
+  act: A({ doy: [1, 365], day: 0.8, dawn: 0.9 }), gap: [15, 35], dist: [0.15, 0.5], n: [1, 1],
+  gen() { const dur = ru(1, 1.8), n = (dur * SR) | 0, x = new Float32Array(n);
+    let t = 0; const per = 1 / ru(14, 18);
+    while (t < dur - 0.05) {   /* the mechanical rattle, flying past */
+      const s = (t * SR) | 0, L = (0.03 * SR) | 0, f = ru(1700, 2200);
+      for (let i = 0; i < L && s + i < n; i++) {
+        const tt = i / SR;
+        x[s + i] += (Math.sin(2 * Math.PI * f * tt) + 0.5 * Math.sin(2 * Math.PI * f * 2.1 * tt)
+                   + 0.5 * (Math.random() * 2 - 1)) * Math.exp(-tt / 0.012);
+      }
+      t += per * ru(0.9, 1.1);
+    }
+    for (let i = 0; i < n; i++) x[i] *= Math.pow(Math.sin(Math.PI * i / n), 0.5);
+    return normA(x); } });
+def("greyheron", { ...SP.heron, id: "greyheron", name: "grey heron" });
+def("snipe", { name: "snipe winnowing", g: "bird",
+  act: A({ doy: [95, 190], dusk: 1.5, night: 0.9, dawn: 1.2 }), gap: [8, 18], dist: [0.3, 0.65], n: [1, 1], rev: 0.35,
+  gen() { const dur = ru(2, 3.5), n = (dur * SR) | 0, x = new Float32Array(n); let ph = 0;
+    const pr = ru(5.5, 7);
+    for (let i = 0; i < n; i++) {   /* the tail-feather tremolo of the dive */
+      const tf = i / n;
+      ph += 2 * Math.PI * 480 * (1 + 0.25 * Math.sin(Math.PI * tf)) / SR;
+      const puls = Math.pow(0.5 + 0.5 * Math.sin(2 * Math.PI * pr * i / SR), 1.3);
+      x[i] = (Math.sin(ph) * 0.7 + (Math.random() * 2 - 1) * 0.5) * puls
+           * Math.pow(Math.sin(Math.PI * tf), 0.8);
+    }
+    lpA(x, 900);
+    return normA(x); } });
+def("woodcock", { name: "woodcock displaying", g: "bird",
+  act: A({ doy: [65, 140], dusk: 1.8, dawn: 0.8, sunMax: -3 }), gap: [10, 20], dist: [0.25, 0.6], n: [1, 1],
+  gen() { if (Math.random() < 0.6) {   /* peents on the ground */
+      const parts = [];
+      for (let k = 0, m = ri(2, 4); k < m; k++) {
+        parts.push(rasp(0.18, 1100, 1.6, { am: 90, amd: 0.6, win: 0.6 }));
+        parts.push(gapN(ru(1.2, 2.2)));
+      } return cat(...parts); }
+    const parts = [];   /* the twittering sky-dance */
+    for (let k = 0, m = ri(18, 30); k < m; k++) {
+      const f = ru(3800, 5200);
+      parts.push(scaleA(tone(0.03, [[0, f], [1, f * 1.15]], { harm: [1, 0.2], atk: 0.003, rel: 0.008 }), ru(0.4, 0.9)));
+      parts.push(gapN(ru(0.02, 0.07)));
+    } return cat(...parts); } });
+def("moorhen", { name: "moorhen", g: "bird",
+  act: A({ doy: [1, 365], dawn: 1, day: 0.6, dusk: 1, night: 0.4 }), gap: [12, 25], dist: [0.25, 0.55], n: [1, 1],
+  gen() { if (Math.random() < 0.5)
+      return tone(0.22, [[0, 900], [0.2, 1400], [1, 700]],
+        { harm: [1, 0.6, 0.3], noise: 0.35, atk: 0.004, rel: 0.05 });
+    const parts = [];
+    for (let k = 0, m = ri(3, 6); k < m; k++) {
+      parts.push(tone(0.08, [[0, ru(700, 900)], [1, ru(500, 650)]],
+        { harm: [1, 0.6, 0.3], noise: 0.3, atk: 0.003, rel: 0.02 }));
+      parts.push(gapN(ru(0.06, 0.14)));
+    } return cat(...parts); } });
+def("swallows", { name: "swallows", g: "bird",
+  act: A({ doy: [105, 255], day: 1, dawn: 0.8, dusk: 0.9 }), gap: [8, 20], dist: [0.15, 0.45], n: [1, 2],
+  gen() { const dur = ru(1.5, 3), n = (dur * SR) | 0, x = new Float32Array(n);
+    for (let v = 0, nv = ri(1, 3); v < nv; v++) {
+      let t = ru(0, 0.5);
+      while (t < dur - 0.2) {
+        const f = ru(2800, 5500);
+        const el2 = Math.random() < 0.25
+          ? rasp(0.06, 3800, 1.5, { am: 90, amd: 0.7, win: 0.4 })   /* the dry vrrt */
+          : tone(ru(0.03, 0.07), [[0, f], [1, f * pick([1.2, 0.85])]], { harm: [1, 0.2], atk: 0.003, rel: 0.01 });
+        addTo(x, scaleA(el2, ru(0.4, 0.9)), (t * SR) | 0);
+        t += ru(0.05, 0.2);
+      }
+    }
+    for (let i = 0; i < n; i++) x[i] *= Math.pow(Math.sin(Math.PI * i / n), 0.7);
+    return normA(x); } });
+
+/* old-world frogs */
+def("marshfrog", { name: "marsh frogs", g: "frog",
+  act: A({ doy: [125, 235], tMin: 55, day: 0.6, dusk: 1.2, night: 1 }), gap: [0.5, 1.5], dist: [0.3, 0.7], n: [2, 3],
+  gen() { return chorusBuf(ru(5, 8), ri(4, 8), () => ({   /* the laughing chorus */
+      x: pulses(ri(6, 12), ru(12, 18), () => rasp(0.03, ru(1400, 2400), 1.2, { win: 0.4 }), { jit: 0.1 }),
+      per: ru(1.5, 3.5) })); } });
+def("eurotree", { name: "european tree frogs", g: "frog",
+  act: A({ doy: [110, 200], tMin: 55, dusk: 1.3, night: 1.1 }), gap: [0.5, 1.5], dist: [0.3, 0.65], n: [2, 3],
+  gen() { return chorusBuf(ru(4, 7), ri(3, 6), () => ({
+      x: pulses(ri(8, 16), ru(16, 22),
+        () => tone(0.03, [[0, ru(2200, 2800)], [1, 2400]], { harm: [1, 0.5, 0.2], noise: 0.2, atk: 0.002, rel: 0.01 }),
+        { jit: 0.06 }),
+      per: ru(1.2, 2.5) })); } });
+def("eurotoad", { name: "common toad", g: "frog",
+  act: A({ doy: [90, 160], tMin: 46, dusk: 1.2, night: 1 }), gap: [3, 7], dist: [0.3, 0.6], n: [1, 2],
+  gen() { const parts = [];
+    for (let k = 0, m = ri(2, 4); k < m; k++) {
+      parts.push(tone(ru(0.15, 0.25), [[0, ru(1150, 1350)], [1, ru(1050, 1200)]],
+        { harm: [1, 0.3, 0.08], vib: [28, 60], atk: 0.02, rel: 0.05 }));
+      parts.push(gapN(ru(0.5, 1.2)));
+    } return cat(...parts); } });
+def("paddyfrogs", { name: "the paddy frog chorus", g: "frog",
+  act: A({ doy: [130, 240], tMin: 60, dusk: 1.3, night: 1.2 }), gap: [0.2, 0.8], dist: [0.25, 0.7], n: [2, 3],
+  gen() { return chorusBuf(ru(5, 8), ri(6, 12), () => {
+      const f = ru(1100, 1900);
+      const x = cat(tone(0.06, [[0, f], [1, f * 0.9]], { harm: [1, 0.6, 0.25], noise: 0.2, atk: 0.003, rel: 0.015 }),
+        gapN(0.05), tone(0.06, [[0, f * 0.95], [1, f * 0.85]], { harm: [1, 0.6, 0.25], noise: 0.2, atk: 0.003, rel: 0.015 }));
+      return { x, per: ru(0.5, 1.2) }; }); } });
+def("kajika", { name: "kajika frog", g: "frog",
+  act: A({ doy: [120, 220], tMin: 55, dusk: 1.3, night: 1, day: 0.4 }), gap: [4, 9], dist: [0.2, 0.5], n: [1, 2],
+  gen() { const parts = []; const f = ru(1700, 2100);
+    for (let k = 0, m = ri(5, 9); k < m; k++) {   /* the singing frog of the streams */
+      parts.push(tone(ru(0.08, 0.14), [[0, f * ru(0.95, 1.05)], [1, f * ru(1.0, 1.12)]],
+        { harm: [1, 0.15], vib: [30, 40], atk: 0.008, rel: 0.02 }));
+      parts.push(gapN(ru(0.05, 0.12)));
+    } return cat(...parts); } });
+
+/* the southern cone, and density elsewhere */
+def("lapwing_s", { name: "southern lapwing", g: "bird",
+  act: A({ doy: [1, 365], day: 0.8, dusk: 1, night: 0.6, dawn: 1 }), gap: [10, 22], dist: [0.25, 0.6], n: [1, 1],
+  gen() { const parts = []; const b = ru(1400, 1700);
+    for (let k = 0, m = ri(3, 7); k < m; k++) {   /* tero-tero! */
+      parts.push(tone(0.09, [[0, b], [1, b * 1.12]], { harm: [1, 0.5, 0.2], noise: 0.15, atk: 0.004, rel: 0.02 }));
+      parts.push(tone(0.11, [[0, b * 1.15], [1, b * 0.95]], { harm: [1, 0.5, 0.2], noise: 0.15, atk: 0.004, rel: 0.025 }));
+      parts.push(gapN(0.07));
+    } return cat(...parts); } });
+def("rufcollared", { name: "rufous-collared sparrow", g: "bird",
+  act: A({ doy: [1, 365], dawn: 1.3, day: 0.6, dusk: 0.9 }), gap: [5, 10], dist: [0.15, 0.5], n: [1, 2],
+  gen() { const f = ru(3400, 4200);
+    const parts = [
+      tone(0.25, [[0, f], [1, f * 0.9]], { harm: [1, 0.1], atk: 0.015, rel: 0.05 }), gapN(0.1),
+      tone(0.3, [[0, f * 0.85], [0.5, f * 1.05], [1, f * 0.8]], { harm: [1, 0.1], atk: 0.01, rel: 0.05 }), gapN(0.12)];
+    for (let k = 0, m = ri(4, 8); k < m; k++) {
+      parts.push(tone(0.05, [[0, f * 1.1], [1, f * 1.05]], { harm: [1, 0.12], atk: 0.004, rel: 0.01 }));
+      parts.push(gapN(0.035));
+    } return cat(...parts); } });
+def("tinkerbird", { name: "tinkerbird", g: "bird",
+  act: A({ doy: [1, 365], day: 1, dawn: 0.8 }), gap: [6, 14], dist: [0.25, 0.6], n: [1, 1],
+  gen() { const parts = []; const f = ru(1050, 1250), m = ri(8, 16);
+    for (let k = 0; k < m; k++) {   /* the metronome of the miombo */
+      parts.push(tone(0.09, [[0, f], [1, f * 0.99]], { harm: [1, 0.4, 0.1], atk: 0.006, rel: 0.025 }));
+      parts.push(gapN(0.28));
+    } return cat(...parts); } });
+def("coppersmith", { name: "coppersmith barbet", g: "bird",
+  act: A({ doy: [1, 365], day: 1, dawn: 0.9 }), gap: [8, 16], dist: [0.25, 0.6], n: [1, 1],
+  gen() { const parts = []; const f = ru(730, 830), m = ri(10, 20);
+    for (let k = 0; k < m; k++) {
+      parts.push(tone(0.08, [[0, f], [1, f * 0.98]], { harm: [1, 0.5, 0.12], atk: 0.005, rel: 0.02 }));
+      parts.push(gapN(0.32));
+    } return cat(...parts); } });
+def("hoopoe", { name: "hoopoe", g: "bird",
+  act: A({ doy: [80, 200], dawn: 1.2, day: 0.7 }), gap: [6, 12], dist: [0.25, 0.6], n: [1, 1],
+  gen() { const parts = []; const f = ru(580, 660);
+    for (let k = 0, m = ri(2, 3); k < m; k++) {   /* oop-oop-oop */
+      for (let j = 0; j < 3; j++) {
+        parts.push(tone(0.14, [[0, f], [1, f * 0.98]], { harm: [1, 0.25, 0.05], atk: 0.015, rel: 0.04, decay: 0.2 }));
+        parts.push(gapN(0.08));
+      }
+      parts.push(gapN(ru(0.5, 0.9)));
+    } return cat(...parts); } });
+def("bellminer", { name: "bell miners", g: "bird",
+  act: A({ doy: [1, 365], day: 1, dawn: 0.9 }), gap: [1, 3], dist: [0.25, 0.6], n: [2, 3],
+  gen() { return scaleA(tone(0.12, [[0, ru(1900, 2100)], [1, 2000]],
+    { harm: [1, 0.2, 0.3], atk: 0.004, rel: 0.05, decay: 0.4 }), 0.9); } });
+def("weavers", { name: "a weaver colony", g: "bird",
+  act: A({ doy: [1, 365], day: 1, dawn: 1 }), gap: [10, 25], dist: [0.3, 0.6], n: [1, 1],
+  gen() { const dur = ru(3, 6), n = (dur * SR) | 0, x = new Float32Array(n);
+    for (let v = 0, nv = ri(4, 8); v < nv; v++) {
+      let t = ru(0, 1);
+      while (t < dur - 0.15) {
+        addTo(x, scaleA(rasp(ru(0.05, 0.12), ru(2800, 5000), 1.3, { am: ru(40, 90), amd: 0.6, win: 0.4 }),
+          ru(0.3, 0.7)), (t * SR) | 0);
+        t += ru(0.06, 0.25);
+      }
+    }
+    for (let i = 0; i < n; i++) x[i] *= Math.pow(Math.sin(Math.PI * i / n), 0.6);
+    return normA(x); } });
+def("crane_da", { ...SP.sandhill, id: "crane_da", name: "cranes on the steppe" });
+
+/* the eastern texture four */
+def("catbird", { name: "gray catbird", g: "bird",
+  act: A({ doy: [125, 230], dawn: 1.1, day: 0.7 }), gap: [3, 7], dist: [0.15, 0.5], n: [1, 1],
+  gen() { if (Math.random() < 0.25)
+      return tone(ru(0.3, 0.5), [[0, 1900], [0.5, 1600], [1, 1200]],
+        { harm: [1, 0.5, 0.2], noise: 0.35, vib: [10, 60], atk: 0.02, rel: 0.08 });   /* the mew */
+    const parts = [];   /* halting jumble that never repeats itself */
+    for (let k = 0, m = ri(4, 8); k < m; k++) {
+      const f = ru(1600, 4800);
+      parts.push(Math.random() < 0.3
+        ? scaleA(rasp(ru(0.04, 0.09), f, 1.4, { win: 0.4 }), 0.7)
+        : tone(ru(0.05, 0.13), [[0, f], [1, f * ru(0.8, 1.25)]],
+            { harm: [1, 0.3, 0.08], noise: 0.12, atk: 0.005, rel: 0.02 }));
+      parts.push(gapN(ru(0.08, 0.25)));
+    } return cat(...parts); } });
+def("housewren", { name: "house wren", g: "bird",
+  act: A({ doy: [115, 220], dawn: 1.2, day: 0.8 }), gap: [4, 8], dist: [0.15, 0.45], n: [1, 1],
+  gen() { const parts = [];
+    for (let k = 0, m = ri(2, 3); k < m; k++) {
+      parts.push(scaleA(rasp(0.04, ru(3000, 4000), 2, { win: 0.4 }), 0.5));
+      parts.push(gapN(0.05));
+    }
+    let f = ru(4200, 5000);
+    for (let k = 0, m = ri(3, 5); k < m; k++) {   /* the tumbling gurgle */
+      const rate = ru(20, 32), dur = ru(0.3, 0.6), nn = (dur * rate) | 0;
+      for (let j = 0; j < nn; j++) {
+        parts.push(tone(Math.min(0.028, 0.7 / rate), [[0, f], [1, f * ru(0.92, 1.06)]],
+          { harm: [1, 0.15], atk: 0.003, rel: 0.006 }));
+        parts.push(gapN(Math.max(0.005, 1 / rate - 0.028)));
+      }
+      f *= ru(0.78, 0.92); parts.push(gapN(0.03));
+    } return cat(...parts); } });
+def("phoebe", { name: "eastern phoebe", g: "bird",
+  act: A({ doy: [80, 200], dawn: 1.2, day: 0.6 }), gap: [4, 9], dist: [0.15, 0.5], n: [1, 1],
+  gen() { const f = ru(3800, 4400);
+    const a = tone(0.16, [[0, f], [1, f * 1.02]], { harm: [1, 0.3], noise: 0.25, atk: 0.006, rel: 0.02 });
+    const b = Math.random() < 0.5
+      ? tone(0.2, [[0, f * 0.92], [0.5, f * 0.85], [1, f * 0.95]], { harm: [1, 0.35], noise: 0.35, atk: 0.005, rel: 0.03 })
+      : cat(tone(0.07, [[0, f * 0.9], [1, f * 0.95]], { harm: [1, 0.35], noise: 0.3, atk: 0.004, rel: 0.012 }), gapN(0.02),
+            tone(0.12, [[0, f * 0.88], [1, f * 0.8]], { harm: [1, 0.35], noise: 0.3, atk: 0.004, rel: 0.02 }));
+    return cat(a, gapN(0.06), b); } });
+def("goldfinch", { name: "american goldfinch", g: "bird",
+  act: A({ doy: [120, 280], day: 0.9, dawn: 0.8 }), gap: [8, 18], dist: [0.2, 0.5], n: [1, 2],
+  gen() { const parts = [];   /* per-chick-o-ree, bounding by */
+    for (let k = 0, m = ri(1, 3); k < m; k++) {
+      const f = ru(3200, 3800);
+      parts.push(tone(0.06, [[0, f * 0.9], [1, f * 1.1]], { harm: [1, 0.15], atk: 0.004, rel: 0.012 }), gapN(0.03));
+      parts.push(tone(0.05, [[0, f * 1.2], [1, f * 1.05]], { harm: [1, 0.15], atk: 0.003, rel: 0.01 }), gapN(0.025));
+      parts.push(tone(0.05, [[0, f], [1, f * 0.9]], { harm: [1, 0.15], atk: 0.003, rel: 0.01 }), gapN(0.025));
+      parts.push(tone(0.07, [[0, f * 1.1], [1, f * 1.25]], { harm: [1, 0.15], atk: 0.004, rel: 0.015 }));
+      parts.push(gapN(ru(0.3, 0.7)));
+    } return cat(...parts); } });
+
 /* ------------------------------------------- the world's cast tables ----- */
 /* a base bed per climate biome, then each realm's voices on top */
 const WBASE = {
   trf: ["insectwall", "cicada_trop", "treefrogs_t", "rainfrogs", "mosquito", "jet"],
-  sav: ["fcricket", "groundcricket", "cicada_w", "ghopper", "insectwall", "jet"],
+  sav: ["fcricket", "groundcricket", "cicada_w", "ghopper", "insectwall", "swallows", "jet"],
   des: ["fcricket", "ghopper", "brush", "rockfall", "jet"],
-  steppe: ["fcricket", "ghopper", "brush", "jet"],
-  med: ["fcricket", "treecricket", "groundcricket", "cicada_w", "brush", "jet"],
-  subtrop: ["fcricket", "treecricket", "groundcricket", "katydid", "insectwall", "treefrogs_t", "mosquito", "jet"],
-  toce: ["fcricket", "groundcricket", "brush", "leafrustle", "creak", "jet", "train"],
+  steppe: ["fcricket", "ghopper", "brush", "swallows", "jet"],
+  med: ["fcricket", "treecricket", "groundcricket", "cicada_w", "brush", "swallows", "jet"],
+  subtrop: ["fcricket", "treecricket", "groundcricket", "katydid", "insectwall", "treefrogs_t",
+            "swallows", "mosquito", "jet"],
+  toce: ["fcricket", "groundcricket", "brush", "leafrustle", "creak", "swallows",
+         "mallard", "greyheron", "jet", "train"],
   tfor: ["fcricket", "treecricket", "katydid", "groundcricket", "brush", "deer",
-         "leafrustle", "creak", "acorn", "frostcrack", "jet", "train"],
-  bor: ["fcricket", "brush", "creak", "frostcrack", "icewhine", "mosquito", "jet"],
-  tundra: ["mosquito", "jet"],
+         "leafrustle", "creak", "acorn", "frostcrack", "swallows",
+         "mallard", "greyheron", "jet", "train"],
+  bor: ["fcricket", "brush", "creak", "frostcrack", "icewhine", "snipe", "mosquito", "jet"],
+  tundra: ["snipe", "mosquito", "jet"],
   ice: ["jet"],
-  shore: ["gulls", "tern", "peeps", "oyster", "foghorn", "jet"],
+  shore: ["gulls", "tern", "peeps", "oyster", "foghorn", "swallows", "jet"],
 };
 const WREALM = {
   wpale: {
     all: ["crow", "fardog", "rooster", "cattle", "churchbell"],
     tfor: ["blackbird_eu", "songthrush", "blackcap", "chaffinch", "greattit", "cuckoo",
            "nightingale", "robin_eu", "wren_eu", "goldenoriole", "woodpigeon", "tawny",
-           "yaffle", "magpie_eu", "jackdaw", "wolf", "squirrelR", "geese"],
+           "yaffle", "magpie_eu", "jackdaw", "wolf", "squirrelR", "geese",
+           "moorhen", "marshfrog", "eurotoad"],
     toce: ["blackbird_eu", "songthrush", "blackcap", "chaffinch", "greattit", "cuckoo",
            "robin_eu", "wren_eu", "yellowhammer", "collared_dove", "woodpigeon", "tawny",
-           "yaffle", "skylark", "swifts", "magpie_eu", "jackdaw", "corncrake", "geese"],
+           "yaffle", "skylark", "swifts", "magpie_eu", "jackdaw", "corncrake", "geese",
+           "moorhen", "snipe", "marshfrog", "eurotoad"],
     med: ["nightingale", "blackbird_eu", "goldenoriole", "collared_dove", "greattit",
-          "robin_eu", "woodpigeon", "tawny", "swifts", "magpie_eu"],
-    subtrop: ["blackbird_eu", "greattit", "nightingale", "robin_eu", "swifts", "collared_dove"],
-    steppe: ["skylark", "hornedlark", "cuckoo", "wolf"],
-    bor: ["diver", "cuckoo", "raven", "wolf", "rgrouse", "swainson", "junco"],
-    sav: ["ringdove", "skylark"],
+          "robin_eu", "woodpigeon", "tawny", "swifts", "magpie_eu",
+          "hoopoe", "eurotree", "marshfrog", "greyheron", "mallard"],
+    subtrop: ["blackbird_eu", "greattit", "nightingale", "robin_eu", "swifts", "collared_dove",
+              "eurotree", "marshfrog"],
+    steppe: ["skylark", "hornedlark", "cuckoo", "wolf", "hoopoe", "crane_da", "marshfrog"],
+    bor: ["diver", "cuckoo", "raven", "wolf", "rgrouse", "swainson", "junco", "mallard"],
+    sav: ["ringdove", "skylark", "hoopoe"],
     des: ["hornedlark", "raven", "modove"],
     tundra: ["snowbunting", "diver", "raven", "wolf"],
-    shore: [],
+    shore: ["greyheron"],
   },
   epale: {
     all: ["jcrow", "fardog", "rooster", "cattle", "templebell"],
     tfor: ["uguisu", "bulbul_je", "otdove", "cuckoo", "greattit", "tawny",
-           "higurashi", "minmin", "suzumushi", "squirrelR", "geese"],
-    toce: ["uguisu", "bulbul_je", "otdove", "cuckoo", "greattit", "tawny", "higurashi", "suzumushi", "geese"],
-    subtrop: ["uguisu", "koel", "bulbul_je", "otdove", "minmin", "higurashi", "suzumushi", "myna"],
-    steppe: ["skylark", "cuckoo", "wolf", "hornedlark"],
-    bor: ["diver", "cuckoo", "raven", "wolf", "rgrouse"],
+           "higurashi", "minmin", "suzumushi", "squirrelR", "geese",
+           "moorhen", "snipe", "paddyfrogs", "kajika"],
+    toce: ["uguisu", "bulbul_je", "otdove", "cuckoo", "greattit", "tawny", "higurashi",
+           "suzumushi", "geese", "moorhen", "paddyfrogs", "kajika"],
+    subtrop: ["uguisu", "koel", "bulbul_je", "otdove", "minmin", "higurashi", "suzumushi",
+              "myna", "moorhen", "paddyfrogs", "kajika"],
+    steppe: ["skylark", "cuckoo", "wolf", "hornedlark", "crane_da"],
+    bor: ["diver", "cuckoo", "raven", "wolf", "rgrouse", "mallard"],
     des: ["hornedlark", "raven"],
     tundra: ["snowbunting", "diver", "raven", "wolf"],
-    med: [], sav: [], shore: [],
+    med: [], sav: [], shore: ["greyheron"],
   },
   indo: {
     all: ["myna", "jcrow", "fardog", "rooster", "cattle"],
-    trf: ["koel", "brainfever", "gibbon", "peafowl", "magpierobin", "tokay", "gecko"],
-    sav: ["peafowl", "koel", "ringdove", "brainfever", "bulbul_rv", "magpierobin", "lapwing_rw"],
-    subtrop: ["koel", "brainfever", "peafowl", "bulbul_rv", "magpierobin", "lapwing_rw", "tokay", "gecko"],
+    trf: ["koel", "brainfever", "gibbon", "peafowl", "magpierobin", "tokay", "gecko", "coppersmith"],
+    sav: ["peafowl", "koel", "ringdove", "brainfever", "bulbul_rv", "magpierobin", "lapwing_rw",
+          "coppersmith", "moorhen"],
+    subtrop: ["koel", "brainfever", "peafowl", "bulbul_rv", "magpierobin", "lapwing_rw", "tokay",
+              "gecko", "coppersmith", "moorhen", "paddyfrogs"],
     tfor: ["cuckoo", "greattit"],
     des: ["peafowl", "ringdove", "lapwing_rw"],
     med: [], steppe: [], bor: [], tundra: [], toce: [],
@@ -3141,13 +3394,14 @@ const WREALM = {
   },
   afro: {
     all: ["ringdove", "fardog", "rooster", "cattle"],
-    sav: ["fisheagle", "hadada", "turaco", "goaway", "boubou", "fnightjar", "hyena", "lion", "jackals"],
-    trf: ["turaco", "parrots", "boubou", "fnightjar"],
-    subtrop: ["hadada", "turaco", "fnightjar"],
-    toce: ["hadada"],
-    med: ["nightingale", "blackbird_eu"],
+    sav: ["fisheagle", "hadada", "turaco", "goaway", "boubou", "fnightjar", "hyena", "lion",
+          "jackals", "weavers", "tinkerbird"],
+    trf: ["turaco", "parrots", "boubou", "fnightjar", "tinkerbird"],
+    subtrop: ["hadada", "turaco", "fnightjar", "tinkerbird", "weavers"],
+    toce: ["hadada", "weavers"],
+    med: ["nightingale", "blackbird_eu", "hoopoe"],
     des: ["hornedlark", "jackals"],
-    steppe: ["hornedlark", "jackals"],
+    steppe: ["hornedlark", "jackals", "weavers"],
     tfor: [], bor: [], tundra: [],
     shore: ["hadada", "fisheagle"],
   },
@@ -3155,29 +3409,30 @@ const WREALM = {
     all: ["magpie_au", "fardog", "rooster", "cattle"],
     trf: ["whipbird", "lorikeet", "cockatoo", "kookaburra", "lyrebird", "boobook", "cicada_au", "gecko"],
     sav: ["kookaburra", "butcherbird", "cockatoo", "boobook", "dingoes", "cicada_au"],
-    subtrop: ["kookaburra", "whipbird", "lorikeet", "cockatoo", "lyrebird", "boobook", "cicada_au"],
+    subtrop: ["kookaburra", "whipbird", "lorikeet", "cockatoo", "lyrebird", "boobook",
+              "cicada_au", "bellminer"],
     med: ["butcherbird", "lorikeet", "boobook", "cockatoo"],
     des: ["butcherbird", "dingoes", "boobook"],
     steppe: ["butcherbird", "dingoes", "boobook"],
-    toce: ["kookaburra", "boobook", "lorikeet", "lyrebird"],
-    tfor: ["kookaburra", "whipbird", "lyrebird", "boobook"],
+    toce: ["kookaburra", "boobook", "lorikeet", "lyrebird", "bellminer"],
+    tfor: ["kookaburra", "whipbird", "lyrebird", "boobook", "bellminer"],
     bor: [], tundra: [], shore: [],
   },
   nz: {
     all: ["tui", "bellbird_nz", "morepork", "fardog", "rooster", "cattle"],
-    toce: ["gulls"], tfor: [], med: [], shore: [],
+    toce: ["gulls", "mallard"], tfor: [], med: [], shore: [],
     trf: [], sav: [], subtrop: [], des: [], steppe: [], bor: [], tundra: [],
   },
   neotropic: {
-    all: ["parrots", "fardog", "rooster", "cattle"],
+    all: ["parrots", "fardog", "rooster", "cattle", "rufcollared"],
     trf: ["piha", "howler", "oropendola", "toucan", "potoo", "tinamou", "musicianwren", "gecko"],
-    sav: ["tinamou", "potoo", "burrowowl"],
-    subtrop: ["oropendola", "toucan", "tinamou", "potoo"],
-    tfor: ["tinamou", "potoo"],
-    toce: ["tinamou"],
-    med: ["tinamou"],
-    des: [], steppe: [], bor: [], tundra: [],
-    shore: ["sealion"],
+    sav: ["tinamou", "potoo", "burrowowl", "lapwing_s", "housewren"],
+    subtrop: ["oropendola", "toucan", "tinamou", "potoo", "lapwing_s", "housewren"],
+    tfor: ["tinamou", "potoo", "lapwing_s"],
+    toce: ["tinamou", "lapwing_s", "housewren"],
+    med: ["tinamou", "lapwing_s"],
+    des: [], steppe: ["lapwing_s"], bor: [], tundra: [],
+    shore: ["sealion", "lapwing_s"],
   },
 };
 function castWorld(biome, realm) {
@@ -3715,6 +3970,11 @@ function buildCast() {
     /* site gating */
     if (sp.g === "frog" && !(w.marsh || w.lake || w.stream || site.biome === "flwet" || site.biome === "trf")) continue;
     if ((id === "loon" || id === "diver") && !w.lake) continue;
+    if ((id === "mallard" || id === "moorhen") && !(w.marsh || w.lake)) continue;
+    if ((id === "kingfisher" || id === "kajika") && !(w.stream || w.lake)) continue;
+    if ((id === "heron" || id === "greyheron") && !(w.marsh || w.lake || w.stream)
+        && site.biome !== "flwet") continue;
+    if (id === "snipe" && !w.marsh) continue;
     if (id === "train" && !site.town) continue;
     if ((id === "rooster" || id === "fardog" || id === "cattle") && !site.farm) continue;
     if ((id === "churchbell" || id === "templebell") && !site.town) continue;
