@@ -1,6 +1,14 @@
 <meta charset="utf-8">
 <title>elsewhere</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#121212">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="elsewhere">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
   /* the immanence look: near-black, white, one gray — two accents: sun & night */
   :root {
@@ -4787,5 +4795,8 @@ el.begin.addEventListener("click", async () => {
   if (!isNaN(qh)) { P.now = false; P.hour = qh * 60;
     el.now.setAttribute("aria-checked", "false");
     el.hour.value = P.hour; out("hour").textContent = fmtHour(P.hour); }
+  /* installable, and fully offline after the first visit */
+  if ("serviceWorker" in navigator && location.protocol !== "file:")
+    navigator.serviceWorker.register("sw.js").catch(() => {});
 })();
 </script>

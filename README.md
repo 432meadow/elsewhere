@@ -74,5 +74,10 @@ and `notes/global.md`. the maps are built from public-domain data: US
 census state outlines (`tools/make_map.py`), natural earth 110m
 countries + the köppen–geiger climate grid (`tools/make_world.py`).
 
+it is a PWA: add it to your home screen and it opens fullscreen, works
+entirely offline after the first visit (the whole world is one file),
+and wears an icon rendered from its own map data — the atlantic
+hemisphere at dusk, twilight arc and halo (`tools/make_icon.py`).
+
 no dependencies, no build, no server. open `index.html` or serve it
 from anywhere static.
