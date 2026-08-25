@@ -38,13 +38,15 @@
 
   #stage { position: relative; border-bottom: 1px solid var(--rule); }
   #map { display: block; width: 100%; height: 380px; cursor: crosshair; touch-action: none; }
+  #map:focus-visible { outline: 1px solid var(--focus); outline-offset: -2px; }
   #begin {
-    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    background: transparent; border: 0; cursor: pointer; color: var(--s1);
-    font: inherit; letter-spacing: 0.02em;
+    /* a small centered button: the globe stays touchable around it */
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    padding: 10px 16px; background: transparent; border: 0; cursor: pointer;
+    color: var(--s1); font: inherit; letter-spacing: 0.02em;
   }
   #begin:hover { color: var(--s2); }
-  #begin:focus-visible { outline: 1px solid var(--focus); outline-offset: -8px; }
+  #begin:focus-visible { outline: 1px solid var(--focus); outline-offset: -4px; }
 
   #siteline {
     padding: 10px 16px; border-bottom: 1px solid var(--rule); font-size: 13px;
@@ -120,11 +122,23 @@
 </div>
 
 <div id="stage">
-  <canvas id="map" width="1024" height="380"></canvas>
+  <canvas id="map" width="1024" height="380" tabindex="0"
+    aria-label="The globe. Arrow keys turn it, plus and minus zoom, enter stands where it faces."></canvas>
   <button id="begin">[ begin ]</button>
 </div>
-<div id="siteline">click the map to listen somewhere</div>
+<div id="siteline">spin the globe — tap land to stand there</div>
 <div id="voicesline"></div>
+
+<div class="sect">place</div>
+<div class="inline between">
+  <div class="seg">
+    <button class="act" id="jump" aria-label="Go somewhere else at random">[ elsewhere ]</button>
+    <button class="switch" id="drift" role="switch" aria-checked="false"
+      aria-label="Drift: the listener wanders the land">[ &infin; drift ]</button>
+    <span class="g">the listener wanders the land</span>
+  </div>
+  <button class="act" id="share" aria-label="Copy a link to this site and day">[ share this place ]</button>
+</div>
 
 <div class="sect">when</div>
 <div class="inline between">
@@ -150,21 +164,10 @@
 <div class="sect">listening</div>
 <div class="ctl"><div class="row2"><label for="density">density</label><output id="densityV">60</output></div>
   <input type="range" id="density" min="0" max="100" value="60" aria-label="How many voices"></div>
-<div class="ctl"><div class="row2"><label for="wind">wind</label><output id="windV">drifting</output></div>
+<div class="ctl"><div class="row2"><label for="wind">wind</label><output id="windV">light airs</output></div>
   <input type="range" id="wind" min="0" max="100" value="35" aria-label="Wind strength"></div>
 <div class="ctl"><div class="row2"><label for="space">space</label><output id="spaceV">40</output></div>
   <input type="range" id="space" min="0" max="100" value="40" aria-label="Openness of the air"></div>
-
-<div class="sect">dub</div>
-<div class="inline">
-  <button class="switch" id="dub" role="switch" aria-checked="false"
-    aria-label="Dub: the land through a tape echo">[ dub ]</button>
-  <span class="g">the land through a tape echo — it drifts on its own</span>
-</div>
-<div class="ctl cool">
-  <div class="row2"><label for="dubDepth">depth</label><output id="dubDepthV">55</output></div>
-  <input type="range" id="dubDepth" min="0" max="100" value="55" aria-label="How deep the dub sits">
-</div>
 
 <div class="sect">voices</div>
 <div class="ctl warm"><div class="row2"><label for="vBird">birds</label><output id="vBirdV">70</output></div>
@@ -178,18 +181,20 @@
 <div class="ctl"><div class="row2"><label for="vAir">air &amp; water</label><output id="vAirV">70</output></div>
   <input type="range" id="vAir" min="0" max="100" value="70" aria-label="Wind and water level"></div>
 
+<div class="sect">dub</div>
 <div class="inline">
-  <button class="switch" id="drift" role="switch" aria-checked="false"
-    aria-label="Drift: the listener wanders the land">[ &infin; drift ]</button>
-  <span class="g">the listener wanders the land</span>
+  <button class="switch" id="dub" role="switch" aria-checked="false"
+    aria-label="Dub: the land through a tape echo">[ dub ]</button>
+  <span class="g">the land through a tape echo — it drifts on its own</span>
 </div>
-<div class="inline between">
-  <div class="seg">
-    <button class="act" id="jump" aria-label="Go somewhere else at random">[ elsewhere ]</button>
-    <button class="act" id="keep" aria-label="Download the last 90 seconds as WAV">[ keep .wav ]</button>
-    <span class="g">the last 90 seconds</span>
-  </div>
-  <button class="act" id="share" aria-label="Copy a link to this site and day">[ share this place ]</button>
+<div class="ctl cool">
+  <div class="row2"><label for="dubDepth">depth</label><output id="dubDepthV">55</output></div>
+  <input type="range" id="dubDepth" min="0" max="100" value="55" aria-label="How deep the dub sits">
+</div>
+
+<div class="inline">
+  <button class="act" id="keep" aria-label="Download the last 90 seconds as WAV">[ keep .wav ]</button>
+  <span class="g">the last 90 seconds</span>
 </div>
 
 <script>
@@ -4056,7 +4061,7 @@ function globeCenter(lon, lat) { GLOBE.target = { lam: lon, phi: Math.max(-80, M
 function toPx(lon, lat) { return globeToPx(lon, lat, cv.width, cv.height); }
 function fromPx(px, py) { return globeFromPx(px, py, cv.width, cv.height); }
 
-let drawLive = false, rafQueued = false;
+let rafQueued = false;
 const ptrs = new Map();
 function queueDraw() {
   if (rafQueued) return;
@@ -4188,7 +4193,8 @@ function setSite(lon, lat, announceIt = true) {
       `${Math.abs(site.lat).toFixed(1)}°${site.lat < 0 ? "S" : "N"} ` +
       `${Math.abs(site.lon).toFixed(1)}°${site.lon < 0 ? "W" : "E"} · ` +
       `<b>${BIOME_INFO[site.biome].name}</b> · ${site.region} — press [ begin ]`;
-    drawMap();   /* one frame; the rAF loop stays off until begin */
+    if (P.now) reflectHour();   /* show the place's actual clock right away */
+    drawMap();
   }
 }
 /* the hands on the globe: drag spins, pinch and wheel zoom, a tap lands */
@@ -4250,6 +4256,19 @@ function endPointer(e) {
 }
 cv.addEventListener("pointerup", endPointer);
 cv.addEventListener("pointercancel", endPointer);
+cv.addEventListener("keydown", e => {
+  const step = e.shiftKey ? 12 : 4;
+  if (e.key === "ArrowLeft") GLOBE.lam += step;
+  else if (e.key === "ArrowRight") GLOBE.lam -= step;
+  else if (e.key === "ArrowUp") GLOBE.phi = Math.min(80, GLOBE.phi + step);
+  else if (e.key === "ArrowDown") GLOBE.phi = Math.max(-80, GLOBE.phi - step);
+  else if (e.key === "+" || e.key === "=") GLOBE.zoomT = Math.min(GLOBE.maxZ, GLOBE.zoomT * 1.25);
+  else if (e.key === "-" || e.key === "_") GLOBE.zoomT = Math.max(GLOBE.minZ, GLOBE.zoomT / 1.25);
+  else if (e.key === "Enter") { const ll = fromPx(cv.width / 2, cv.height / 2); if (ll) setSite(ll[0], ll[1]); return; }
+  else return;
+  e.preventDefault();
+  GLOBE.lastTouch = performance.now(); GLOBE.target = null; GLOBE.anchor = null;
+});
 cv.addEventListener("wheel", e => {
   e.preventDefault();
   GLOBE.lastTouch = performance.now();
@@ -4316,7 +4335,7 @@ function bind(id, key, fmt, scale = 0.01) {
     out(id).textContent = fmt(P[key]);
   });
 }
-const WINDWORDS = ["dead calm", "still", "drifting", "breezy", "windy", "gusty", "roaring"];
+const WINDWORDS = ["dead calm", "still", "light airs", "breezy", "windy", "gusty", "roaring"];
 bind("density", "density", v => Math.round(v * 100));
 bind("wind", "wind", v => WINDWORDS[Math.min(6, (v * 7) | 0)]);
 bind("space", "space", v => { if (wetGain) wetGain.gain.value = v * 0.9; return Math.round(v * 100); });
@@ -4477,7 +4496,6 @@ el.begin.addEventListener("click", async () => {
   if (P.dub) { DUB.on = true; startDub(); }
   el.begin.remove();
   reflectHour();
-  drawLive = true;
   tick(); drawMap();
 });
 
@@ -4487,7 +4505,6 @@ el.begin.addEventListener("click", async () => {
   requestAnimationFrame(() => { drawMap();
     if (!isNaN(qlat) && !isNaN(qlon)) { setSite(qlon, qlat);
       if (site) globeCenter(site.lon, site.lat); } });
-  addEventListener("resize", () => { if (!drawLive) drawMap(); });
   const qh = parseFloat(params.get("h"));
   if (!isNaN(qh)) { P.now = false; P.hour = qh * 60;
     el.now.setAttribute("aria-checked", "false");
