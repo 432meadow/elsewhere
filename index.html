@@ -3516,7 +3516,7 @@ const DUB = {
   on: false, beat: 0, nextT: -1, bpm: 72,
   drng: Math.random, state: "washing", stateBeats: 64,
   pattern: [1, 0, 0, 1, 0, 1, 0, 0], throwLevel: 0.75,
-  fb: 0.58, lpf: 1600, chordEvery: 8, chordProb: 0.6, chordSoft: false,
+  fb: 0.42, lpf: 1250, chordEvery: 8, chordProb: 0.6, chordSoft: false,
   voicing: 0, subLevel: 0.5, n: null,
 };
 const DUB_VOICINGS = [[0, 3, 7, 10, 14], [0, 5, 10, 15], [0, 5, 7, 12], [0, 3, 10, 17]];
@@ -3530,8 +3530,10 @@ function buildDub() {
   const n = {};
   n.throw = ctx.createGain(); n.throw.gain.value = 0;
   n.in = ctx.createGain(); n.in.gain.value = 1;
+  /* two lowpass stages in the loop: every repeat darkens twice over */
   n.lp = ctx.createBiquadFilter(); n.lp.type = "lowpass"; n.lp.frequency.value = DUB.lpf; n.lp.Q.value = 0.6;
-  n.hp = ctx.createBiquadFilter(); n.hp.type = "highpass"; n.hp.frequency.value = 210;
+  n.lp2 = ctx.createBiquadFilter(); n.lp2.type = "lowpass"; n.lp2.frequency.value = DUB.lpf * 1.4; n.lp2.Q.value = 0.4;
+  n.hp = ctx.createBiquadFilter(); n.hp.type = "highpass"; n.hp.frequency.value = 290;
   n.shaper = ctx.createWaveShaper();
   /* unity small-signal slope, or the feedback loop self-oscillates */
   const curve = new Float32Array(1024);
@@ -3545,7 +3547,8 @@ function buildDub() {
     o.frequency.value = rate; og.gain.value = depth;
     o.connect(og); og.connect(d.delayTime); o.start();
   }
-  n.throw.connect(n.in); n.in.connect(n.lp); n.lp.connect(n.hp); n.hp.connect(n.shaper);
+  n.throw.connect(n.in); n.in.connect(n.lp); n.lp.connect(n.lp2); n.lp2.connect(n.hp);
+  n.hp.connect(n.shaper);
   n.shaper.connect(n.dA); n.shaper.connect(n.dB);
   n.dA.connect(n.fbA); n.fbA.connect(n.lp);
   n.dB.connect(n.fbB); n.fbB.connect(n.lp);
@@ -3632,10 +3635,10 @@ function dubDrift(first) {
     if (r() < 0.55) DUB.state = states[(r() * states.length) | 0];
   }
   const S = {
-    washing:  { fb: 0.58, lpf: 1650, throw: 0.75, chordProb: 0.55, chordEvery: 8, soft: false, sub: 0.5, dens: 0.5 },
-    sparse:   { fb: 0.48, lpf: 1900, throw: 0.55, chordProb: 0.25, chordEvery: 16, soft: false, sub: 0.35, dens: 0.3 },
-    deep:     { fb: 0.7,  lpf: 1150, throw: 0.9,  chordProb: 0.8,  chordEvery: 8, soft: true,  sub: 0.7, dens: 0.65 },
-    receding: { fb: 0.62, lpf: 1350, throw: 0.4,  chordProb: 0.15, chordEvery: 16, soft: true,  sub: 0.25, dens: 0.2 },
+    washing:  { fb: 0.42, lpf: 1250, throw: 0.75, chordProb: 0.55, chordEvery: 8, soft: false, sub: 0.5, dens: 0.5 },
+    sparse:   { fb: 0.3,  lpf: 1500, throw: 0.55, chordProb: 0.25, chordEvery: 16, soft: false, sub: 0.35, dens: 0.3 },
+    deep:     { fb: 0.52, lpf: 950,  throw: 0.9,  chordProb: 0.8,  chordEvery: 8, soft: true,  sub: 0.7, dens: 0.65 },
+    receding: { fb: 0.45, lpf: 1050, throw: 0.4,  chordProb: 0.15, chordEvery: 16, soft: true,  sub: 0.25, dens: 0.2 },
   }[DUB.state];
   DUB.fb = S.fb * ru2(r, 0.92, 1.06);
   DUB.lpf = S.lpf * ru2(r, 0.85, 1.15);
@@ -3652,6 +3655,7 @@ function dubDrift(first) {
     DUB.n.fbA.gain.setTargetAtTime(DUB.fb, t, 1.5);
     DUB.n.fbB.gain.setTargetAtTime(DUB.fb * 0.7, t, 1.5);
     DUB.n.lp.frequency.setTargetAtTime(DUB.lpf, t, 2);
+    DUB.n.lp2.frequency.setTargetAtTime(DUB.lpf * 1.4, t, 2);
     dubDelays(t);
   }
 }
@@ -3980,27 +3984,30 @@ function globeTexture() {
 }
 let gCanvas = null, gCtx = null, gImg = null;
 function drawGlobeFrame() {
-  const S = 640;
-  if (!gCanvas) {
-    gCanvas = document.createElement("canvas"); gCanvas.width = S; gCanvas.height = S;
+  /* internal buffer matches the canvas aspect, so zoom fills the frame */
+  const W = cv.width, H = cv.height;
+  const k = Math.min(1, Math.sqrt(430000 / Math.max(1, W * H)));
+  const iw = Math.max(64, Math.round(W * k)), ih = Math.max(64, Math.round(H * k));
+  if (!gCanvas || gCanvas.width !== iw || gCanvas.height !== ih) {
+    gCanvas = document.createElement("canvas"); gCanvas.width = iw; gCanvas.height = ih;
     gCtx = gCanvas.getContext("2d");
-    gImg = gCtx.createImageData(S, S);
+    gImg = gCtx.createImageData(iw, ih);
   }
   const tex = globeTexture(), tw = GLOBE.tw, th = GLOBE.th;
   const out = new Uint32Array(gImg.data.buffer);
   out.fill(0);
-  const R = S * 0.485 * GLOBE.zoom, cx = S / 2, cy = S / 2;
+  const R = Math.min(iw, ih) * 0.485 * GLOBE.zoom, cx = iw / 2, cy = ih / 2;
   const sp = Math.sin(GLOBE.phi * RAD), cp = Math.cos(GLOBE.phi * RAD);
   /* the sun, for the terminator: the app's own clock decides day and night */
   const decl = -23.44 * Math.cos(2 * Math.PI * (P.doy + 10) / 365) * RAD;
   const sd = Math.sin(decl), cd = Math.cos(decl);
   const hm = site ? solarHour() : ((Date.now() / 60000) % 1440);
   const lamS = ((site ? site.lon : 0) - (hm / 60 - 12) * 15) * RAD;
-  const y0 = Math.max(0, cy - R) | 0, y1 = Math.min(S, cy + R + 1) | 0;
+  const y0 = Math.max(0, cy - R) | 0, y1 = Math.min(ih, cy + R + 1) | 0;
+  const xa = Math.max(0, cx - R) | 0, xb = Math.min(iw, cx + R + 1) | 0;
   for (let y = y0; y < y1; y++) {
     const dy = (cy - y) / R;
-    const x0 = Math.max(0, cx - R) | 0, x1 = Math.min(S, cx + R + 1) | 0;
-    for (let x = x0; x < x1; x++) {
+    for (let x = xa; x < xb; x++) {
       const dx = (x - cx) / R;
       const d2 = dx * dx + dy * dy;
       if (d2 > 1) continue;
@@ -4016,8 +4023,16 @@ function drawGlobeFrame() {
       const cosz = sinLat * sd + Math.cos(latR) * cd * Math.cos(lonD * RAD - lamS);
       let sh = 0.84 + 0.16 * z;                          /* the limb */
       if (cosz < 0.05) sh *= cosz < -0.09 ? 0.66 : 0.66 + 0.34 * (cosz + 0.09) / 0.14;
-      r = (r * sh) | 0; gg = (gg * sh) | 0; b = (b * sh) | 0;
-      out[y * S + x] = 0xFF000000 | (b << 16) | (gg << 8) | r;
+      r *= sh; gg *= sh; b *= sh;
+      if (cosz > -0.16 && cosz < 0.16) {
+        /* the twilight band: rose-gold toward the sun, lavender into night */
+        const tb = (cosz + 0.16) / 0.32;
+        const wgt = Math.sin(tb * Math.PI) * 0.2;
+        r += (150 + 105 * tb - r) * wgt;
+        gg += (132 + 62 * tb - gg) * wgt;
+        b += (196 - 52 * tb - b) * wgt;
+      }
+      out[y * iw + x] = 0xFF000000 | ((b | 0) << 16) | ((gg | 0) << 8) | (r | 0);
     }
   }
   gCtx.putImageData(gImg, 0, 0);
@@ -4120,9 +4135,8 @@ function drawMap() {
       drawGlobeFrame(); GLOBE.lastRender = nowMs;
     }
     g2.clearRect(0, 0, W, H);
-    const disp = Math.min(W, H);
     g2.imageSmoothingEnabled = true;
-    g2.drawImage(gCanvas, (W - disp) / 2, (H - disp) / 2, disp, disp);
+    g2.drawImage(gCanvas, 0, 0, W, H);
   } else {
     if (!mapCache) { view = computeView(W, H); mapCache = drawBase(W, H); }
     g2.clearRect(0, 0, W, H);
