@@ -103,6 +103,12 @@
   .inline { display: flex; gap: 24px; align-items: baseline; flex-wrap: wrap;
             border-bottom: 1px solid var(--rule); padding: 14px 16px; }
   .inline.between { justify-content: space-between; }
+  #dubDepthWrap { display: inline-flex; align-items: center; gap: 10px; align-self: center; }
+  #dubDepthWrap[hidden] { display: none; }
+  #dubDepthWrap input[type="range"] { width: 110px; }
+  #dubDepthWrap input[type="range"]::-webkit-slider-thumb { background: var(--cool); }
+  #dubDepthWrap input[type="range"]::-moz-range-thumb { background: var(--cool); }
+  #dubDepthWrap output { font-size: 13px; color: var(--cool); font-variant-numeric: tabular-nums; }
 
   @media (pointer: coarse) {
     input[type="range"] { height: 32px; }
@@ -136,6 +142,10 @@
       aria-label="Drift: the listener wanders the land">[ &infin; drift ]</button>
     <button class="switch" id="dub" role="switch" aria-checked="false"
       aria-label="Dub: the land through a tape echo">[ dub ]</button>
+    <span id="dubDepthWrap" hidden>
+      <input type="range" id="dubDepth" min="0" max="100" value="55" aria-label="How deep the dub sits">
+      <output id="dubDepthV">55</output>
+    </span>
   </div>
   <button class="act" id="share" aria-label="Copy a link to this site and day">[ share this place ]</button>
 </div>
@@ -168,10 +178,6 @@
   <input type="range" id="wind" min="0" max="100" value="35" aria-label="Wind strength"></div>
 <div class="ctl"><div class="row2"><label for="space">space</label><output id="spaceV">40</output></div>
   <input type="range" id="space" min="0" max="100" value="40" aria-label="Openness of the air"></div>
-<div class="ctl cool">
-  <div class="row2"><label for="dubDepth">dub &mdash; depth</label><output id="dubDepthV">55</output></div>
-  <input type="range" id="dubDepth" min="0" max="100" value="55" aria-label="How deep the dub sits">
-</div>
 
 <div class="sect">voices</div>
 <div class="ctl warm"><div class="row2"><label for="vBird">birds</label><output id="vBirdV">70</output></div>
@@ -4345,6 +4351,7 @@ el.drift.addEventListener("click", () => {
 el.dub.addEventListener("click", () => {
   P.dub = !P.dub;
   el.dub.setAttribute("aria-checked", String(P.dub));
+  el.dubDepthWrap.hidden = !P.dub;   /* the depth fader appears at its side */
   DUB.on = P.dub;
   if (running) P.dub ? startDub() : stopDub();
 });
