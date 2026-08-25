@@ -3804,58 +3804,74 @@ function driftApply(lon, lat) {
 }
 
 /* --------------------------------------------------------- scheduler ----- */
+/* the ticker is armored: no exception anywhere in a tick may kill the
+   loop — one bad agent skips ahead, one bad tick logs once, and the
+   world keeps singing (the immanence pattern) */
 let lastTick = 0;
+const tickErrs = new Set();
 function tick() {
   if (!running) return;
-  const now = ctx.currentTime, horizon = 0.7;
-  if (P.drift && drift.rng && now > drift.nextT) driftStep(now);
-  const e = envNow();
-  stepWeather(e);
-  steerBed(now);
-  scheduleWater(now, horizon);
-  dubTick(now, horizon);
-  /* thunder */
-  if (weather.thunder && now > thunderNext) {
-    const far = arng() < 0.75;
-    play(thunderBuf(far), now + ru(0.2, 2), { dist: far ? ru(0.6, 0.85) : ru(0.2, 0.45),
-      pan: ru(-0.6, 0.6), gain: (far ? 0.8 : 1.3) * P.vAir, group: "air", rev: 0.5, name: "thunder" });
-    thunderNext = now + ru(20, 70);
-  }
-  const densGate = P.density;
-  for (const ag of agents) {
-    if (ag.idx / Math.max(1, agents.length) > densGate + 0.15) continue;
-    if (ag.nextT < 0) ag.nextT = now + ru2(arng, 2, Math.max(12, ag.sp.gap[1] * 0.5));
-    if (ag.nextT < now - 4) ag.nextT = now + ru2(arng, 0, 3);
-    while (ag.nextT < now + horizon) {
-      const t = ag.nextT, sp = ag.sp;
-      let act = sp.act(e);
-      /* rain quiets the singers (except a couple of rain-singers) */
-      if (weather.rain > 0.15 && sp.g === "bird" && !["vthrush", "pacwren"].includes(sp.id))
-        act *= Math.max(0, 1 - weather.rain * 1.6);
-      if (weather.snow > 0.05 && sp.g !== "air") act *= 0.25;
-      if (sp.id === "foghorn") act *= weather.fog > 0.25 ? 1 : 0;
-      act = Math.min(1, act * (0.35 + 0.85 * densGate));
-      const gapR = sp._gap || sp.gap;
-      if (act > 0.02 && arng() < act) {
-        const fader = P[FADER_OF[GROUP_OF[sp.g]]];
-        let x = null;
-        if (fader > 0.02) { try { x = sp.gen(e); } catch (err) { console.error(sp.id, err); } }
-        if (x) {
-          const dur = play(x, t, {
-            dist: ag.dist, pan: sp.omni ? 0 : ag.pan, gain: fader,
-            group: GROUP_OF[sp.g], rev: sp.rev ?? 0.15, echo: sp.echo, omni: sp.omni,
-            name: sp.name,
-          });
-          if (arng() < 0.6) announce(sp.name, ag.dist);
-          ag.nextT = t + dur + ru2(arng, gapR[0], gapR[1]) * (0.7 + 1.6 * (1 - act));
-        } else ag.nextT = t + ru2(arng, gapR[0], gapR[1]);
-      } else {
-        ag.nextT = t + Math.max(2, ru2(arng, gapR[0], gapR[1]) * 0.6);
+  try {
+    const now = ctx.currentTime, horizon = 0.7;
+    if (P.drift && drift.rng && now > drift.nextT) driftStep(now);
+    const e = envNow();
+    stepWeather(e);
+    steerBed(now);
+    scheduleWater(now, horizon);
+    dubTick(now, horizon);
+    /* thunder */
+    if (weather.thunder && now > thunderNext) {
+      const far = arng() < 0.75;
+      play(thunderBuf(far), now + ru(0.2, 2), { dist: far ? ru(0.6, 0.85) : ru(0.2, 0.45),
+        pan: ru(-0.6, 0.6), gain: (far ? 0.8 : 1.3) * P.vAir, group: "air", rev: 0.5, name: "thunder" });
+      thunderNext = now + ru(20, 70);
+    }
+    const densGate = P.density;
+    for (const ag of agents) {
+      try {
+        if (ag.idx / Math.max(1, agents.length) > densGate + 0.15) continue;
+        if (ag.nextT < 0) ag.nextT = now + ru2(arng, 2, Math.max(12, ag.sp.gap[1] * 0.5));
+        if (!Number.isFinite(ag.nextT)) ag.nextT = now + 2;
+        if (ag.nextT < now - 4) ag.nextT = now + ru2(arng, 0, 3);
+        while (ag.nextT < now + horizon) {
+          const t = ag.nextT, sp = ag.sp;
+          let act = sp.act(e);
+          /* rain quiets the singers (except a couple of rain-singers) */
+          if (weather.rain > 0.15 && sp.g === "bird" && !["vthrush", "pacwren"].includes(sp.id))
+            act *= Math.max(0, 1 - weather.rain * 1.6);
+          if (weather.snow > 0.05 && sp.g !== "air") act *= 0.25;
+          if (sp.id === "foghorn") act *= weather.fog > 0.25 ? 1 : 0;
+          act = Math.min(1, act * (0.35 + 0.85 * densGate));
+          const gapR = sp._gap || sp.gap;
+          if (act > 0.02 && arng() < act) {
+            const fader = P[FADER_OF[GROUP_OF[sp.g]]];
+            let x = null;
+            if (fader > 0.02) { try { x = sp.gen(e); } catch (err) { console.error(sp.id, err); } }
+            if (x) {
+              const dur = play(x, t, {
+                dist: ag.dist, pan: sp.omni ? 0 : ag.pan, gain: fader,
+                group: GROUP_OF[sp.g], rev: sp.rev ?? 0.15, echo: sp.echo, omni: sp.omni,
+                name: sp.name,
+              });
+              if (arng() < 0.6) announce(sp.name, ag.dist);
+              ag.nextT = t + dur + ru2(arng, gapR[0], gapR[1]) * (0.7 + 1.6 * (1 - act));
+            } else ag.nextT = t + ru2(arng, gapR[0], gapR[1]);
+          } else {
+            ag.nextT = t + Math.max(2, ru2(arng, gapR[0], gapR[1]) * 0.6);
+          }
+        }
+      } catch (err) {
+        ag.nextT = now + 10;
+        const k = ag.sp.id + ":" + String(err && err.message);
+        if (!tickErrs.has(k)) { tickErrs.add(k); console.error("agent " + ag.sp.id, err); }
       }
     }
+    statusLine(e);
+    if (now - lastTick > 30 && P.now && !P.lapse) reflectHour();
+  } catch (err) {
+    const k = "tick:" + String(err && err.message);
+    if (!tickErrs.has(k)) { tickErrs.add(k); console.error("tick", err); }
   }
-  statusLine(e);
-  if (now - lastTick > 30 && P.now && !P.lapse) reflectHour();
   setTimeout(tick, 180);
 }
 
@@ -4283,6 +4299,8 @@ function randomSite() {
     const lon = ru(-180, 180), lat = ru(-55, 72);
     if (!landAt(lon, lat)) continue;
     setSite(lon, lat);
+    if (site && site.biome === "ice" && k < 380) continue;   /* don't strand the
+      listener on the icecap — it can still be chosen by hand */
     if (site) globeCenter(site.lon, site.lat);
     return;
   }
