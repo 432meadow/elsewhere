@@ -3934,8 +3934,8 @@ function isDark() { return !matchMedia("(prefers-color-scheme: light)").matches
 
 /* ------------------------------------------------ the spinning globe ----- */
 const RAD = Math.PI / 180;
-const GLOBE = { lam: -96, phi: 30, zoom: 1.0, minZ: 0.85, maxZ: 7,
-  tw: 2160, th: 1080, tex: null, target: null, lastTouch: 0 };
+const GLOBE = { lam: -96, phi: 30, zoom: 1.0, zoomT: 1.0, minZ: 0.85, maxZ: 7,
+  tw: 2160, th: 1080, tex: null, target: null, anchor: null, lastTouch: 0 };
 function globeTexture() {
   if (GLOBE.tex) return GLOBE.tex;
   const w = GLOBE.tw, h = GLOBE.th;
@@ -4003,14 +4003,25 @@ function drawGlobeFrame() {
   const sd = Math.sin(decl), cd = Math.cos(decl);
   const hm = site ? solarHour() : ((Date.now() / 60000) % 1440);
   const lamS = ((site ? site.lon : 0) - (hm / 60 - 12) * 15) * RAD;
-  const y0 = Math.max(0, cy - R) | 0, y1 = Math.min(ih, cy + R + 1) | 0;
-  const xa = Math.max(0, cx - R) | 0, xb = Math.min(iw, cx + R + 1) | 0;
+  const dark = isDark();
+  const atR = dark ? 152 : 173, atG = dark ? 164 : 186, atB = dark ? 208 : 224;   /* atmosphere */
+  const Rg = R * 1.13;   /* the glow reaches a little past the limb */
+  const y0 = Math.max(0, cy - Rg) | 0, y1 = Math.min(ih, cy + Rg + 1) | 0;
+  const xa = Math.max(0, cx - Rg) | 0, xb = Math.min(iw, cx + Rg + 1) | 0;
   for (let y = y0; y < y1; y++) {
     const dy = (cy - y) / R;
     for (let x = xa; x < xb; x++) {
       const dx = (x - cx) / R;
       const d2 = dx * dx + dy * dy;
-      if (d2 > 1) continue;
+      if (d2 > 1) {
+        /* beyond the limb: a soft pale halo, breathing off into the page */
+        const d = Math.sqrt(d2);
+        if (d > 1.13) continue;
+        const u = 1 - (d - 1) / 0.13;
+        const al = (u * u * (dark ? 105 : 125)) | 0;
+        out[y * iw + x] = (al << 24) | (atB << 16) | (atG << 8) | atR;
+        continue;
+      }
       const z = Math.sqrt(1 - d2);
       const sinLat = z * sp + dy * cp;
       const latR = Math.asin(Math.max(-1, Math.min(1, sinLat)));
@@ -4021,16 +4032,21 @@ function drawGlobeFrame() {
       const v = tex[ty * tw + tx];
       let r = v & 255, gg = (v >> 8) & 255, b = (v >> 16) & 255;
       const cosz = sinLat * sd + Math.cos(latR) * cd * Math.cos(lonD * RAD - lamS);
-      let sh = 0.84 + 0.16 * z;                          /* the limb */
+      let sh = 0.86 + 0.14 * z;                          /* the limb */
       if (cosz < 0.05) sh *= cosz < -0.09 ? 0.66 : 0.66 + 0.34 * (cosz + 0.09) / 0.14;
       r *= sh; gg *= sh; b *= sh;
-      if (cosz > -0.16 && cosz < 0.16) {
+      if (cosz > -0.22 && cosz < 0.22) {
         /* the twilight band: rose-gold toward the sun, lavender into night */
-        const tb = (cosz + 0.16) / 0.32;
-        const wgt = Math.sin(tb * Math.PI) * 0.2;
-        r += (150 + 105 * tb - r) * wgt;
-        gg += (132 + 62 * tb - gg) * wgt;
-        b += (196 - 52 * tb - b) * wgt;
+        const tb = (cosz + 0.22) / 0.44;
+        const wgt = Math.sin(tb * Math.PI) * 0.3;
+        r += (255 * tb + 160 * (1 - tb) - r) * wgt;
+        gg += (196 * tb + 140 * (1 - tb) - gg) * wgt;
+        b += (150 * tb + 210 * (1 - tb) - b) * wgt;
+      }
+      const dd = Math.sqrt(d2);
+      if (dd > 0.93) {   /* atmospheric haze inside the limb */
+        const hw = ((dd - 0.93) / 0.07); const hz = hw * hw * 0.34;
+        r += (atR - r) * hz; gg += (atG - gg) * hz; b += (atB - b) * hz;
       }
       out[y * iw + x] = 0xFF000000 | ((b | 0) << 16) | ((gg | 0) << 8) | (r | 0);
     }
@@ -4131,7 +4147,21 @@ function drawMap() {
       GLOBE.lam -= 1.6 * dt;   /* the idle spin: one turn in ~4 minutes */
       if (GLOBE.lam < -180) GLOBE.lam += 360;
     }
-    if (!gCanvas || nowMs - (GLOBE.lastRender || 0) >= 31) {
+    /* fluid zoom: glide toward the target, the anchor point staying pinned */
+    const dz = GLOBE.zoomT - GLOBE.zoom;
+    if (Math.abs(dz) > 0.0008) GLOBE.zoom += dz * (1 - Math.exp(-14 * dt));
+    else GLOBE.zoom = GLOBE.zoomT;
+    if (GLOBE.anchor) {
+      const cur = globeFromPx(GLOBE.anchor.px, GLOBE.anchor.py, W, H);
+      if (cur) {
+        let dl = GLOBE.anchor.lon - cur[0]; dl = ((dl + 540) % 360) - 180;
+        GLOBE.lam += dl;
+        GLOBE.phi = Math.max(-80, Math.min(80, GLOBE.phi + (GLOBE.anchor.lat - cur[1])));
+      }
+      if (!ptrs.size && GLOBE.zoom === GLOBE.zoomT) GLOBE.anchor = null;
+    }
+    const busy = ptrs.size > 0 || GLOBE.zoom !== GLOBE.zoomT || GLOBE.target || GLOBE.anchor;
+    if (!gCanvas || busy || nowMs - (GLOBE.lastRender || 0) >= 31) {
       drawGlobeFrame(); GLOBE.lastRender = nowMs;
     }
     g2.clearRect(0, 0, W, H);
@@ -4231,7 +4261,13 @@ cv.addEventListener("pointerdown", e => {
   if (ptrs.size === 1) dragInfo = { moved: 0, t: performance.now() };
   else if (ptrs.size === 2) {
     const [a, b] = [...ptrs.values()];
-    pinch0 = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), z: GLOBE.zoom };
+    pinch0 = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), z: GLOBE.zoomT };
+    const r = cv.getBoundingClientRect();
+    const mx = ((a[0] + b[0]) / 2 - r.left) * devicePixelRatio;
+    const my = ((a[1] + b[1]) / 2 - r.top) * devicePixelRatio;
+    const ll = globeFromPx(mx, my, cv.width, cv.height);
+    GLOBE.anchor = ll ? { px: mx, py: my, lon: ll[0], lat: ll[1] } : null;
+    GLOBE.target = null;
     dragInfo = null;
   }
 });
@@ -4249,11 +4285,16 @@ cv.addEventListener("pointermove", e => {
     const k = 52 / Rcss;   /* degrees per css pixel */
     GLOBE.lam -= dx * k;
     GLOBE.phi = Math.max(-80, Math.min(80, GLOBE.phi + dy * k));
-    GLOBE.target = null;
+    GLOBE.target = null; GLOBE.anchor = null;
   } else if (ptrs.size === 2 && pinch0) {
     const [a, b] = [...ptrs.values()];
     const d = Math.hypot(a[0] - b[0], a[1] - b[1]);
-    GLOBE.zoom = Math.max(GLOBE.minZ, Math.min(GLOBE.maxZ, pinch0.z * d / Math.max(20, pinch0.d)));
+    GLOBE.zoomT = Math.max(GLOBE.minZ, Math.min(GLOBE.maxZ, pinch0.z * d / Math.max(20, pinch0.d)));
+    if (GLOBE.anchor) {   /* the midpoint pans too: the world follows the fingers */
+      const r = cv.getBoundingClientRect();
+      GLOBE.anchor.px = ((a[0] + b[0]) / 2 - r.left) * devicePixelRatio;
+      GLOBE.anchor.py = ((a[1] + b[1]) / 2 - r.top) * devicePixelRatio;
+    }
   }
 });
 function endPointer(e) {
@@ -4276,7 +4317,11 @@ cv.addEventListener("wheel", e => {
   if (viewMode !== "world") return;
   e.preventDefault();
   GLOBE.lastTouch = performance.now();
-  GLOBE.zoom = Math.max(GLOBE.minZ, Math.min(GLOBE.maxZ, GLOBE.zoom * Math.exp(-e.deltaY * 0.0013)));
+  const r = cv.getBoundingClientRect();
+  const px = (e.clientX - r.left) * devicePixelRatio, py = (e.clientY - r.top) * devicePixelRatio;
+  const ll = globeFromPx(px, py, cv.width, cv.height);
+  GLOBE.zoomT = Math.max(GLOBE.minZ, Math.min(GLOBE.maxZ, GLOBE.zoomT * Math.exp(-e.deltaY * 0.0016)));
+  if (ll) { GLOBE.anchor = { px, py, lon: ll[0], lat: ll[1] }; GLOBE.target = null; }
 }, { passive: false });
 
 function randomSite() {
