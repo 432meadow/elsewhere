@@ -129,13 +129,13 @@
 <div id="siteline">spin the globe — tap land to stand there</div>
 <div id="voicesline"></div>
 
-<div class="sect">place</div>
 <div class="inline between">
   <div class="seg">
     <button class="act" id="jump" aria-label="Go somewhere else at random">[ elsewhere ]</button>
     <button class="switch" id="drift" role="switch" aria-checked="false"
       aria-label="Drift: the listener wanders the land">[ &infin; drift ]</button>
-    <span class="g">the listener wanders the land</span>
+    <button class="switch" id="dub" role="switch" aria-checked="false"
+      aria-label="Dub: the land through a tape echo">[ dub ]</button>
   </div>
   <button class="act" id="share" aria-label="Copy a link to this site and day">[ share this place ]</button>
 </div>
@@ -168,6 +168,10 @@
   <input type="range" id="wind" min="0" max="100" value="35" aria-label="Wind strength"></div>
 <div class="ctl"><div class="row2"><label for="space">space</label><output id="spaceV">40</output></div>
   <input type="range" id="space" min="0" max="100" value="40" aria-label="Openness of the air"></div>
+<div class="ctl cool">
+  <div class="row2"><label for="dubDepth">dub &mdash; depth</label><output id="dubDepthV">55</output></div>
+  <input type="range" id="dubDepth" min="0" max="100" value="55" aria-label="How deep the dub sits">
+</div>
 
 <div class="sect">voices</div>
 <div class="ctl warm"><div class="row2"><label for="vBird">birds</label><output id="vBirdV">70</output></div>
@@ -180,17 +184,6 @@
   <input type="range" id="vFauna" min="0" max="100" value="70" aria-label="Mammal and beast level"></div>
 <div class="ctl"><div class="row2"><label for="vAir">air &amp; water</label><output id="vAirV">70</output></div>
   <input type="range" id="vAir" min="0" max="100" value="70" aria-label="Wind and water level"></div>
-
-<div class="sect">dub</div>
-<div class="inline">
-  <button class="switch" id="dub" role="switch" aria-checked="false"
-    aria-label="Dub: the land through a tape echo">[ dub ]</button>
-  <span class="g">the land through a tape echo — it drifts on its own</span>
-</div>
-<div class="ctl cool">
-  <div class="row2"><label for="dubDepth">depth</label><output id="dubDepthV">55</output></div>
-  <input type="range" id="dubDepth" min="0" max="100" value="55" aria-label="How deep the dub sits">
-</div>
 
 <div class="inline">
   <button class="act" id="keep" aria-label="Download the last 90 seconds as WAV">[ keep .wav ]</button>
