@@ -28,8 +28,8 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   hardwood forest, boreal lakes, southern pine, the everglades, tallgrass
   and shortgrass prairie, three deserts, sagebrush, mountain conifer, the
   coastal rainforest, oak & chaparral, and both shores — each with its own
-  cast (now ~130 species worldwide: birds, insects, frogs, mammals) and
-  its own wind ([ usa ] on the map zooms in; [ world ] zooms back out)
+  cast (now ~150 species worldwide: birds, insects, frogs, mammals) and
+  its own wind
 - **the clock is real**: [ now ] follows the actual solar time at the
   site; the dawn chorus assembles in the true order (robins first);
   insects gate on modeled temperature; season comes from the date

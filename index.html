@@ -45,7 +45,6 @@
   }
   #begin:hover { color: var(--s2); }
   #begin:focus-visible { outline: 1px solid var(--focus); outline-offset: -8px; }
-  #mapview { position: absolute; right: 14px; top: 10px; font-size: 13px; z-index: 2; }
 
   #siteline {
     padding: 10px 16px; border-bottom: 1px solid var(--rule); font-size: 13px;
@@ -122,7 +121,6 @@
 
 <div id="stage">
   <canvas id="map" width="1024" height="380"></canvas>
-  <button class="act" id="mapview" aria-label="Switch between the world and the united states">[ usa ]</button>
   <button id="begin">[ begin ]</button>
 </div>
 <div id="siteline">click the map to listen somewhere</div>
@@ -299,42 +297,7 @@ function realmAt(lon, lat) {
   return "wpale";
 }
 
-/* ----------------------------------------------------- albers usa 48 ----- */
-const AB = (() => {
-  const rad = Math.PI / 180, f1 = 29.5 * rad, f2 = 45.5 * rad, f0 = 37.5 * rad, l0 = -96 * rad;
-  const n = (Math.sin(f1) + Math.sin(f2)) / 2;
-  const C = Math.cos(f1) ** 2 + 2 * n * Math.sin(f1);
-  const r0 = Math.sqrt(C - 2 * n * Math.sin(f0)) / n;
-  return {
-    fwd(lon, lat) {
-      const rho = Math.sqrt(C - 2 * n * Math.sin(lat * rad)) / n, th = n * (lon * rad - l0);
-      return [rho * Math.sin(th), r0 - rho * Math.cos(th)];
-    },
-    inv(x, y) {
-      const rho = Math.hypot(x, r0 - y), th = Math.atan2(x, r0 - y);
-      return [(l0 + th / n) / rad, Math.asin((C - rho * rho * n * n) / (2 * n)) / rad];
-    },
-  };
-})();
-/* equal earth, for the world view */
-const EE = (() => {
-  const A1 = 1.340264, A2 = -0.081106, A3 = 0.000893, A4 = 0.003796;
-  const M = Math.sqrt(3) / 2, rad = Math.PI / 180;
-  const poly = t => A1 + A2 * t * t + Math.pow(t, 6) * (A3 + A4 * t * t);
-  const dpoly = t => A1 + 3 * A2 * t * t + Math.pow(t, 6) * (7 * A3 + 9 * A4 * t * t);
-  return {
-    fwd(lon, lat) {
-      const th = Math.asin(M * Math.sin(lat * rad));
-      return [lon * rad * Math.cos(th) / (M * dpoly(th)), th * poly(th)];
-    },
-    inv(x, y) {
-      let th = y;
-      for (let i = 0; i < 8; i++) th -= (th * poly(th) - y) / dpoly(th);
-      return [x * M * dpoly(th) / Math.cos(th) / rad,
-              Math.asin(Math.max(-1, Math.min(1, Math.sin(th) / M))) / rad];
-    },
-  };
-})();
+/* (the map is the globe: orthographic, defined with the renderer below) */
 
 /* ---------------------------------------------------------- geometry ----- */
 function inRing(x, y, ring) {
@@ -3832,7 +3795,7 @@ function driftApply(lon, lat) {
     }
     buildBed(); buildWaterEvents(); buildCast();
   }
-  if (viewMode === "world") globeCenter(site.lon, site.lat);   /* the globe follows */
+  globeCenter(site.lon, site.lat);   /* the globe follows the wanderer */
   statusLine(envNow());
 }
 
@@ -3916,18 +3879,6 @@ function statusLine(e) {
 
 /* ============================================================== map ====== */
 const cv = document.getElementById("map"), g2 = cv.getContext("2d");
-let mapCache = null, view = null;   /* usa view: {s, ox, oy} albers -> px */
-let viewMode = "world";             /* "world" (the globe) | "usa" (albers) */
-function computeView(W, H) {
-  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
-  for (const s of STATES) for (const r of s.rings) for (const [lo, la] of r) {
-    const [x, y] = AB.fwd(lo, la);
-    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
-  }
-  const m = 0.03;
-  const sc = Math.min(W * (1 - m * 2) / (x1 - x0), H * (1 - m * 2) / (y1 - y0));
-  return { s: sc, ox: W / 2 - sc * (x0 + x1) / 2, oy: H / 2 + sc * (y0 + y1) / 2 };
-}
 function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
 function isDark() { return !matchMedia("(prefers-color-scheme: light)").matches
   || document.documentElement.dataset.theme === "dark"; }
@@ -3938,6 +3889,8 @@ const GLOBE = { lam: -96, phi: 30, zoom: 1.0, zoomT: 1.0, minZ: 0.85, maxZ: 7,
   tw: 2160, th: 1080, tex: null, target: null, anchor: null, lastTouch: 0 };
 function globeTexture() {
   if (GLOBE.tex) return GLOBE.tex;
+  /* double resolution where memory allows: sharp coasts and borders */
+  if ((navigator.deviceMemory || 8) >= 4) { GLOBE.tw = 4320; GLOBE.th = 2160; }
   const w = GLOBE.tw, h = GLOBE.th;
   const oc = document.createElement("canvas"); oc.width = w; oc.height = h;
   const g = oc.getContext("2d");
@@ -3983,10 +3936,13 @@ function globeTexture() {
   return GLOBE.tex;
 }
 let gCanvas = null, gCtx = null, gImg = null;
-function drawGlobeFrame() {
-  /* internal buffer matches the canvas aspect, so zoom fills the frame */
+function drawGlobeFrame(fine) {
+  /* internal buffer matches the canvas aspect, so zoom fills the frame.
+     two qualities: a fast nearest-sampled frame while anything moves, and
+     a full-resolution bilinear frame once the globe settles. */
   const W = cv.width, H = cv.height;
-  const k = Math.min(1, Math.sqrt(430000 / Math.max(1, W * H)));
+  const budget = fine ? Math.min(1500000, W * H) : 430000;
+  const k = Math.min(1, Math.sqrt(budget / Math.max(1, W * H)));
   const iw = Math.max(64, Math.round(W * k)), ih = Math.max(64, Math.round(H * k));
   if (!gCanvas || gCanvas.width !== iw || gCanvas.height !== ih) {
     gCanvas = document.createElement("canvas"); gCanvas.width = iw; gCanvas.height = ih;
@@ -4026,11 +3982,27 @@ function drawGlobeFrame() {
       const sinLat = z * sp + dy * cp;
       const latR = Math.asin(Math.max(-1, Math.min(1, sinLat)));
       const lonD = GLOBE.lam + Math.atan2(dx, z * cp - dy * sp) / RAD;
-      let tx = (((lonD + 180) / 360 * tw) | 0) % tw; if (tx < 0) tx += tw;
-      let ty = ((90 - latR / RAD) / 180 * th) | 0;
-      if (ty < 0) ty = 0; else if (ty >= th) ty = th - 1;
-      const v = tex[ty * tw + tx];
-      let r = v & 255, gg = (v >> 8) & 255, b = (v >> 16) & 255;
+      let r, gg, b;
+      if (fine) {   /* bilinear */
+        const fx = (lonD + 180) / 360 * tw - 0.5;
+        let ix = Math.floor(fx); const wx = fx - ix;
+        ix = ((ix % tw) + tw) % tw; const ix2 = (ix + 1) % tw;
+        const fy = (90 - latR / RAD) / 180 * th - 0.5;
+        let iy = Math.floor(fy); let wy = fy - iy;
+        if (iy < 0) { iy = 0; wy = 0; } else if (iy > th - 2) { iy = th - 2; wy = 1; }
+        const v00 = tex[iy * tw + ix], v01 = tex[iy * tw + ix2];
+        const v10 = tex[(iy + 1) * tw + ix], v11 = tex[(iy + 1) * tw + ix2];
+        const w00 = (1 - wx) * (1 - wy), w01 = wx * (1 - wy), w10 = (1 - wx) * wy, w11 = wx * wy;
+        r = (v00 & 255) * w00 + (v01 & 255) * w01 + (v10 & 255) * w10 + (v11 & 255) * w11;
+        gg = ((v00 >> 8) & 255) * w00 + ((v01 >> 8) & 255) * w01 + ((v10 >> 8) & 255) * w10 + ((v11 >> 8) & 255) * w11;
+        b = ((v00 >> 16) & 255) * w00 + ((v01 >> 16) & 255) * w01 + ((v10 >> 16) & 255) * w10 + ((v11 >> 16) & 255) * w11;
+      } else {
+        let tx2 = (((lonD + 180) / 360 * tw) | 0) % tw; if (tx2 < 0) tx2 += tw;
+        let ty2 = ((90 - latR / RAD) / 180 * th) | 0;
+        if (ty2 < 0) ty2 = 0; else if (ty2 >= th) ty2 = th - 1;
+        const v = tex[ty2 * tw + tx2];
+        r = v & 255; gg = (v >> 8) & 255; b = (v >> 16) & 255;
+      }
       const cosz = sinLat * sd + Math.cos(latR) * cd * Math.cos(lonD * RAD - lamS);
       let sh = 0.86 + 0.14 * z;                          /* the limb */
       if (cosz < 0.05) sh *= cosz < -0.09 ? 0.66 : 0.66 + 0.34 * (cosz + 0.09) / 0.14;
@@ -4081,47 +4053,10 @@ function globeFromPx(px, py, W, H) {
 }
 function globeCenter(lon, lat) { GLOBE.target = { lam: lon, phi: Math.max(-80, Math.min(80, lat)) }; }
 
-function toPx(lon, lat) {
-  if (viewMode === "world") return globeToPx(lon, lat, cv.width, cv.height);
-  const [x, y] = AB.fwd(lon, lat);
-  return [view.ox + view.s * x, view.oy - view.s * y];
-}
-function fromPx(px, py) {
-  if (viewMode === "world") return globeFromPx(px, py, cv.width, cv.height);
-  return AB.inv((px - view.ox) / view.s, (view.oy - py) / view.s);
-}
+function toPx(lon, lat) { return globeToPx(lon, lat, cv.width, cv.height); }
+function fromPx(px, py) { return globeFromPx(px, py, cv.width, cv.height); }
 
-function tracePath(g, polys) {
-  g.beginPath();
-  for (const p of polys) for (const r of p.rings) {
-    r.forEach(([lo, la], i) => { const [x, y] = toPx(lo, la);
-      i ? g.lineTo(x, y) : g.moveTo(x, y); });
-    g.closePath();
-  }
-}
-function drawBase(W, H) {   /* the flat albers usa, cached */
-  const off = document.createElement("canvas"); off.width = W; off.height = H;
-  const g = off.getContext("2d");
-  g.save();
-  tracePath(g, STATES);
-  g.clip();
-  g.globalAlpha = isDark() ? 0.5 : 0.55;
-  const step = 0.35;
-  for (let la = 24; la < 49.5; la += step) {
-    for (let lo = -125; lo < -66.5; lo += step) {
-      g.fillStyle = BIOME_INFO[biomeAt(lo + step / 2, la + step / 2, true).biome].hue;
-      const p0 = toPx(lo, la), p1 = toPx(lo + step, la), p2 = toPx(lo + step, la + step), p3 = toPx(lo, la + step);
-      g.beginPath(); g.moveTo(p0[0], p0[1]); g.lineTo(p1[0], p1[1]);
-      g.lineTo(p2[0], p2[1]); g.lineTo(p3[0], p3[1]); g.closePath(); g.fill();
-    }
-  }
-  g.restore();
-  g.globalAlpha = 1;
-  g.strokeStyle = cssVar("--rule"); g.lineWidth = 0.7;
-  tracePath(g, STATES); g.stroke();
-  return off;
-}
-let drawLive = false, rafQueued = false, frameFlip = false;
+let drawLive = false, rafQueued = false;
 const ptrs = new Map();
 function queueDraw() {
   if (rafQueued) return;
@@ -4131,21 +4066,24 @@ function queueDraw() {
 function drawMap() {
   const wantW = Math.round(cv.clientWidth * devicePixelRatio),
         wantH = Math.round(cv.clientHeight * devicePixelRatio);
-  if (cv.width !== wantW || cv.height !== wantH) { cv.width = wantW; cv.height = wantH; mapCache = null; }
+  if (cv.width !== wantW || cv.height !== wantH) { cv.width = wantW; cv.height = wantH; }
   const W = cv.width, H = cv.height;
   if (!W || !H) { queueDraw(); return; }
-  if (viewMode === "world") {
+  {
     const nowMs = performance.now();
     const dt = Math.min(0.1, (nowMs - (GLOBE.lastMs || nowMs)) / 1000);
     GLOBE.lastMs = nowMs;
     const ease = 1 - Math.exp(-5 * dt);
+    let spinning = false;
     if (GLOBE.target) {   /* ease toward a chosen place */
       let dl = GLOBE.target.lam - GLOBE.lam; dl = ((dl + 540) % 360) - 180;
       GLOBE.lam += dl * ease; GLOBE.phi += (GLOBE.target.phi - GLOBE.phi) * ease;
       if (Math.abs(dl) < 0.4 && Math.abs(GLOBE.target.phi - GLOBE.phi) < 0.4) GLOBE.target = null;
-    } else if (!ptrs.size && nowMs - GLOBE.lastTouch > 4000) {
-      GLOBE.lam -= 1.6 * dt;   /* the idle spin: one turn in ~4 minutes */
+    } else if (!ptrs.size && nowMs - GLOBE.lastTouch > 4000 && GLOBE.zoom < 1.6) {
+      GLOBE.lam -= 1.6 * dt;   /* the idle spin: one turn in ~4 minutes.
+                                  zoomed in, the globe holds still */
       if (GLOBE.lam < -180) GLOBE.lam += 360;
+      spinning = true;
     }
     /* fluid zoom: glide toward the target, the anchor point staying pinned */
     const dz = GLOBE.zoomT - GLOBE.zoom;
@@ -4160,23 +4098,24 @@ function drawMap() {
       }
       if (!ptrs.size && GLOBE.zoom === GLOBE.zoomT) GLOBE.anchor = null;
     }
+    /* while anything moves: fast frames. settled: one full-res bilinear
+       frame, re-rendered only when the view or the sun actually changes */
     const busy = ptrs.size > 0 || GLOBE.zoom !== GLOBE.zoomT || GLOBE.target || GLOBE.anchor;
-    if (!gCanvas || busy || nowMs - (GLOBE.lastRender || 0) >= 31) {
-      drawGlobeFrame(); GLOBE.lastRender = nowMs;
+    if (busy || spinning) {
+      if (!gCanvas || busy || nowMs - (GLOBE.lastRender || 0) >= 31) {
+        drawGlobeFrame(false); GLOBE.lastRender = nowMs; GLOBE.fineKey = null;
+      }
+    } else {
+      const hmK = Math.round(site ? solarHour() : ((Date.now() / 60000) % 1440));
+      const key = GLOBE.lam.toFixed(2) + "|" + GLOBE.phi.toFixed(2) + "|" + GLOBE.zoom.toFixed(3)
+        + "|" + hmK + "|" + P.doy + "|" + W + "|" + isDark();
+      if (!gCanvas || GLOBE.fineKey !== key) {
+        drawGlobeFrame(true); GLOBE.lastRender = nowMs; GLOBE.fineKey = key;
+      }
     }
     g2.clearRect(0, 0, W, H);
     g2.imageSmoothingEnabled = true;
     g2.drawImage(gCanvas, 0, 0, W, H);
-  } else {
-    if (!mapCache) { view = computeView(W, H); mapCache = drawBase(W, H); }
-    g2.clearRect(0, 0, W, H);
-    g2.drawImage(mapCache, 0, 0);
-    if (site) {   /* night veil (the globe has its own terminator) */
-      const e = envNow();
-      const veil = Math.max(0, Math.min(1, (-e.el + 2) / 14)) * 0.22;
-      if (veil > 0.01) { g2.fillStyle = "#06070c"; g2.globalAlpha = veil;
-        g2.fillRect(0, 0, W, H); g2.globalAlpha = 1; }
-    }
   }
   if (site) {
     const m = toPx(site.lon, site.lat);
@@ -4206,7 +4145,7 @@ function drawMap() {
       }
     }
   }
-  if (drawLive || viewMode === "world") queueDraw();
+  queueDraw();
 }
 
 /* ----------------------------------------------------- interactions ------ */
@@ -4275,7 +4214,6 @@ cv.addEventListener("pointermove", e => {
   if (!ptrs.has(e.pointerId)) return;
   const prev = ptrs.get(e.pointerId);
   ptrs.set(e.pointerId, [e.clientX, e.clientY]);
-  if (viewMode !== "world") return;
   GLOBE.lastTouch = performance.now();
   if (ptrs.size === 1 && dragInfo) {
     const dx = e.clientX - prev[0], dy = e.clientY - prev[1];
@@ -4307,14 +4245,12 @@ function endPointer(e) {
   if (!isTap || ptrs.size) return;
   const r = cv.getBoundingClientRect();
   const px = (e.clientX - r.left) * devicePixelRatio, py = (e.clientY - r.top) * devicePixelRatio;
-  if (viewMode === "usa" && !view) return;
   const ll = fromPx(px, py);
   if (ll) setSite(ll[0], ll[1]);
 }
 cv.addEventListener("pointerup", endPointer);
 cv.addEventListener("pointercancel", endPointer);
 cv.addEventListener("wheel", e => {
-  if (viewMode !== "world") return;
   e.preventDefault();
   GLOBE.lastTouch = performance.now();
   const r = cv.getBoundingClientRect();
@@ -4326,18 +4262,10 @@ cv.addEventListener("wheel", e => {
 
 function randomSite() {
   for (let k = 0; k < 400; k++) {
-    let lon, lat;
-    if (viewMode === "usa") {   /* [ elsewhere ] respects the view */
-      const s = STATES[(Math.random() * STATES.length) | 0];
-      const [x0, y0, x1, y1] = s.bbox;
-      lon = ru(x0, x1); lat = ru(y0, y1);
-      if (!stateAt(lon, lat)) continue;
-    } else {
-      lon = ru(-180, 180); lat = ru(-55, 72);
-      if (!landAt(lon, lat)) continue;
-    }
+    const lon = ru(-180, 180), lat = ru(-55, 72);
+    if (!landAt(lon, lat)) continue;
     setSite(lon, lat);
-    if (viewMode === "world" && site) globeCenter(site.lon, site.lat);
+    if (site) globeCenter(site.lon, site.lat);
     return;
   }
 }
@@ -4416,12 +4344,6 @@ out("doy").textContent = doyLabel(P.doy); el.doy.value = P.doy;
 out("wind").textContent = WINDWORDS[Math.min(6, (P.wind * 7) | 0)];
 
 el.jump.addEventListener("click", randomSite);
-el.mapview.addEventListener("click", () => {
-  viewMode = viewMode === "world" ? "usa" : "world";
-  el.mapview.textContent = viewMode === "world" ? "[ usa ]" : "[ world ]";
-  mapCache = null;
-  if (!drawLive) drawMap();
-});
 el.share.addEventListener("click", async () => {
   if (!site) return;
   const u = location.origin + location.pathname
