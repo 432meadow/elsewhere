@@ -79,8 +79,8 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   bird, the death's-head's pulsed squeak — and in a seeded outbreak year
   an eastern forest carries the frass rain, a canopy of caterpillars
   pattering like drizzle. every site's night has a seeded character —
-  a fluttering night, a clicking night, a courting night — named in the
-  status line. location- and temperature-honest like everything else;
+  a fluttering night, a clicking night, a courting night — that drifts
+  as you listen. location- and temperature-honest like everything else;
   the dub, the drift and the clock all still apply
 - **[ keep .wav ]** downloads the last 90 seconds (recorded linear,
   before the live safety compressor — album convention)

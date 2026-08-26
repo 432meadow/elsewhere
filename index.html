@@ -4564,7 +4564,7 @@ function statusLine(e) {
     : weather.rain > 0.05 ? " · light rain" : weather.fog > 0.4 ? " · fog" : "")
     + (P.drift ? " · drifting" : "")
     + (P.dub ? " · dub " + DUB.state : "")
-    + (MOTH.on ? " · the moth variation — " + (MOTH.night || "") : "");
+    + (MOTH.on ? " · moth variation" : "");
   document.getElementById("siteline").innerHTML =
     `${Math.abs(site.lat).toFixed(1)}°${site.lat < 0 ? "S" : "N"} ` +
     `${Math.abs(site.lon).toFixed(1)}°${site.lon < 0 ? "W" : "E"} · ` +
