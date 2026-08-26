@@ -35,12 +35,18 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   monsoon lands erupting into song when their rains arrive. the human
   distants are done with care: the far muezzin at the five times where
   it belongs, cowbells on high alpine meadows, and each region's
-  railway sounding its own horn
+  railway sounding its own horn. madagascar is its own realm — the
+  indri wailing across eastern valleys, the sifaka scolding in the
+  spiny south, a coua calling down every slope — small ocean islands
+  grow seabird colonies (tropicbirds and boobies by day, shearwaters
+  wailing in the dark), and above 1400 m the mountains find their own
+  voices: choughs and marmots in the alps, whistling thrushes and
+  laughingthrushes in the himalaya, the solitaire's flute in the andes
 - **fourteen hand-drawn biomes** cover the lower 48 in extra detail —
   hardwood forest, boreal lakes, southern pine, the everglades, tallgrass
   and shortgrass prairie, three deserts, sagebrush, mountain conifer, the
   coastal rainforest, oak & chaparral, and both shores — each with its own
-  cast (now ~295 species worldwide: birds, insects, frogs, mammals — the
+  cast (now ~305 species worldwide: birds, insects, frogs, mammals — the
   waterside pass added mallards, kingfishers, herons, winnowing snipe and
   displaying woodcock wherever there is water, old-world frog choruses to
   european and japanese nights, swallows over every meadow, and the

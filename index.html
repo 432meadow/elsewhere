@@ -313,6 +313,7 @@ function kgBiome(cls) {
 /* biogeographic realm, coarsely — which cast sings here */
 function realmAt(lon, lat) {
   if (lon < -30) return lat > 22 ? "nearctic" : "neotropic";
+  if (lon >= 42.5 && lon <= 50.8 && lat <= -11.5 && lat >= -26) return "mad";  /* madagascar */
   if (lat < -33 && lon >= 165) return "nz";
   if (lat < -8 && lon >= 110) return "austral";
   if (lat < -28 && lon >= 160) return "austral";
@@ -482,7 +483,8 @@ const HIGHLANDS = [
   [44, 25, 63, 38, 1300],         /* the iranian plateau */
   [26, 36.5, 44, 40.5, 1100],     /* anatolia */
   [40, 40.5, 49, 44, 1800],       /* the caucasus */
-  [5.5, 44, 16, 48, 1500],        /* the alps */
+  [5.8, 45.7, 15.5, 47.8, 1500],  /* the alps (the po valley carved out) */
+  [46, -22.5, 47.8, -18, 1300],   /* the malagasy hauts plateaux */
   [-4, 36.5, 3, 43, 700],         /* the iberian meseta */
   [34, 5, 43, 15, 2200],          /* the ethiopian highlands */
   [28, -11, 40, 5, 1300],         /* the east african plateau */
@@ -668,12 +670,18 @@ function makeWorldSite(lon, lat) {
   } else {
     region = regionName(co, lon, lat);
   }
+  /* a small country ringed by ocean is an island: the seabirds know.
+     fiji straddles the antimeridian, so measure width the short way round —
+     but only trust the wrap for short countries (russia really is that wide) */
+  const bw = co.bbox[2] - co.bbox[0], bh = co.bbox[3] - co.bbox[1];
+  const w2 = bw > 300 ? 360 - bw : bw;
+  const island = region === "Hawaiʻi" || (w2 * bh < 25 && bh < 8 && c.deg < 1.5);
   return {
     lat, lon, biome, base: biome, coastType: c.type, coastDeg: c.deg,
     state: co.name, region, key, water, rocky,
     farm: ["tfor", "toce", "subtrop", "med", "sav", "steppe"].includes(biome) && srng() < 0.5,
     town: srng() < 0.3,
-    realm, kg, world: true, elev: elevAt(lon, lat),
+    realm, kg, world: true, elev: elevAt(lon, lat), island,
     seed: fnv("elsewhere:" + key + ":" + dayStr),
   };
 }
@@ -3784,6 +3792,18 @@ const WREALM = {
     tfor: ["kaka", "rifleman", "kiwi"], med: [], shore: [],
     trf: [], sav: [], subtrop: [], des: [], steppe: [], bor: [], tundra: [],
   },
+  mad: {   /* madagascar: nothing sounds like it anywhere else */
+    all: ["fardog", "rooster", "cattle"],
+    trf: ["indri", "coua", "parrots", "gecko", "fnightjar"],
+    subtrop: ["indri", "coua", "parrots"],
+    toce: ["indri", "coua"],
+    sav: ["sifaka", "coua", "fnightjar"],
+    med: ["sifaka", "coua"],
+    steppe: ["sifaka", "coua"],
+    des: ["sifaka"],
+    tfor: ["coua"], bor: [], tundra: [],
+    shore: ["gecko", "coua"],
+  },
   neotropic: {
     all: ["parrots", "fardog", "rooster", "cattle", "rufcollared"],
     trf: ["piha", "howler", "oropendola", "toucan", "potoo", "tinamou", "musicianwren", "gecko",
@@ -3976,6 +3996,124 @@ def("kiwi", { name: "a kiwi, calling in the dark", g: "bird",
         parts.push(gapN(ru(0.3, 0.6)));
       }
     } return cat(...parts); } });
+/* madagascar */
+def("indri", { name: "indri, wailing across the valley", g: "beast",
+  act: A({ doy: [1, 365], dawn: 0.8, day: 1 }), gap: [280, 700], dist: [0.4, 0.8], n: [1, 1], rev: 0.55, echo: true,
+  gen() { /* the family sings together: long overlapping portamento wails */
+    const dur = ru(6, 11), n2 = (dur * SR) | 0, x = new Float32Array(n2);
+    for (let v = 0, m = ri(2, 4); v < m; v++) {
+      let t = ru(0, 1.2);
+      while (t < dur - 1.5) {
+        const wd = ru(1, 2.2), f0 = ru(550, 900), f1 = f0 * ru(1.6, 2.3);
+        const at = (t * SR) | 0, L = (wd * SR) | 0;
+        let ph = 0;
+        for (let i = 0; i < L && at + i < n2; i++) {
+          const tf = i / L;
+          const f = tf < 0.35 ? f0 + (f1 - f0) * (tf / 0.35) : f1 * (1 - 0.45 * (tf - 0.35) / 0.65);
+          ph += 2 * Math.PI * f / SR;
+          x[at + i] += (Math.sin(ph) + 0.4 * Math.sin(2 * ph) + 0.12 * Math.sin(3 * ph))
+                     * Math.sin(Math.PI * tf) * 0.5;
+        }
+        t += wd * ru(0.7, 1.1);
+      }
+    }
+    return env3(normA(x), 0.3, 1); } });
+def("sifaka", { name: "sifaka, scolding", g: "beast",
+  act: A({ doy: [1, 365], day: 0.9, dawn: 0.6 }), gap: [90, 240], dist: [0.3, 0.6], n: [1, 1], rev: 0.35,
+  gen() { /* the explosive shi-FAK hiccup, a few in a row */
+    const parts = [];
+    for (let k = 0, m = ri(2, 5); k < m; k++) {
+      parts.push(scaleA(rasp(0.08, ru(900, 1300), 1.2, { win: 0.3 }), 0.8));
+      parts.push(tone(ru(0.09, 0.13), [[0, ru(1400, 1800)], [1, ru(700, 950)]],
+        { harm: [1, 0.6, 0.3], noise: 0.35, atk: 0.004, rel: 0.02 }));
+      parts.push(gapN(ru(0.25, 0.6)));
+    } return cat(...parts); } });
+def("coua", { name: "a coua, calling down the slope", g: "bird",
+  act: A({ doy: [1, 365], dawn: 1.1, day: 0.7 }), gap: [15, 35], dist: [0.25, 0.6], n: [1, 1], rev: 0.4,
+  gen() { const parts = []; let f = ru(1700, 2100);
+    for (let k = 0, m = ri(5, 8); k < m; k++) {
+      parts.push(tone(ru(0.14, 0.2), [[0, f * 1.04], [1, f * 0.94]],
+        { harm: [1, 0.35, 0.1], atk: 0.008, rel: 0.03 }));
+      parts.push(gapN(ru(0.08, 0.16)));
+      f *= 0.93;
+    } return cat(...parts); } });
+/* oceanic islands: the seabird colonies */
+def("tropicbird", { name: "tropicbirds, shrieking over the cliff", g: "bird",
+  act: A({ doy: [1, 365], day: 1 }), gap: [25, 60], dist: [0.3, 0.65], n: [1, 1], rev: 0.3,
+  gen() { const parts = [];
+    for (let k = 0, m = ri(7, 14); k < m; k++) {
+      const f = ru(3100, 3900);
+      parts.push(tone(ru(0.05, 0.08), [[0, f], [1, f * 0.88]],
+        { harm: [1, 0.5, 0.2], noise: 0.3, atk: 0.003, rel: 0.012 }));
+      parts.push(gapN(ru(0.04, 0.1)));
+    } return cat(...parts); } });
+def("booby", { name: "boobies at the colony", g: "bird",
+  act: A({ doy: [1, 365], day: 0.9, dusk: 0.5 }), gap: [30, 70], dist: [0.35, 0.7], n: [1, 1], rev: 0.25,
+  gen() { const parts = []; const f = ru(520, 750);
+    for (let k = 0, m = ri(3, 7); k < m; k++) {
+      parts.push(tone(ru(0.18, 0.28), [[0, f * 1.05], [1, f * 0.9]],
+        { harm: [1, 0.8, 0.5, 0.3, 0.15], noise: 0.25, atk: 0.01, rel: 0.04 }));
+      parts.push(gapN(ru(0.12, 0.3)));
+    } return cat(...parts); } });
+def("shearwater", { name: "shearwaters, wailing in the dark", g: "bird",
+  act: A({ doy: [1, 365], night: 1.2 }), gap: [40, 110], dist: [0.3, 0.65], n: [1, 2], rev: 0.4,
+  gen() { /* the night colony: moaning rise-and-fall with the rasped indrawn half */
+    const parts = [];
+    for (let k = 0, m = ri(2, 4); k < m; k++) {
+      const f = ru(750, 1250);
+      parts.push(tone(ru(0.5, 0.8), [[0, f * 0.8], [0.5, f * 1.25], [1, f * 0.85]],
+        { harm: [1, 0.55, 0.3, 0.12], noise: 0.35, vib: [8, 60], atk: 0.05, rel: 0.08 }));
+      parts.push(scaleA(rasp(ru(0.25, 0.4), f * 0.9, 1, { am: 30, amd: 0.7, win: 0.5 }), 0.6));
+      parts.push(gapN(ru(0.2, 0.5)));
+    } return cat(...parts); } });
+/* the montane voices, gated on elevation */
+def("chough", { name: "choughs about the crags", g: "bird",
+  act: A({ doy: [1, 365], day: 1 }), gap: [20, 50], dist: [0.3, 0.7], n: [1, 1], rev: 0.45, echo: true,
+  gen() { const parts = [];
+    for (let k = 0, m = ri(1, 4); k < m; k++) {
+      const f = ru(2500, 3400);
+      parts.push(tone(ru(0.12, 0.18), [[0, f], [0.4, f * 1.08], [1, f * 0.8]],
+        { harm: [1, 0.4, 0.15], noise: 0.3, atk: 0.006, rel: 0.03 }));
+      parts.push(gapN(ru(0.15, 0.5)));
+    } return cat(...parts); } });
+def("marmot", { name: "a marmot's whistle", g: "beast",
+  act: A({ doy: [120, 280], day: 1 }), gap: [60, 180], dist: [0.3, 0.65], n: [1, 1], rev: 0.4, echo: true,
+  gen() { const parts = []; const f = ru(2500, 3100);
+    for (let k = 0, m = ri(1, 3); k < m; k++) {
+      parts.push(tone(ru(0.1, 0.15), [[0, f * 1.02], [1, f * 0.97]],
+        { harm: [1, 0.15], atk: 0.002, rel: 0.03 }));
+      parts.push(gapN(ru(0.8, 2)));
+    } return cat(...parts); } });
+def("whistlingthrush", { name: "a whistling thrush by the torrent", g: "bird",
+  act: A({ doy: [60, 250], dawn: 1.4, day: 0.4, dusk: 1 }), gap: [10, 22], dist: [0.2, 0.5], n: [1, 1], rev: 0.4,
+  gen() { /* rich, aimless, human-sounding whistling */
+    const parts = [];
+    for (let k = 0, m = ri(3, 6); k < m; k++) {
+      const f = ru(1600, 2800), arc = pick([1, -1]);
+      parts.push(tone(ru(0.25, 0.5),
+        [[0, f], [0.4, f * (1 + arc * 0.18)], [0.75, f * (1 - arc * 0.1)], [1, f * ru(0.95, 1.08)]],
+        { harm: [1, 0.2, 0.05], vib: [ru(5, 8), 35], atk: 0.02, rel: 0.05 }));
+      parts.push(gapN(ru(0.12, 0.3)));
+    } return cat(...parts); } });
+def("laughingthrush", { name: "laughingthrushes, all at once", g: "bird",
+  act: A({ doy: [1, 365], dawn: 1.2, day: 0.8 }), gap: [12, 26], dist: [0.2, 0.5], n: [1, 2], rev: 0.35,
+  gen() { const parts = [];
+    for (let k = 0, m = ri(8, 15); k < m; k++) {
+      const f = ru(1500, 3000);
+      parts.push(tone(ru(0.06, 0.12), [[0, f], [1, f * pick([1.15, 0.85, 1.3])]],
+        { harm: [1, 0.4, 0.15], noise: 0.15, atk: 0.005, rel: 0.015 }));
+      parts.push(gapN(ru(0.02, 0.09)));
+    } return cat(...parts); } });
+def("andsolitaire", { name: "a solitaire's flute on the mountainside", g: "bird",
+  act: A({ doy: [1, 365], dawn: 1.4, day: 0.5, dusk: 1.1 }), gap: [10, 22], dist: [0.25, 0.6], n: [1, 1], rev: 0.5,
+  gen() { const parts = [];
+    for (let k = 0, m = ri(2, 4); k < m; k++) {
+      const f = pick([2100, 2500, 2950, 3400]) * ru(0.98, 1.02);
+      parts.push(tone(ru(0.3, 0.55), [[0, f * 0.97], [0.5, f], [1, f * ru(1.0, 1.06)]],
+        { harm: [1, 0.12, 0.05], vib: [ru(4, 6), 20], atk: 0.03, rel: 0.07, decay: 0.12 }));
+      parts.push(gapN(ru(0.15, 0.4)));
+    } return cat(...parts); } });
+
 def("muezzin", { name: "the call to prayer, far off", g: "air",
   act(e) { /* the five times, by the sun; the small hours are silent */
     if (e.night > 0.85) return 0;
@@ -4523,10 +4661,16 @@ let thunderNext = 0;
 
 /* ------------------------------------------------------------ agents ----- */
 let agents = [];
+/* the montane voices per realm, joining wherever the land is high enough */
+const MONTANE = { wpale: ["chough", "marmot"], epale: ["whistlingthrush", "laughingthrush"],
+                  indo: ["whistlingthrush", "laughingthrush"], neotropic: ["andsolitaire"] };
 function buildCast() {
   agents = [];
   arng = mulberry32(fnv("cast:" + site.key + ":" + dayStr));
-  const list = site.world ? castWorld(site.biome, site.realm) : (CASTS[site.biome] || []);
+  let list = site.world ? castWorld(site.biome, site.realm) : (CASTS[site.biome] || []);
+  if (site.island) list = list.concat(["tropicbird", "booby", "shearwater"]);
+  if (site.world && (site.elev || 0) >= 1400 && MONTANE[site.realm])
+    list = list.concat(MONTANE[site.realm]);
   const w = site.water;
   for (const id of list) {
     const sp = SP[id];
@@ -4544,6 +4688,7 @@ function buildCast() {
     if ((id === "churchbell" || id === "templebell") && !site.town) continue;
     if (id === "muezzin" && !(site.town && inCallLands(site.lon, site.lat))) continue;
     if (id === "cowbells" && !(site.farm && (site.elev || 0) >= 700)) continue;
+    if ((id === "tropicbird" || id === "booby") && Math.abs(site.lat) > 32) continue;
     if ((id === "canyonwren" || id === "rockfall") && !site.rocky) continue;
     if (id === "icewhine" && !w.lake) continue;
     if (id === "sandhill" && !(w.marsh || site.biome === "flwet" || site.biome === "tgrass")) continue;
