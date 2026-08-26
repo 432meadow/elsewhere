@@ -39,6 +39,9 @@
     --rule: #1b1a23; --focus: #b9b4c4;
     --warm: #9c9070; --cool: #7a7390;
   }
+  /* faders that don't touch the moth atmosphere fall out of focus */
+  .moth-idle { transition: opacity 0.7s ease, filter 0.7s ease; }
+  :root.moth .moth-idle { opacity: 0.22; filter: blur(1.5px); pointer-events: none; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
     margin: 0; background: var(--bg); color: var(--s1);
@@ -198,13 +201,13 @@
   <input type="range" id="space" min="0" max="100" value="40" aria-label="Openness of the air"></div>
 
 <div class="sect">voices</div>
-<div class="ctl warm"><div class="row2"><label for="vBird">birds</label><output id="vBirdV">70</output></div>
+<div class="ctl warm moth-idle"><div class="row2"><label for="vBird">birds</label><output id="vBirdV">70</output></div>
   <input type="range" id="vBird" min="0" max="100" value="70" aria-label="Bird level"></div>
 <div class="ctl"><div class="row2"><label for="vBug">insects</label><output id="vBugV">70</output></div>
   <input type="range" id="vBug" min="0" max="100" value="70" aria-label="Insect level"></div>
-<div class="ctl cool"><div class="row2"><label for="vFrog">frogs</label><output id="vFrogV">70</output></div>
+<div class="ctl cool moth-idle"><div class="row2"><label for="vFrog">frogs</label><output id="vFrogV">70</output></div>
   <input type="range" id="vFrog" min="0" max="100" value="70" aria-label="Frog level"></div>
-<div class="ctl cool"><div class="row2"><label for="vFauna">fauna</label><output id="vFaunaV">70</output></div>
+<div class="ctl cool moth-idle"><div class="row2"><label for="vFauna">fauna</label><output id="vFaunaV">70</output></div>
   <input type="range" id="vFauna" min="0" max="100" value="70" aria-label="Mammal and beast level"></div>
 <div class="ctl"><div class="row2"><label for="vAir">air &amp; water</label><output id="vAirV">70</output></div>
   <input type="range" id="vAir" min="0" max="100" value="70" aria-label="Wind and water level"></div>
@@ -5083,6 +5086,10 @@ el.moth.addEventListener("click", () => {
   MOTH.on = !MOTH.on;
   el.moth.setAttribute("aria-checked", String(MOTH.on));
   document.documentElement.classList.toggle("moth", MOTH.on);
+  /* the blurred faders should be unreachable by keyboard too */
+  ["vBird", "vFrog", "vFauna"].forEach(id => {
+    const f = document.getElementById(id); if (f) f.disabled = MOTH.on;
+  });
   GLOBE.fineKey = null;   /* the globe darkens with the page */
   if (running && site) { buildMothCast(); heardNames.length = 0; renderNames(); }
 });
