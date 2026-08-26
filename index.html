@@ -114,6 +114,9 @@
   .act:hover { color: var(--warm); }
   .act[disabled] { color: var(--s3); cursor: default; }
   .switch[aria-checked="true"] { color: var(--s1); }
+  /* the moth button wears the palette's cool blue — muted off, full on */
+  #moth { color: color-mix(in srgb, var(--cool) 60%, var(--s2)); }
+  #moth:hover, #moth[aria-checked="true"] { color: var(--cool); }
   .seg button:focus-visible, .act:focus-visible, .switch:focus-visible {
     outline: 1px solid var(--focus); outline-offset: 4px;
   }
