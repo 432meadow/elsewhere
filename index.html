@@ -195,8 +195,8 @@
 </div>
 
 <div class="sect">listening</div>
-<div class="ctl"><div class="row2"><label for="density">density</label><output id="densityV">60</output></div>
-  <input type="range" id="density" min="0" max="100" value="60" aria-label="How many voices"></div>
+<div class="ctl"><div class="row2"><label for="density">density</label><output id="densityV">30</output></div>
+  <input type="range" id="density" min="0" max="100" value="30" aria-label="How many voices"></div>
 <div class="ctl"><div class="row2"><label for="wind">wind</label><output id="windV">light airs</output></div>
   <input type="range" id="wind" min="0" max="100" value="35" aria-label="Wind strength"></div>
 <div class="ctl"><div class="row2"><label for="space">space</label><output id="spaceV">40</output></div>
@@ -470,6 +470,54 @@ function biomeAt(lon, lat, usOnly) {
   return { biome: coastal || base, coast: c, base };
 }
 
+/* ---------------------------------------------------------- elevation ---- */
+/* no DEM ships with the app: the world's great highlands, drawn by hand.
+   [lon0, lat0, lon1, lat1, metres] — overlaps take the highest. the US
+   keeps its biome-based offsets; this corrects the rest of the world
+   (tibet no longer reads warm) at the standard lapse rate. */
+const HIGHLANDS = [
+  [73, 27, 105, 39, 4500],        /* tibet & the himalaya */
+  [65, 35, 80, 46, 3200],         /* pamir, karakoram, tian shan */
+  [87, 44, 112, 52, 1400],        /* altai & the mongolian plateau */
+  [44, 25, 63, 38, 1300],         /* the iranian plateau */
+  [26, 36.5, 44, 40.5, 1100],     /* anatolia */
+  [40, 40.5, 49, 44, 1800],       /* the caucasus */
+  [5.5, 44, 16, 48, 1500],        /* the alps */
+  [-4, 36.5, 3, 43, 700],         /* the iberian meseta */
+  [34, 5, 43, 15, 2200],          /* the ethiopian highlands */
+  [28, -11, 40, 5, 1300],         /* the east african plateau */
+  [24, -31, 31, -24, 1500],       /* the highveld & drakensberg */
+  [-10, 29, 10, 36, 1200],        /* the atlas */
+  [-71.5, -23, -64.5, -12, 3900], /* the altiplano */
+  [-79, -6, -71.5, 11, 2400],     /* the northern andes */
+  [-72, -40, -67.5, -23, 2800],   /* the dry andes */
+  [-74, -56, -70, -40, 1000],     /* the patagonian andes */
+  [-108, 19, -97, 26, 2100],      /* the mexican altiplano */
+  [136, -7, 147, -3, 2300],       /* the new guinea highlands */
+  [-45, 60, -25, 82, 2200],       /* the greenland icecap */
+  [5, 58.5, 15, 70, 900],         /* the scandes */
+];
+function elevAt(lon, lat) {
+  let m = 0;
+  for (const [x0, y0, x1, y1, e] of HIGHLANDS)
+    if (lon >= x0 && lon <= x1 && lat >= y0 && lat <= y1 && e > m) m = e;
+  return m;
+}
+/* where the distant call to prayer belongs, coarsely — with the northern
+   mediterranean shore carved back out */
+function inCallLands(lon, lat) {
+  const inBox = (lon >= -17 && lon < 40 && lat >= 10 && lat < 37.3)   /* n africa, sahel */
+    || (lon >= 34 && lon < 63 && lat >= 12 && lat < 42)               /* middle east, anatolia */
+    || (lon >= 63 && lon < 81 && lat >= 23 && lat < 43)               /* central & south asia */
+    || (lon >= 87 && lon < 93 && lat >= 20.5 && lat < 27)             /* bengal */
+    || (lon >= 95 && lon < 121 && lat >= -9 && lat < 7);              /* nusantara */
+  if (!inBox) return false;
+  if (lon > -10 && lon < 3.4 && lat > 35.9) return false;   /* iberia */
+  if (lon > 12.3 && lon < 19 && lat > 36.6) return false;   /* sicily, italy */
+  if (lon > 19 && lon < 28 && lat > 34.6) return false;     /* greece, crete */
+  return true;
+}
+
 /* ------------------------------------------------------------ the sun ---- */
 function sunElevation(lat, doy, hourLocal) {
   /* hourLocal = solar time in hours; decl approx; elevation in degrees */
@@ -499,7 +547,7 @@ function tempF(site, doy, hour) {
   const alt = { mont: -7, son: 4, chih: 3, des: 4 }[site.biome] ?? 0;
   /* min near sunrise, max mid-afternoon */
   const diel = -Math.cos(2 * Math.PI * (hour - 6) / 24);
-  const c = seasonal + alt + swing / 2 * diel;
+  const c = seasonal + alt + swing / 2 * diel - (site.elev || 0) * 0.0065;
   return c * 9 / 5 + 32;
 }
 const MONTHS = ["january","february","march","april","may","june","july",
@@ -625,7 +673,7 @@ function makeWorldSite(lon, lat) {
     state: co.name, region, key, water, rocky,
     farm: ["tfor", "toce", "subtrop", "med", "sav", "steppe"].includes(biome) && srng() < 0.5,
     town: srng() < 0.3,
-    realm, kg, world: true,
+    realm, kg, world: true, elev: elevAt(lon, lat),
     seed: fnv("elsewhere:" + key + ":" + dayStr),
   };
 }
@@ -636,7 +684,7 @@ const P = {
   hour: 6 * 60,          /* minutes of local solar day when !now */
   doy: (() => { const d = new Date(dayStr + "T12:00:00");
     return Math.max(1, Math.min(365, Math.round((d - new Date(d.getFullYear(), 0, 0)) / 86400000))); })(),
-  density: 0.6, wind: 0.35, space: 0.4, drift: false,
+  density: 0.3, wind: 0.35, space: 0.4, drift: false,
   dub: false, dubDepth: 0.55,
   vBird: 0.7, vBug: 0.7, vFrog: 0.7, vFauna: 0.7, vAir: 0.7,
 };
@@ -2089,7 +2137,13 @@ def("jet", { name: "a high jet", g: "air",
     } return normA(x); } });
 def("train", { name: "a far train horn", g: "air",
   act: A({ doy: [1, 365], night: 0.8, dusk: 0.4 }), gap: [900, 2400], dist: [0.85, 0.95], n: [1, 1], rev: 0.5,
-  gen() { const chord = [311, 370, 466, 233];
+  gen() { /* each railway has its own voice: the american minor cluster,
+             europe's two high tones, japan's near-unison pair */
+    const realm = site ? site.realm : "nearctic";
+    const chord = realm === "wpale" ? [370, 466]
+      : realm === "epale" ? [440, 466]
+      : realm === "indo" ? [349, 415]
+      : [311, 370, 466, 233];
     const blast = (d, det) => { const n2 = (d * SR) | 0, x = new Float32Array(n2);
       const phs = chord.map(() => Math.random() * 6.28);
       for (let i = 0; i < n2; i++) {
@@ -2098,6 +2152,10 @@ def("train", { name: "a far train horn", g: "air",
           s += Math.sin(2 * Math.PI * chord[c] * det * (1 + 0.0007 * c) * i / SR + phs[c]);
         x[i] = s / chord.length;
       } return env3(x, 0.1, 0.25); };
+    if (realm === "wpale" || realm === "epale")   /* two brief blasts and gone */
+      return cat(blast(ru(0.8, 1.3), 1), gapN(ru(0.4, 0.7)), blast(ru(1.2, 1.8), 0.995));
+    if (realm === "indo")                          /* one long insistent held tone */
+      return cat(blast(ru(2.5, 4), 1), gapN(ru(0.5, 0.9)), blast(ru(1, 1.6), 0.99));
     return cat(blast(ru(1.5, 2.2), 1), gapN(ru(0.5, 0.9)),
                blast(ru(1.5, 2.2), 0.995), gapN(ru(0.4, 0.8)),
                blast(ru(0.7, 1), 0.99), gapN(ru(0.5, 0.9)),
@@ -2711,9 +2769,12 @@ def("boobook", { name: "southern boobook", g: "bird",
       tone(0.3, [[0, b * 0.9], [1, b * 0.82]], { harm: [1, 0.3, 0.06], atk: 0.02, rel: 0.08, decay: 0.2 })); } });
 def("cicada_au", { name: "the cicada wall", g: "bug",
   act: A({ doy: [130, 300], tMin: 70, day: 1.3, dusk: 1 }), gap: [4, 10], dist: [0.15, 0.55], n: [2, 3],
-  gen() { const dur = ru(8, 14), n = (dur * SR) | 0;
-    const x = bpA(noiseA(n), 5800, 2.5);
-    const x2 = bpA(noiseA(n), 8500, 4);
+  gen(e) { const dur = ru(8, 14), n = (dur * SR) | 0;
+    /* the season's succession: green grocers open the summer low and
+       woody; by late summer the double drummers ride higher and harder */
+    const late = inDoy(e.doy, 210, 300);
+    const x = bpA(noiseA(n), late ? 6600 : 5200, 2.5);
+    const x2 = bpA(noiseA(n), late ? 9400 : 7800, 4);
     for (let i = 0; i < n; i++) {
       const tf = i / n;
       const sizz = 1 - 0.3 * Math.pow(0.5 + 0.5 * Math.sin(2 * Math.PI * 210 * i / SR), 2);
@@ -3641,23 +3702,24 @@ const WBASE = {
 };
 const WREALM = {
   wpale: {
-    all: ["crow", "fardog", "rooster", "cattle", "churchbell"],
+    all: ["crow", "fardog", "rooster", "cattle", "churchbell", "muezzin"],
     tfor: ["blackbird_eu", "songthrush", "blackcap", "chaffinch", "greattit", "cuckoo",
            "nightingale", "robin_eu", "wren_eu", "goldenoriole", "woodpigeon", "tawny",
            "yaffle", "magpie_eu", "jackdaw", "wolf", "squirrelR", "geese",
-           "moorhen", "marshfrog", "eurotoad"],
+           "moorhen", "marshfrog", "eurotoad", "cowbells"],
     toce: ["blackbird_eu", "songthrush", "blackcap", "chaffinch", "greattit", "cuckoo",
            "robin_eu", "wren_eu", "yellowhammer", "collared_dove", "woodpigeon", "tawny",
            "yaffle", "skylark", "swifts", "magpie_eu", "jackdaw", "corncrake", "geese",
-           "moorhen", "snipe", "marshfrog", "eurotoad"],
+           "moorhen", "snipe", "marshfrog", "eurotoad", "cowbells"],
     med: ["nightingale", "blackbird_eu", "goldenoriole", "collared_dove", "greattit",
           "robin_eu", "woodpigeon", "tawny", "swifts", "magpie_eu",
-          "hoopoe", "eurotree", "marshfrog", "greyheron", "mallard"],
+          "hoopoe", "eurotree", "marshfrog", "greyheron", "mallard", "beeeater"],
     subtrop: ["blackbird_eu", "greattit", "nightingale", "robin_eu", "swifts", "collared_dove",
               "eurotree", "marshfrog"],
-    steppe: ["skylark", "hornedlark", "cuckoo", "wolf", "hoopoe", "crane_da", "marshfrog"],
+    steppe: ["skylark", "hornedlark", "cuckoo", "wolf", "hoopoe", "crane_da", "marshfrog",
+             "beeeater", "cowbells"],
     bor: ["diver", "cuckoo", "raven", "wolf", "rgrouse", "swainson", "junco", "mallard"],
-    sav: ["ringdove", "skylark", "hoopoe"],
+    sav: ["ringdove", "skylark", "hoopoe", "beeeater"],
     des: ["hornedlark", "raven", "modove"],
     tundra: ["snowbunting", "diver", "raven", "wolf"],
     shore: ["greyheron"],
@@ -3665,12 +3727,12 @@ const WREALM = {
   epale: {
     all: ["jcrow", "fardog", "rooster", "cattle", "templebell"],
     tfor: ["uguisu", "bulbul_je", "otdove", "cuckoo", "greattit", "tawny",
-           "higurashi", "minmin", "suzumushi", "squirrelR", "geese",
+           "higurashi", "minmin", "suzumushi", "matsumushi", "squirrelR", "geese",
            "moorhen", "snipe", "paddyfrogs", "kajika"],
     toce: ["uguisu", "bulbul_je", "otdove", "cuckoo", "greattit", "tawny", "higurashi",
-           "suzumushi", "geese", "moorhen", "paddyfrogs", "kajika"],
+           "suzumushi", "matsumushi", "geese", "moorhen", "paddyfrogs", "kajika"],
     subtrop: ["uguisu", "koel", "bulbul_je", "otdove", "minmin", "higurashi", "suzumushi",
-              "myna", "moorhen", "paddyfrogs", "kajika"],
+              "matsumushi", "myna", "moorhen", "paddyfrogs", "kajika"],
     steppe: ["skylark", "cuckoo", "wolf", "hornedlark", "crane_da"],
     bor: ["diver", "cuckoo", "raven", "wolf", "rgrouse", "mallard"],
     des: ["hornedlark", "raven"],
@@ -3678,8 +3740,9 @@ const WREALM = {
     med: [], sav: [], shore: ["greyheron"],
   },
   indo: {
-    all: ["myna", "jcrow", "fardog", "rooster", "cattle"],
-    trf: ["koel", "brainfever", "gibbon", "peafowl", "magpierobin", "tokay", "gecko", "coppersmith"],
+    all: ["myna", "jcrow", "fardog", "rooster", "cattle", "muezzin"],
+    trf: ["koel", "brainfever", "gibbon", "peafowl", "magpierobin", "tokay", "gecko", "coppersmith",
+          "hornbill_gr"],
     sav: ["peafowl", "koel", "ringdove", "brainfever", "bulbul_rv", "magpierobin", "lapwing_rw",
           "coppersmith", "moorhen"],
     subtrop: ["koel", "brainfever", "peafowl", "bulbul_rv", "magpierobin", "lapwing_rw", "tokay",
@@ -3690,10 +3753,10 @@ const WREALM = {
     shore: ["gecko"],
   },
   afro: {
-    all: ["ringdove", "fardog", "rooster", "cattle"],
+    all: ["ringdove", "fardog", "rooster", "cattle", "muezzin"],
     sav: ["fisheagle", "hadada", "turaco", "goaway", "boubou", "fnightjar", "hyena", "lion",
-          "jackals", "weavers", "tinkerbird"],
-    trf: ["turaco", "parrots", "boubou", "fnightjar", "tinkerbird"],
+          "jackals", "weavers", "tinkerbird", "beeeater", "hornbill_af"],
+    trf: ["turaco", "parrots", "boubou", "fnightjar", "tinkerbird", "hornbill_af"],
     subtrop: ["hadada", "turaco", "fnightjar", "tinkerbird", "weavers"],
     toce: ["hadada", "weavers"],
     med: ["nightingale", "blackbird_eu", "hoopoe"],
@@ -3703,7 +3766,7 @@ const WREALM = {
     shore: ["hadada", "fisheagle"],
   },
   austral: {
-    all: ["magpie_au", "fardog", "rooster", "cattle"],
+    all: ["magpie_au", "magpielark", "fardog", "rooster", "cattle"],
     trf: ["whipbird", "lorikeet", "cockatoo", "kookaburra", "lyrebird", "boobook", "cicada_au", "gecko"],
     sav: ["kookaburra", "butcherbird", "cockatoo", "boobook", "dingoes", "cicada_au"],
     subtrop: ["kookaburra", "whipbird", "lorikeet", "cockatoo", "lyrebird", "boobook",
@@ -3717,14 +3780,16 @@ const WREALM = {
   },
   nz: {
     all: ["tui", "bellbird_nz", "morepork", "fardog", "rooster", "cattle"],
-    toce: ["gulls", "mallard"], tfor: [], med: [], shore: [],
+    toce: ["gulls", "mallard", "kaka", "rifleman", "kiwi"],
+    tfor: ["kaka", "rifleman", "kiwi"], med: [], shore: [],
     trf: [], sav: [], subtrop: [], des: [], steppe: [], bor: [], tundra: [],
   },
   neotropic: {
     all: ["parrots", "fardog", "rooster", "cattle", "rufcollared"],
-    trf: ["piha", "howler", "oropendola", "toucan", "potoo", "tinamou", "musicianwren", "gecko"],
+    trf: ["piha", "howler", "oropendola", "toucan", "potoo", "tinamou", "musicianwren", "gecko",
+          "antbirds", "antbirds", "woodcreeper"],
     sav: ["tinamou", "potoo", "burrowowl", "lapwing_s", "housewren"],
-    subtrop: ["oropendola", "toucan", "tinamou", "potoo", "lapwing_s", "housewren"],
+    subtrop: ["oropendola", "toucan", "tinamou", "potoo", "lapwing_s", "housewren", "woodcreeper"],
     tfor: ["tinamou", "potoo", "lapwing_s"],
     toce: ["tinamou", "lapwing_s", "housewren"],
     med: ["tinamou", "lapwing_s"],
@@ -3768,6 +3833,189 @@ def("moose", { name: "a distant moose", g: "beast",
   gen() { const f = ru(220, 380);
     return tone(ru(1.2, 2), [[0, f * 0.9], [0.4, f * 1.1], [1, f * 0.75]],
       { harm: [1, 0.7, 0.4, 0.2], noise: 0.2, nfc: f * 2.5, atk: 0.15, rel: 0.4, decay: 0.2 }); } });
+
+/* --------------------------------------- the regional deep pass ----------- */
+def("beeeater", { name: "bee-eaters going over", g: "bird",
+  act: A({ doy: [115, 260], day: 0.9, dawn: 0.5 }), gap: [25, 70], dist: [0.35, 0.7], n: [1, 1], rev: 0.3,
+  gen() { /* the liquid rolled prruip, a loose flock of them overhead */
+    const parts = [];
+    for (let k = 0, m = ri(5, 12); k < m; k++) {
+      const f = ru(1850, 2400);
+      parts.push(tone(ru(0.07, 0.11), [[0, f * 0.94], [0.4, f * 1.05], [1, f * 0.97]],
+        { harm: [1, 0.3, 0.08], vib: [ru(24, 32), 60], atk: 0.008, rel: 0.02 }));
+      parts.push(gapN(ru(0.15, 0.7)));
+    } return cat(...parts); } });
+def("matsumushi", { name: "matsumushi — pine crickets", g: "bug",
+  act: A({ doy: [235, 330], tMin: 50, night: 1, dusk: 0.8 }), gap: [2, 5], dist: [0.25, 0.6], n: [1, 2],
+  gen() { /* chin-chirorin: two ticks, then the ringing tremolo */
+    const parts = []; const f = ru(4300, 5100);
+    for (let k = 0, m = ri(1, 2); k < m; k++) {
+      for (let j = 0; j < 2; j++) {
+        parts.push(tone(0.05, [[0, f], [1, f * 0.99]], { harm: [1, 0.1], atk: 0.004, rel: 0.012 }));
+        parts.push(gapN(0.09));
+      }
+      const td = ru(0.5, 0.8), n2 = (td * SR) | 0, x = new Float32Array(n2);
+      let ph = 0;
+      for (let i = 0; i < n2; i++) {
+        const am = Math.pow(0.5 + 0.5 * Math.sin(2 * Math.PI * 38 * i / SR), 1.1);
+        ph += 2 * Math.PI * f / SR;
+        x[i] = (Math.sin(ph) + 0.08 * Math.sin(2 * ph)) * am;
+      }
+      parts.push(env3(x, 0.02, 0.08)); parts.push(gapN(ru(0.4, 0.9)));
+    } return cat(...parts); } });
+def("antbirds", { name: "antbirds, low in the understory", g: "bird",
+  act: A({ doy: [1, 365], dawn: 1.2, day: 0.7 }), gap: [7, 14], dist: [0.15, 0.45], n: [1, 2], rev: 0.5,
+  gen() { /* the accelerating antshrike rattle, ending on an emphatic slur */
+    const parts = []; const f = ru(2300, 2900), m = ri(9, 16);
+    let per = 0.14;
+    for (let k = 0; k < m; k++) {
+      parts.push(tone(0.05, [[0, f * (1 - 0.08 * k / m)], [1, f * (1 - 0.1 * k / m)]],
+        { harm: [1, 0.35, 0.1], noise: 0.12, atk: 0.004, rel: 0.012 }));
+      parts.push(gapN(Math.max(0.02, per))); per *= 0.88;
+    }
+    parts.push(tone(ru(0.14, 0.2), [[0, f * 0.92], [1, f * 0.68]],
+      { harm: [1, 0.4, 0.12], noise: 0.2, atk: 0.006, rel: 0.04 }));
+    return cat(...parts); } });
+def("woodcreeper", { name: "a woodcreeper's whinny", g: "bird",
+  act: A({ doy: [1, 365], dawn: 1.4, day: 0.4, dusk: 0.8 }), gap: [10, 20], dist: [0.25, 0.55], n: [1, 1], rev: 0.45,
+  gen() { const parts = []; let f = ru(3200, 3700), m = ri(12, 22);
+    for (let k = 0; k < m; k++) {
+      parts.push(tone(ru(0.06, 0.09), [[0, f], [1, f * 0.96]],
+        { harm: [1, 0.25, 0.06], atk: 0.005, rel: 0.015 }));
+      parts.push(gapN(ru(0.03, 0.06)));
+      f *= 0.965;
+    } return cat(...parts); } });
+def("magpielark", { name: "magpie-larks in duet", g: "bird",
+  act: A({ doy: [1, 365], dawn: 1.2, day: 0.7 }), gap: [8, 16], dist: [0.2, 0.55], n: [1, 1], rev: 0.25,
+  gen() { /* pee-o-wit: two birds answering on the beat, never quite together */
+    const parts = []; const fa = ru(2400, 2900), fb = fa * ru(0.82, 0.9);
+    for (let k = 0, m = ri(4, 9); k < m; k++) {
+      parts.push(tone(ru(0.14, 0.2), [[0, fa * 0.85], [1, fa * 1.08]],
+        { harm: [1, 0.45, 0.15], noise: 0.18, atk: 0.006, rel: 0.03 }));
+      parts.push(gapN(ru(0.12, 0.22)));
+      parts.push(tone(ru(0.16, 0.22), [[0, fb * 1.1], [1, fb * 0.85]],
+        { harm: [1, 0.45, 0.15], noise: 0.18, atk: 0.006, rel: 0.03 }));
+      parts.push(gapN(ru(0.18, 0.35)));
+    } return cat(...parts); } });
+def("hornbill_af", { name: "a hornbill, wailing in the crowns", g: "bird",
+  act: A({ doy: [1, 365], dawn: 1, day: 0.7 }), gap: [30, 80], dist: [0.35, 0.7], n: [1, 1], rev: 0.4,
+  gen() { /* the trumpeter's nasal wail — and sometimes just the wings */
+    if (Math.random() < 0.3) {   /* heavy wing whoosh going over */
+      const dur = ru(1.6, 2.6), n2 = (dur * SR) | 0;
+      const x = bpA(noiseA(n2), 550, 0.7);
+      const wb = ru(2.6, 3.2);
+      for (let i = 0; i < n2; i++)
+        x[i] *= Math.pow(0.5 + 0.5 * Math.sin(2 * Math.PI * wb * i / SR), 1.8)
+              * Math.pow(Math.sin(Math.PI * i / n2), 0.8);
+      return normA(x);
+    }
+    const parts = []; const f = ru(750, 1050);
+    for (let k = 0, m = ri(3, 6); k < m; k++) {
+      parts.push(tone(ru(0.3, 0.5), [[0, f * 1.08], [0.3, f], [1, f * 0.8]],
+        { harm: [1, 0.75, 0.5, 0.3, 0.15], noise: 0.15, vib: [7, 40], atk: 0.03, rel: 0.08 }));
+      parts.push(gapN(ru(0.15, 0.35)));
+    } return cat(...parts); } });
+def("hornbill_gr", { name: "a great hornbill going over", g: "bird",
+  act: A({ doy: [1, 365], dawn: 1, day: 0.7 }), gap: [40, 100], dist: [0.3, 0.65], n: [1, 1], rev: 0.4,
+  gen() { /* the famous wingbeats — a steam engine through the canopy —
+             then the deep kok, kok, quickening into the duet */
+    const dur = ru(2, 3.2), n2 = (dur * SR) | 0;
+    const x = bpA(noiseA(n2), 420, 0.8);
+    const wb = ru(2.2, 2.8);
+    for (let i = 0; i < n2; i++)
+      x[i] *= Math.pow(0.5 + 0.5 * Math.sin(2 * Math.PI * wb * i / SR), 2.2)
+            * Math.pow(Math.sin(Math.PI * i / n2), 0.7);
+    const parts = [normA(x), gapN(ru(0.3, 0.7))];
+    if (Math.random() < 0.6) {
+      const f = ru(420, 560); let per = 0.55;
+      for (let k = 0, m = ri(4, 8); k < m; k++) {
+        parts.push(tone(ru(0.16, 0.22), [[0, f * 1.05], [1, f * 0.9]],
+          { harm: [1, 0.7, 0.45, 0.25], noise: 0.18, atk: 0.015, rel: 0.05 }));
+        parts.push(gapN(Math.max(0.12, per))); per *= 0.85;
+      }
+    }
+    return cat(...parts); } });
+def("kaka", { name: "kākā", g: "bird",
+  act: A({ doy: [1, 365], dawn: 1, day: 0.7, dusk: 0.8 }), gap: [12, 26], dist: [0.2, 0.55], n: [1, 1], rev: 0.35,
+  gen() { /* the harsh skraak — or, half the time, the liquid whistled side */
+    if (Math.random() < 0.5) {
+      const parts = [];
+      for (let k = 0, m = ri(1, 3); k < m; k++) {
+        parts.push(rasp(ru(0.3, 0.5), ru(1100, 1600), 1, { am: 38, amd: 0.7, win: 0.5 }));
+        parts.push(gapN(ru(0.2, 0.4)));
+      } return cat(...parts);
+    }
+    const parts = []; const f = ru(1600, 2300);
+    for (let k = 0, m = ri(2, 4); k < m; k++) {
+      const fk = f * pick([1, 1.25, 0.8]);
+      parts.push(tone(ru(0.2, 0.35), [[0, fk * 0.9], [0.5, fk * 1.1], [1, fk]],
+        { harm: [1, 0.3, 0.1], vib: [9, 50], atk: 0.015, rel: 0.05 }));
+      parts.push(gapN(ru(0.1, 0.25)));
+    } return cat(...parts); } });
+def("rifleman", { name: "riflemen, thin and high", g: "bird",
+  act: A({ doy: [1, 365], day: 0.9, dawn: 0.8 }), gap: [8, 18], dist: [0.1, 0.35], n: [1, 2],
+  gen() { const parts = []; const f = ru(6800, 8200);
+    for (let k = 0, m = ri(3, 8); k < m; k++) {
+      parts.push(scaleA(tone(0.045, [[0, f], [1, f * 1.03]],
+        { harm: [1, 0.08], atk: 0.003, rel: 0.01 }), 0.6));
+      parts.push(gapN(ru(0.12, 0.3)));
+    } return cat(...parts); } });
+def("kiwi", { name: "a kiwi, calling in the dark", g: "bird",
+  act: A({ doy: [1, 365], night: 1.1 }), gap: [400, 1000], dist: [0.4, 0.75], n: [1, 1], rev: 0.45,
+  gen() { /* the male's rising shrill, over and over; sometimes her rasp answers */
+    const parts = []; const f = ru(1500, 1900), m = ri(6, 14);
+    for (let k = 0; k < m; k++) {
+      parts.push(tone(ru(0.5, 0.7), [[0, f * 0.85], [0.7, f * 1.15], [1, f * 1.1]],
+        { harm: [1, 0.35, 0.12], noise: 0.15, atk: 0.04, rel: 0.08 }));
+      parts.push(gapN(ru(0.4, 0.8)));
+    }
+    if (Math.random() < 0.35) {
+      parts.push(gapN(0.6));
+      for (let k = 0, m2 = ri(3, 6); k < m2; k++) {
+        parts.push(rasp(ru(0.35, 0.5), ru(700, 1000), 0.9, { am: 22, amd: 0.8, win: 0.5 }));
+        parts.push(gapN(ru(0.3, 0.6)));
+      }
+    } return cat(...parts); } });
+def("muezzin", { name: "the call to prayer, far off", g: "air",
+  act(e) { /* the five times, by the sun; the small hours are silent */
+    if (e.night > 0.85) return 0;
+    return Math.min(1, Math.max(e.dawn * 1.4, e.dusk * 1.2,
+      gauss(e.hour, 12.4, 0.5) * 0.8, gauss(e.hour, 15.6, 0.6) * 0.7,
+      (e.rising ? 0 : gauss(e.hour, 19.8, 0.7)) * 0.9));
+  },
+  gap: [1100, 2600], dist: [0.72, 0.92], n: [1, 1], rev: 0.6, echo: true,
+  gen() { /* far and plain: long modal tones drifting over the roofs —
+             distance does the reverence */
+    const parts = []; const f0 = ru(230, 320);
+    for (let k = 0, m = ri(4, 7); k < m; k++) {
+      const fa = f0 * pick([1, 1.125, 1.2, 1.33, 0.89]);
+      parts.push(tone(ru(1.2, 2.6),
+        [[0, fa * 0.97], [0.25, fa], [0.6, fa * ru(1.02, 1.08)], [1, fa * ru(0.9, 0.97)]],
+        { harm: [1, 0.55, 0.3, 0.18, 0.1], noise: 0.12, vib: [ru(4.5, 6), 30],
+          atk: 0.15, rel: 0.3, decay: 0.15 }));
+      parts.push(gapN(ru(0.6, 1.5)));
+    } return cat(...parts); } });
+def("cowbells", { name: "cowbells on the high meadow", g: "air",
+  act: A({ doy: [120, 290], day: 1, dawn: 0.6, dusk: 0.5 }), gap: [30, 90], dist: [0.5, 0.8], n: [1, 1], rev: 0.4,
+  gen() { /* a few animals grazing: dull clonks in no hurry at all */
+    const dur = ru(4, 8), n2 = (dur * SR) | 0, x = new Float32Array(n2);
+    const bells = []; for (let b2 = 0, m = ri(2, 4); b2 < m; b2++)
+      bells.push({ f: ru(900, 2300), t: ru(0, 1.5) });
+    for (const bell of bells) {
+      let t = bell.t;
+      while (t < dur) {
+        const at = (t * SR) | 0, L = (0.18 * SR) | 0, g = ru(0.3, 1);
+        for (let i = 0; i < L && at + i < n2; i++) {
+          const tt = i / SR;
+          x[at + i] += (Math.sin(2 * Math.PI * bell.f * tt) * 0.7
+                      + Math.sin(2 * Math.PI * bell.f * 1.53 * tt) * 0.4
+                      + Math.sin(2 * Math.PI * bell.f * 2.71 * tt) * 0.2)
+                     * Math.exp(-tt / 0.055) * g;
+        }
+        t += ru(0.4, 2.2);
+      }
+    }
+    return env3(normA(x), 0.3, 1); } });
 
 /* ============================================================ engine ===== */
 let running = false, wetGain, echoNode, echoGain, comp, master, conv = null;
@@ -4294,6 +4542,8 @@ function buildCast() {
     if (id === "train" && !site.town) continue;
     if ((id === "rooster" || id === "fardog" || id === "cattle") && !site.farm) continue;
     if ((id === "churchbell" || id === "templebell") && !site.town) continue;
+    if (id === "muezzin" && !(site.town && inCallLands(site.lon, site.lat))) continue;
+    if (id === "cowbells" && !(site.farm && (site.elev || 0) >= 700)) continue;
     if ((id === "canyonwren" || id === "rockfall") && !site.rocky) continue;
     if (id === "icewhine" && !w.lake) continue;
     if (id === "sandhill" && !(w.marsh || site.biome === "flwet" || site.biome === "tgrass")) continue;
@@ -4516,6 +4766,13 @@ function tick() {
             if (fam === MOTH.fam) act = Math.min(1, act * 1.7);
             else if (fam !== "bat" && fam !== "env") act *= 0.65;
           }
+          if (site.kg && (site.kg[0] === "A" || /w.$/.test(site.kg))) {
+            /* monsoon lands: song erupts at the rains' arrival, and rain
+               in the wet season detonates the frogs */
+            if (sp.g === "bird" && inDoy(e.doy, 120, 152)) act = Math.min(1, act * 1.5);
+            if (sp.g === "frog" && (weather.rain > 0.1 || weather.drip > 0.1))
+              act = Math.min(1, act * 1.8);
+          }
           act = Math.min(1, act * (0.35 + 0.85 * densGate));
           const gapR = sp._gap || sp.gap;
           if (act > 0.02 && arng() < act) {
@@ -4577,7 +4834,9 @@ function statusLine(e) {
     `${Math.abs(site.lat).toFixed(1)}°${site.lat < 0 ? "S" : "N"} ` +
     `${Math.abs(site.lon).toFixed(1)}°${site.lon < 0 ? "W" : "E"} · ` +
     `<b>${BIOME_INFO[site.biome].name}</b> · ${site.region} · ` +
-    `${hh}:${mm} · ${phaseWord(e)} · ${Math.round(e.tF)}°F · ${doyLabel(e.rdoy ?? P.doy)}${wx}`;
+    `${hh}:${mm} · ${phaseWord(e)} · ${Math.round(e.tF)}°F` +
+    ((site.elev || 0) >= 700 ? ` · ${site.elev} m` : "") +
+    ` · ${doyLabel(e.rdoy ?? P.doy)}${wx}`;
 }
 
 /* ============================================================== map ====== */

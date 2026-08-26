@@ -23,12 +23,24 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   and — very far off, very rarely — lions. seven realms carry their own
   voices: nightingale and village bells in europe, gibbon duets and koels
   in asia, the screaming piha and howler monkeys on the amazon, the
-  kookaburra riot and whipbird crack in australia
+  kookaburra riot and whipbird crack in australia. the regional deep
+  pass added bee-eaters rolling over the mediterranean, the matsumushi's
+  chin-chirorin to japanese autumn nights, antbird rattles and a
+  woodcreeper's whinny to the amazon understory, magpie-larks duetting
+  across australia, hornbills on both continents that have them (the
+  great hornbill's wingbeats arrive like a steam engine), kākā and
+  riflemen and the kiwi's night shrill in new zealand — and the world's
+  great highlands drawn by hand, so tibet and the altiplano finally
+  read cold at altitude (shown in the status line from 700 m up), with
+  monsoon lands erupting into song when their rains arrive. the human
+  distants are done with care: the far muezzin at the five times where
+  it belongs, cowbells on high alpine meadows, and each region's
+  railway sounding its own horn
 - **fourteen hand-drawn biomes** cover the lower 48 in extra detail —
   hardwood forest, boreal lakes, southern pine, the everglades, tallgrass
   and shortgrass prairie, three deserts, sagebrush, mountain conifer, the
   coastal rainforest, oak & chaparral, and both shores — each with its own
-  cast (now ~175 species worldwide: birds, insects, frogs, mammals — the
+  cast (now ~295 species worldwide: birds, insects, frogs, mammals — the
   waterside pass added mallards, kingfishers, herons, winnowing snipe and
   displaying woodcock wherever there is water, old-world frog choruses to
   european and japanese nights, swallows over every meadow, and the
