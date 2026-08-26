@@ -70,9 +70,18 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   flutter close to the ear, a tiger moth's tymbal clicks, hawk-moths
   humming at the flowers, ghost moths swaying over northern grass, the
   bogong passage in an australian autumn — and now and then a bat's
-  feeding buzz, answered (sometimes) by escape clicks. location- and
-  temperature-honest like everything else; the dub, the drift and the
-  clock all still apply
+  feeding buzz, answered by escape clicks, by a hawkmoth's stridulated
+  rasp, or by the jamming blur of *Bertholdia* (4,500 clicks a second,
+  the only animal known to jam sonar). the deep cut runs on real
+  bioacoustics: australian whistling moths castaneting at dusk, the wax
+  moth singing its paired pulses all night in farm hives, ermine moths
+  ringing on every wingbeat, a walnut-sphinx caterpillar whistling at a
+  bird, the death's-head's pulsed squeak — and in a seeded outbreak year
+  an eastern forest carries the frass rain, a canopy of caterpillars
+  pattering like drizzle. every site's night has a seeded character —
+  a fluttering night, a clicking night, a courting night — named in the
+  status line. location- and temperature-honest like everything else;
+  the dub, the drift and the clock all still apply
 - **[ keep .wav ]** downloads the last 90 seconds (recorded linear,
   before the live safety compressor — album convention)
 
