@@ -58,7 +58,7 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   creeks come and go, and every ten or twenty minutes you cross into
   another biome and the whole cast turns over (the journey is seeded by
   the day and the starting place, so a shared link wanders the same way)
-- **[ dub ]** runs the land through a tape echo, after topdown dialectic:
+- **[ dub ]** runs the land through a tape echo:
   a rhythmic throw gate catches whatever the place is singing into a
   wobbling saturated feedback delay, over muted chord stabs and a soft
   sub pulse rooted in the site's own key (every place has one, from its
@@ -81,3 +81,5 @@ hemisphere at dusk, twilight arc and halo (`tools/make_icon.py`).
 
 no dependencies, no build, no server. open `index.html` or serve it
 from anywhere static.
+
+there are also one or two things it will not tell you about.

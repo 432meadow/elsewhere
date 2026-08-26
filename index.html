@@ -388,6 +388,7 @@ const BIOME_INFO = {
   tundra: { name: "tundra",                   hue: "#7e8a8a", family: "open"   },
   ice:    { name: "polar ice",                hue: "#9fb0bd", family: "snow"   },
   shore:  { name: "ocean shore",              hue: "#6f8790", family: "beach"  },
+  sea:    { name: "the open sea",             hue: "#3e5871", family: "beach"  },
 };
 function baseBiome(lon, lat) {
   /* rule-of-thumb ecoregions; first match wins */
@@ -509,6 +510,13 @@ const params = new URLSearchParams(location.search);
 const dayStr = (params.get("day") || (() => { const d = new Date();
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0")
        + "-" + String(d.getDate()).padStart(2, "0"); })()).slice(0, 10);
+/* the moon, for its nights: illuminated fraction on the seeded day */
+const MOONF = (() => {
+  const d = (Date.parse(dayStr + "T22:00:00Z") - Date.parse("2000-01-06T18:14:00Z")) / 86400000;
+  const ph = (((d % 29.530588) + 29.530588) % 29.530588) / 29.530588;
+  return (1 - Math.cos(2 * Math.PI * ph)) / 2;
+})();
+const FULLMOON = MOONF > 0.97;
 
 /* -------------------------------------------------------------- site ----- */
 let site = null;      /* {lat, lon, biome, base, coast..., state, region, water...} */
@@ -543,6 +551,27 @@ function makeSite(lon, lat) {
     farm: (biome === "efor" || biome === "tgrass" || biome === "sepine") && srng() < 0.45,
     town: srng() < 0.3,   /* near-enough town: train horns reachable */
     realm: "nearctic", kg: null, world: false,
+    seed: fnv("elsewhere:" + key + ":" + dayStr),
+  };
+}
+function oceanName(lon, lat) {
+  if (Math.hypot((lon + 123.39) * 0.66, lat + 48.87) < 3) return "the loneliest water on earth";
+  if (lat < -45) return "the southern ocean";
+  if (lat > 66) return "the arctic ocean";
+  if (lon > 20 && lon < 115 && lat < 25) return "the indian ocean";
+  const pac = lon < -70 || lon > 115;
+  return "the " + (lat > 0 ? "north" : "south") + " " + (pac ? "pacific" : "atlantic");
+}
+function makeOceanSite(lon, lat) {
+  /* far from every shore: stand on the water */
+  const key = lat.toFixed(1) + "," + lon.toFixed(1);
+  return {
+    lat, lon, biome: "sea", base: "sea", coastType: "o", coastDeg: 0,
+    state: "the open sea", region: oceanName(lon, lat), key,
+    water: { stream: false, lake: false, marsh: false, surf: false,
+             lakeSurf: false, gulf: false, swell: true },
+    rocky: false, farm: false, town: false,
+    realm: "sea", kg: null, world: false,
     seed: fnv("elsewhere:" + key + ":" + dayStr),
   };
 }
@@ -2882,6 +2911,7 @@ const CASTS = {
            "seedrattle","fcricket","groundcricket","greentree"],
   pcoast: ["gull_west","oyster","guillemot","murre","sealion","eagle","raven","peeps",
            "foghorn","bellbuoy","rockfall","pacfrog","jet"],
+  sea: ["stormpetrel","whale","jet"],
 };
 /* ------------------------------------ the deep pass: more of the world --- */
 /* western palearctic, second round */
@@ -3332,6 +3362,30 @@ def("goldfinch", { name: "american goldfinch", g: "bird",
       parts.push(gapN(ru(0.3, 0.7)));
     } return cat(...parts); } });
 
+/* the open sea (found by tapping far from every shore) */
+def("stormpetrel", { name: "storm-petrels", g: "bird",
+  act: A({ doy: [1, 365], day: 0.7, dawn: 0.8, dusk: 0.6 }), gap: [30, 80], dist: [0.15, 0.45], n: [1, 1],
+  gen() { const dur = ru(1.5, 3), n = (dur * SR) | 0, x = new Float32Array(n);
+    for (let v = 0, nv = ri(1, 3); v < nv; v++) {
+      let t = ru(0, 0.6);
+      while (t < dur - 0.15) {
+        const f = ru(2800, 4200);
+        addTo(x, scaleA(tone(ru(0.03, 0.06), [[0, f], [1, f * pick([1.15, 0.9])]],
+          { harm: [1, 0.3], noise: 0.15, atk: 0.003, rel: 0.01 }), ru(0.3, 0.7)), (t * SR) | 0);
+        t += ru(0.06, 0.25);
+      }
+    }
+    for (let i = 0; i < n; i++) x[i] *= Math.pow(Math.sin(Math.PI * i / n), 0.9);
+    return normA(x); } });
+def("whale", { name: "a whale, surfacing", g: "beast",
+  act: A({ doy: [1, 365], day: 0.5, dawn: 0.6, dusk: 0.6, night: 0.3 }), gap: [500, 1400], dist: [0.4, 0.75], n: [1, 1],
+  gen() { const n = (ru(1, 1.6) * SR) | 0, x = bpA(noiseA(n), ru(500, 800), 0.5);
+    for (let i = 0; i < n; i++) {   /* the blow: one long breath */
+      const tf = i / n;
+      x[i] *= 2.2 * Math.pow(Math.sin(Math.PI * Math.min(1, tf * 1.4)), 0.7) * Math.exp(-tf * 1.6);
+    }
+    return normA(x); } });
+
 /* ------------------------------------------- the world's cast tables ----- */
 /* a base bed per climate biome, then each realm's voices on top */
 const WBASE = {
@@ -3588,7 +3642,8 @@ function buildBed() {
                 trf: [2800, 0.6, 0.55], sav: [4800, 0.6, 0.5], des: [1500, 1, 0.2],
                 steppe: [1000, 0.8, 0.35], med: [3200, 0.7, 0.4], subtrop: [1400, 0.8, 0.45],
                 toce: [1800, 0.7, 0.5], tfor: [2400, 0.6, 0.5], tundra: [700, 0.8, 0.4],
-                ice: [400, 0.7, 0.55], shore: [4400, 0.8, 0.4] }[site.biome] || [2000, 0.8, 0.4];
+                ice: [400, 0.7, 0.55], shore: [4400, 0.8, 0.4],
+                sea: [600, 0.65, 0.5] }[site.biome] || [2000, 0.8, 0.4];
   t.low = tap(src, "lowpass", 130, 0.5, 0.02, dest);        /* air floor */
   t.moan = tap(src, "bandpass", 240, 1.2, 0.0, dest);       /* wind body */
   t.veg = tap(src, "bandpass", veg[0], veg[1], 0.0, dest);  /* vegetation */
@@ -3601,7 +3656,7 @@ function buildBed() {
     t.st2 = tap(src, "bandpass", 1900, 1.6, 0.01, dest);
     t.st3 = tap(src, "bandpass", 3600, 2, 0.006, dest);
   }
-  if (site.water.surf || site.water.lakeSurf) {
+  if (site.water.surf || site.water.lakeSurf || site.water.swell) {
     t.rumble = tap(src, "lowpass", 190, 0.6, 0.05, dest);
     t.swash = tap(src, "bandpass", 1100, 0.7, 0.0, dest);
   }
@@ -3655,6 +3710,18 @@ function waveBuf(big) {
   }
   return normA(x);
 }
+function swellBuf() {
+  /* mid-ocean: no shore to break on — a long rolling heave */
+  const dur = ru(4, 7), n = (dur * SR) | 0;
+  const x = bpA(noiseA(n), ru(280, 420), 0.7);
+  const x2 = bpA(noiseA(n), 1400, 0.8);
+  for (let i = 0; i < n; i++) {
+    const tf = i / n;
+    const env = Math.pow(Math.sin(Math.PI * tf), 1.6);
+    x[i] = (x[i] * 2.2 + x2[i] * (0.3 + 0.5 * tf)) * env;
+  }
+  return normA(x);
+}
 function lapBuf() {
   const dur = ru(0.5, 1), n = (dur * SR) | 0;
   const x = bpA(noiseA(n), ru(400, 800), 1.1);
@@ -3699,6 +3766,7 @@ function buildWaterEvents() {
   waterEvents.length = 0;
   const w = site.water;
   if (w.surf) waterEvents.push({ kind: "wave", per: [6, 12], nextT: 0 });
+  if (w.swell) waterEvents.push({ kind: "swell", per: [4, 8], nextT: 0 });
   if (w.lakeSurf) waterEvents.push({ kind: "lakewave", per: [3, 7], nextT: 0 });
   if (w.lake && !w.lakeSurf) waterEvents.push({ kind: "lap", per: [1.5, 4], nextT: 0 });
   if (w.stream) waterEvents.push({ kind: "bubble", per: [0.4, 1.6], nextT: 0 });
@@ -3712,6 +3780,8 @@ function scheduleWater(now, horizon) {
       const vA = P.vAir;
       if (ev.kind === "wave")
         play(waveBuf(ru(0.7, 1.15)), t, { dist: ru(0.15, 0.35), pan: ru(-0.7, 0.7), gain: 0.75 * vA, group: "air", rev: 0.08 });
+      else if (ev.kind === "swell")
+        play(swellBuf(), t, { dist: ru(0.1, 0.4), pan: ru(-0.8, 0.8), gain: 0.5 * vA, group: "air", rev: 0.12 });
       else if (ev.kind === "lakewave")
         play(waveBuf(ru(0.25, 0.5)), t, { dist: ru(0.25, 0.5), pan: ru(-0.7, 0.7), gain: 0.4 * vA, group: "air", rev: 0.1 });
       else if (ev.kind === "lap")
@@ -4132,6 +4202,10 @@ function tick() {
             act *= Math.max(0, 1 - weather.rain * 1.6);
           if (weather.snow > 0.05 && sp.g !== "air") act *= 0.25;
           if (sp.id === "foghorn") act *= weather.fog > 0.25 ? 1 : 0;
+          if (FULLMOON && e.night > 0.3) {   /* moonlit nights carry more song */
+            if (sp.id === "mocker" || sp.id === "nightingale" || sp.id === "robin_eu") act = Math.min(1, act * 1.8);
+            if (["coyote", "wolf", "dingoes", "jackals"].includes(sp.id)) act = Math.min(1, act * 1.5);
+          }
           act = Math.min(1, act * (0.35 + 0.85 * densGate));
           const gapR = sp._gap || sp.gap;
           if (act > 0.02 && arng() < act) {
@@ -4157,6 +4231,7 @@ function tick() {
         if (!tickErrs.has(k)) { tickErrs.add(k); console.error("agent " + ag.sp.id, err); }
       }
     }
+    if (FULLMOON && e.night > 0.5 && arng() < 0.002) announce("full moon", 0);
     statusLine(e);
     if (now - lastTick > 30 && P.now && !P.lapse) reflectHour();
   } catch (err) {
@@ -4317,7 +4392,8 @@ function drawGlobeFrame(fine) {
       }
       const cosz = sinLat * sd + Math.cos(latR) * cd * Math.cos(lonD * RAD - lamS);
       let sh = 0.86 + 0.14 * z;                          /* the limb */
-      if (cosz < 0.05) sh *= cosz < -0.09 ? 0.66 : 0.66 + 0.34 * (cosz + 0.09) / 0.14;
+      const nfl = FULLMOON ? 0.73 : 0.66;                /* moonlit nights are paler */
+      if (cosz < 0.05) sh *= cosz < -0.09 ? nfl : nfl + (1 - nfl) * (cosz + 0.09) / 0.14;
       r *= sh; gg *= sh; b *= sh;
       if (cosz > -0.22 && cosz < 0.22) {
         /* the twilight band: rose-gold toward the sun, lavender into night */
@@ -4387,6 +4463,12 @@ function drawMap() {
     GLOBE.lastMs = nowMs;
     const ease = 1 - Math.exp(-5 * dt);
     let spinning = false;
+    if (GLOBE.spinVel && Math.abs(GLOBE.spinVel) > 2) {   /* flung: coast down */
+      GLOBE.lam += GLOBE.spinVel * dt;
+      if (GLOBE.lam < -180) GLOBE.lam += 360; else if (GLOBE.lam > 180) GLOBE.lam -= 360;
+      GLOBE.spinVel *= Math.exp(-1.1 * dt);
+      spinning = true;
+    } else GLOBE.spinVel = 0;
     if (GLOBE.target) {   /* ease toward a chosen place */
       let dl = GLOBE.target.lam - GLOBE.lam; dl = ((dl + 540) % 360) - 180;
       GLOBE.lam += dl * ease; GLOBE.phi += (GLOBE.target.phi - GLOBE.phi) * ease;
@@ -4482,6 +4564,8 @@ function setSite(lon, lat, announceIt = true) {
           }
         }
       }
+    } else if (Math.abs(lat) < 78) {
+      s = makeOceanSite(lon, lat);   /* no shore for days: the open sea */
     }
     if (!s) return;
   }
@@ -4510,6 +4594,7 @@ cv.addEventListener("pointerdown", e => {
   cv.setPointerCapture(e.pointerId);
   ptrs.set(e.pointerId, [e.clientX, e.clientY]);
   GLOBE.lastTouch = performance.now();
+  GLOBE.spinVel = 0;   /* a hand on the globe stops it */
   if (ptrs.size === 1) dragInfo = { moved: 0, t: performance.now() };
   else if (ptrs.size === 2) {
     const [a, b] = [...ptrs.values()];
@@ -4537,6 +4622,12 @@ cv.addEventListener("pointermove", e => {
     GLOBE.lam -= dx * k;
     GLOBE.phi = Math.max(-80, Math.min(80, GLOBE.phi + dy * k));
     GLOBE.target = null; GLOBE.anchor = null;
+    const nowP = performance.now();   /* remember the hand's speed */
+    if (dragInfo.lastT) {
+      const dt2 = Math.max(8, nowP - dragInfo.lastT);
+      dragInfo.vel = (dragInfo.vel || 0) * 0.7 + (-dx * k / (dt2 / 1000)) * 0.3;
+    }
+    dragInfo.lastT = nowP;
   } else if (ptrs.size === 2 && pinch0) {
     const [a, b] = [...ptrs.values()];
     const d = Math.hypot(a[0] - b[0], a[1] - b[1]);
@@ -4554,6 +4645,13 @@ function endPointer(e) {
   if (ptrs.size < 2) pinch0 = null;
   if (ptrs.size === 0) dragInfo = null;
   if (e.type === "pointercancel") return;
+  /* a fling: released at speed, the world keeps turning */
+  if (had && had.moved >= 8 && ptrs.size === 0 && Math.abs(had.vel || 0) > 55
+      && performance.now() - (had.lastT || 0) < 120) {
+    GLOBE.spinVel = Math.max(-380, Math.min(380, had.vel));
+    GLOBE.target = null;
+    if (running) flingWhoosh(Math.abs(GLOBE.spinVel));
+  }
   const isTap = had && had.moved < 8 && performance.now() - had.t < 600;
   if (!isTap || ptrs.size) return;
   const r = cv.getBoundingClientRect();
@@ -4563,6 +4661,19 @@ function endPointer(e) {
 }
 cv.addEventListener("pointerup", endPointer);
 cv.addEventListener("pointercancel", endPointer);
+function flingWhoosh(speed) {
+  /* the air of the world going by */
+  const dur = 0.7 + Math.min(0.6, speed / 500);
+  const n = (dur * SR) | 0, x = new Float32Array(n);
+  const nz = bpA(noiseA(n), 700, 0.6);
+  for (let i = 0; i < n; i++) {
+    const tf = i / n;
+    x[i] = nz[i] * Math.pow(Math.sin(Math.PI * tf), 1.5) * (1 + 0.4 * Math.sin(2 * Math.PI * 1.3 * tf));
+  }
+  normA(x);
+  play(x, ctx.currentTime + 0.02, { dist: 0.25, pan: GLOBE.spinVel > 0 ? -0.4 : 0.4,
+    gain: Math.min(0.45, 0.12 + speed / 700) * P.vAir, group: "air", rev: 0.2 });
+}
 cv.addEventListener("keydown", e => {
   const step = e.shiftKey ? 12 : 4;
   if (e.key === "ArrowLeft") GLOBE.lam += step;
