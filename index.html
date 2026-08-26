@@ -109,7 +109,6 @@
     background: transparent; border: 0; padding: 0; font: inherit; cursor: pointer;
     color: var(--s2); touch-action: manipulation;
   }
-  .seg button[aria-pressed="true"] { color: var(--s1); }
   .seg button:hover, .act:hover, .switch:hover { color: var(--s1); }
   .act:hover { color: var(--warm); }
   .act[disabled] { color: var(--s3); cursor: default; }
@@ -463,12 +462,12 @@ function biomeAt(lon, lat, usOnly) {
   const c = coastNear(lon, lat, usOnly ? ["p", "a", "g", "l"] : undefined);
   const base = baseBiome(lon, lat);
   let coastal = null;
-  if (c.deg < 0.42) {
+  if (c.deg < 0.3) {
     if (c.type === "p") coastal = "pcoast";
     else if (c.type === "a" || c.type === "g") coastal = "acoast";
     /* great lakes: keep the land biome; shoreline flag handled in site */
   }
-  return { biome: coastal && c.deg < 0.3 ? coastal : base, coast: c, base };
+  return { biome: coastal || base, coast: c, base };
 }
 
 /* ------------------------------------------------------------ the sun ---- */
@@ -2644,7 +2643,7 @@ def("magpie_au", { name: "australian magpie", g: "bird",
   gen() { /* carolling: two barely-detuned voices gliding a slow random walk */
     const dur = ru(1.5, 3), n = (dur * SR) | 0, x = new Float32Array(n);
     let f = ru(500, 750), drift2 = 0, pa = 0, pb = 0;
-    let seg = 0, segLen = ru(0.1, 0.3) * SR, target = f;
+    let segLen = ru(0.1, 0.3) * SR, target = f;
     for (let i = 0; i < n; i++) {
       if (--segLen <= 0) { target = ru(400, 1400); segLen = ru(0.08, 0.3) * SR; }
       f += (target - f) * 0.0012;
@@ -2652,7 +2651,6 @@ def("magpie_au", { name: "australian magpie", g: "bird",
       const fv = f * (1 + 0.03 * drift2);
       pa += 2 * Math.PI * fv / SR; pb += 2 * Math.PI * fv * 1.5 / SR;
       x[i] = (Math.sin(pa) + 0.55 * Math.sin(pb) + 0.2 * Math.sin(2 * pa)) / 1.75;
-      seg++;
     }
     const am = 0.75;
     for (let i = 0; i < n; i++) x[i] *= am + 0.25 * Math.sin(2 * Math.PI * 3.2 * i / SR);
@@ -3857,9 +3855,9 @@ function buildBed() {
     const old = bed, now = ctx.currentTime;
     old.out.gain.setTargetAtTime(0, now, 0.9);
     old.outWet.gain.setTargetAtTime(0, now, 0.9);
-    try { old.src.stop(now + 4.5); } catch (e) {}
-    setTimeout(() => { for (const n of old.nodes) { try { n.disconnect(); } catch (e) {} }
-      try { old.out.disconnect(); old.outWet.disconnect(); } catch (e) {} }, 5000);
+    try { old.src.stop(now + 4.5); } catch {}
+    setTimeout(() => { for (const n of old.nodes) { try { n.disconnect(); } catch {} }
+      try { old.out.disconnect(); old.outWet.disconnect(); } catch {} }, 5000);
   }
   const out = ctx.createGain(), outWet = ctx.createGain();
   out.gain.value = 0; outWet.gain.value = 0;
@@ -4545,6 +4543,10 @@ function tick() {
     }
     if (FULLMOON && e.night > 0.5 && arng() < 0.002) announce("full moon", 0);
     if (MOTH.on && MOTH.rng && now > MOTH.nightT) rollMothNight(now);
+    /* expire the event rings here, not in the draw loop — the draw stops
+       when the marker faces away or the tab hides, and they'd pile up */
+    for (let i = visEvents.length - 1; i >= 0; i--)
+      if (now - visEvents[i].t > Math.min(4, visEvents[i].dur + 1)) visEvents.splice(i, 1);
     statusLine(e);
     if (now - lastTick > 30 && P.now && !P.lapse) reflectHour();
   } catch (err) {
@@ -4581,8 +4583,16 @@ function statusLine(e) {
 /* ============================================================== map ====== */
 const cv = document.getElementById("map"), g2 = cv.getContext("2d");
 function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
-function isDark() { return !matchMedia("(prefers-color-scheme: light)").matches
-  || document.documentElement.dataset.theme === "dark"; }
+function isDark() {
+  const t = document.documentElement.dataset.theme;
+  if (t === "dark") return true;
+  if (t === "light") return false;
+  return !matchMedia("(prefers-color-scheme: light)").matches;
+}
+/* a theme change mid-session: the texture was painted in the old palette */
+matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
+  GLOBE.tex = null; GLOBE.fineKey = null;
+});
 
 /* ------------------------------------------------ the spinning globe ----- */
 const RAD = Math.PI / 180;
@@ -5017,9 +5027,11 @@ function randomSite() {
   for (let k = 0; k < 400; k++) {
     const lon = ru(-180, 180), lat = ru(-55, 72);
     if (!landAt(lon, lat)) continue;
-    setSite(lon, lat);
-    if (site && site.biome === "ice" && k < 380) continue;   /* don't strand the
+    const peek = makeSite(lon, lat);   /* look before standing: no wasted builds */
+    if (!peek) continue;
+    if (peek.biome === "ice" && k < 380) continue;   /* don't strand the
       listener on the icecap — it can still be chosen by hand */
+    setSite(lon, lat);
     if (site) globeCenter(site.lon, site.lat);
     return;
   }
@@ -5046,17 +5058,24 @@ el.doy.addEventListener("input", () => {
   if (site) planWeather();
 });
 el.now.addEventListener("click", () => {
+  const hm = solarHour();   /* before the mode flips, so time freezes in place */
   P.now = !P.now;
   if (P.now) { P.lapse = false; lapseBase = null; el.lapse.setAttribute("aria-checked", "false"); }
+  else { P.hour = hm; el.hour.value = Math.round(hm); out("hour").textContent = fmtHour(hm); }
   el.now.setAttribute("aria-checked", String(P.now));
   if (P.now) reflectHour();
 });
 el.lapse.addEventListener("click", () => {
+  const hm = solarHour();
   P.lapse = !P.lapse;
   if (P.lapse) {
-    lapseBase = { real: performance.now() / 1000, hour: solarHour() };
+    lapseBase = { real: performance.now() / 1000, hour: hm };
     P.now = false; el.now.setAttribute("aria-checked", "false");
-  } else lapseBase = null;
+  } else {
+    lapseBase = null;   /* step off the carousel where it stands */
+    P.now = false; el.now.setAttribute("aria-checked", "false");
+    P.hour = hm; el.hour.value = Math.round(hm); out("hour").textContent = fmtHour(hm);
+  }
   el.lapse.setAttribute("aria-checked", String(P.lapse));
 });
 el.today.addEventListener("click", () => {
@@ -5116,7 +5135,7 @@ el.share.addEventListener("click", async () => {
   const u = location.origin + location.pathname
     + `?lat=${site.lat.toFixed(2)}&lon=${site.lon.toFixed(2)}&day=${dayStr}`;
   try { await navigator.clipboard.writeText(u); el.share.textContent = "[ copied ]"; }
-  catch (e) { el.share.textContent = "[ " + u + " ]"; }
+  catch { el.share.textContent = "[ " + u + " ]"; }
   setTimeout(() => el.share.textContent = "[ share this place ]", 2500);
 });
 
@@ -5196,7 +5215,7 @@ el.begin.addEventListener("click", async () => {
   if (running) return;
   ctx = new (window.AudioContext || window.webkitAudioContext)();
   SR = ctx.sampleRate;
-  try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
+  try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch {}
   await ctx.resume();
   ctx.onstatechange = () => { if (ctx.state !== "running" && !document.hidden) ctx.resume(); };
   document.addEventListener("touchend", () => {
