@@ -122,8 +122,6 @@
   .inline { display: flex; gap: 24px; align-items: baseline; flex-wrap: wrap;
             padding: 12px 16px; }
   .inline.between { justify-content: space-between; }
-  .sep { border-top: 1px solid var(--rule); margin-top: 8px; padding-top: 16px;
-         padding-bottom: 18px; }
   #dubDepthWrap { display: inline-flex; align-items: center; gap: 10px; align-self: center; }
   #dubDepthWrap[hidden] { display: none; }
   #dubDepthWrap input[type="range"] { width: 110px; }
@@ -213,11 +211,6 @@
   <input type="range" id="vFauna" min="0" max="100" value="70" aria-label="Mammal and beast level"></div>
 <div class="ctl"><div class="row2"><label for="vAir">air &amp; water</label><output id="vAirV">70</output></div>
   <input type="range" id="vAir" min="0" max="100" value="70" aria-label="Wind and water level"></div>
-
-<div class="inline sep">
-  <button class="act" id="keep" aria-label="Download the last 90 seconds as WAV">[ keep .wav ]</button>
-  <span class="g">the last 90 seconds</span>
-</div>
 
 <script>
 "use strict";
@@ -5543,77 +5536,6 @@ el.share.addEventListener("click", async () => {
   setTimeout(() => el.share.textContent = "[ share this place ]", 2500);
 });
 
-/* --------------------------------------------------------- recorder ------ */
-/* a stereo tap on the LINEAR pre-compressor mix (album convention: the
-   live compressor only guards playback and is not printed). */
-const REC_S = 90;
-let recRing = null, recPos = 0, recFill = 0, recNode = null;
-function startRecorder() {
-  recRing = new Int16Array(REC_S * SR * 2);
-  recNode = ctx.createScriptProcessor(4096, 2, 1);
-  recNode.onaudioprocess = ev => {
-    const L = ev.inputBuffer.getChannelData(0), R = ev.inputBuffer.getChannelData(1);
-    for (let i = 0; i < L.length; i++) {
-      recRing[recPos++] = Math.max(-32768, Math.min(32767, (L[i] * 0.7 * 32767) | 0));
-      recRing[recPos++] = Math.max(-32768, Math.min(32767, (R[i] * 0.7 * 32767) | 0));
-      if (recPos >= recRing.length) recPos = 0;
-    }
-    recFill = Math.min(recFill + L.length, REC_S * SR);
-  };
-  sum.connect(recNode);
-  const mute = ctx.createGain(); mute.gain.value = 0;
-  recNode.connect(mute); mute.connect(ctx.destination);
-}
-function buildWav() {
-  if (!recFill) return null;
-  const frames = recFill, bytes = frames * 4;
-  const buf = new ArrayBuffer(44 + bytes), dv = new DataView(buf);
-  const ws = (o, s) => { for (let i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); };
-  ws(0, "RIFF"); dv.setUint32(4, 36 + bytes, true); ws(8, "WAVE"); ws(12, "fmt ");
-  dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 2, true);
-  dv.setUint32(24, SR, true); dv.setUint32(28, SR * 4, true);
-  dv.setUint16(32, 4, true); dv.setUint16(34, 16, true);
-  ws(36, "data"); dv.setUint32(40, bytes, true);
-  let src = recPos - frames * 2;
-  if (src < 0) src += recRing.length;
-  for (let i = 0; i < frames * 2; i++) {
-    dv.setInt16(44 + i * 2, recRing[src++], true);
-    if (src >= recRing.length) src = 0;
-  }
-  return new Uint8Array(buf);
-}
-function keepName(ext) {
-  const hm = new Date();
-  return "elsewhere-" + (site ? site.key.replace(/[.,]/g, "_") : "somewhere") + "-"
-    + dayStr.replaceAll("-", "")
-    + String(hm.getHours()).padStart(2, "0") + String(hm.getMinutes()).padStart(2, "0") + ext;
-}
-async function saveFile(btn, idleLabel, name, bytes, mime) {
-  const say = (t, ms) => { btn.textContent = t;
-    if (ms) setTimeout(() => btn.textContent = idleLabel, ms); };
-  const dl = (window.claude && window.claude.use) ? await window.claude.use("downloads") : null;
-  if (dl) {
-    try { await dl.save({ filename: name, data: bytes }); say("[ kept ]", 1400); }
-    catch (err) {
-      if (err && err.code === "declined") say(idleLabel);
-      else say("[ unavailable here ]", 1600);
-    }
-    return;
-  }
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([bytes], { type: mime }));
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 6000);
-  say("[ kept ]", 1400);
-}
-el.keep.addEventListener("click", async () => {
-  const bytes = buildWav();
-  if (!bytes) { el.keep.textContent = "[ nothing yet ]";
-    setTimeout(() => el.keep.textContent = "[ keep .wav ]", 1400); return; }
-  await saveFile(el.keep, "[ keep .wav ]", keepName(".wav"), bytes, "audio/wav");
-});
-
 /* ------------------------------------------------------------ begin ------ */
 el.begin.addEventListener("click", async () => {
   if (running) return;
@@ -5663,7 +5585,6 @@ el.begin.addEventListener("click", async () => {
 
   running = true;
   buildBed(); buildWaterEvents(); buildCast(); buildMothCast();
-  startRecorder();
   if (P.dub) { DUB.on = true; startDub(); }
   el.begin.remove();
   reflectHour();

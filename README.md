@@ -100,9 +100,6 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   a fluttering night, a clicking night, a courting night — that drifts
   as you listen. location- and temperature-honest like everything else;
   the dub, the drift and the clock all still apply
-- **[ keep .wav ]** downloads the last 90 seconds (recorded linear,
-  before the live safety compressor — album convention)
-
 the field research behind the casts — species by species, with
 frequencies and timing for synthesis — is in the album's `notes/usa.md`
 and `notes/global.md`. the maps are built from public-domain data: US
