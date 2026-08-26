@@ -33,6 +33,12 @@
     --rule: #e4e4e6; --focus: #121212;
     --warm: #8a6f42; --cool: #5b7484;
   }
+  /* the moth variation: deep night, wing-dust and violet, in any theme */
+  :root.moth, :root.moth[data-theme="light"] {
+    --bg: #08080c; --s1: #b9b4c4; --s2: #6d6878; --s3: #3c3946;
+    --rule: #1b1a23; --focus: #b9b4c4;
+    --warm: #9c9070; --cool: #7a7390;
+  }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
     margin: 0; background: var(--bg); color: var(--s1);
@@ -152,6 +158,8 @@
       aria-label="Drift: the listener wanders the land">[ &infin; drift ]</button>
     <button class="switch" id="dub" role="switch" aria-checked="false"
       aria-label="Dub: the land through a tape echo">[ dub ]</button>
+    <button class="switch" id="moth" role="switch" aria-checked="false"
+      aria-label="The moth variation: deep night, and only the moths">[ moth variation ]</button>
     <span id="dubDepthWrap" hidden>
       <input type="range" id="dubDepth" min="0" max="100" value="55" aria-label="How deep the dub sits">
       <output id="dubDepthV">55</output>
@@ -627,6 +635,9 @@ const P = {
   dub: false, dubDepth: 0.55,
   vBird: 0.7, vBug: 0.7, vFrog: 0.7, vFauna: 0.7, vAir: 0.7,
 };
+/* the moth variation: deep night; the world's voices yield to the moths,
+   heard as through a bat detector */
+const MOTH = { on: false };
 let lapseBase = null;  /* {real: performance.now()/1000, hour: minutes} */
 function solarHour() {
   /* current local solar time at the site, minutes 0..1440 */
@@ -3386,6 +3397,121 @@ def("whale", { name: "a whale, surfacing", g: "beast",
     }
     return normA(x); } });
 
+/* --------------------------- the moths, as through a bat detector -------- */
+function flutterBuf(dur, wingHz, bandHz, depth) {
+  const n = (dur * SR) | 0, x = new Float32Array(n);
+  const nz = bpA(noiseA(n), bandHz, 0.7);
+  let phW = ru(0, 6.28), wander = 0;
+  for (let i = 0; i < n; i++) {
+    const tf = i / n;
+    wander = 0.998 * wander + 0.002 * (Math.random() * 2 - 1);
+    phW += 2 * Math.PI * wingHz * (1 + 0.5 * wander) / SR;
+    const beat = Math.pow(0.5 + 0.5 * Math.sin(phW), depth);
+    x[i] = nz[i] * beat * Math.pow(Math.sin(Math.PI * tf), 0.8)
+         * (0.6 + 0.4 * Math.sin(2 * Math.PI * 0.9 * i / SR + 2));
+  }
+  return normA(x);
+}
+def("flutter", { name: "a moth going by", g: "bug",
+  act: A({ doy: [1, 365], tMin: 52, night: 1.1, dusk: 1.2, dawn: 0.4, day: 0.05 }),
+  gap: [6, 16], dist: [0.03, 0.15], n: [1, 1],
+  gen() { return flutterBuf(ru(1.2, 2.8), ru(9, 18), 900, 2.2); } });
+def("bigflutter", { name: "a great silk moth", g: "bug",
+  act: A({ doy: [120, 240], tMin: 55, night: 1.1, dusk: 1 }),
+  gap: [15, 40], dist: [0.04, 0.18], n: [1, 1],
+  gen() { return flutterBuf(ru(2, 4), ru(5.5, 8), 420, 1.8); } });
+def("micromoths", { name: "grass moths", g: "bug",
+  act: A({ doy: [1, 365], tMin: 52, night: 1, dusk: 1.2, day: 0.1 }),
+  gap: [4, 10], dist: [0.03, 0.12], n: [1, 1],
+  gen() { return scaleA(flutterBuf(ru(0.3, 0.8), ru(25, 40), 1800, 2.6), 0.5); } });
+def("tigerclicks", { name: "a tiger moth's warning", g: "bug",
+  act: A({ doy: [130, 270], tMin: 55, night: 1.2, dusk: 0.8 }),
+  gap: [10, 26], dist: [0.05, 0.2], n: [1, 1],
+  gen() { const parts = [];
+    for (let k = 0, m = ri(2, 5); k < m; k++) {   /* tymbal bursts */
+      const mk = () => { const L = (0.003 * SR) | 0, c = new Float32Array(L);
+        for (let i = 0; i < L; i++) c[i] = (Math.random() * 2 - 1) * Math.exp(-i / (SR * 0.0007));
+        return bpA(c, ru(3200, 5200), 1.5); };
+      parts.push(pulses(ri(8, 22), ru(28, 60), mk, { jit: 0.15 }));
+      parts.push(gapN(ru(0.1, 0.35)));
+    } return cat(...parts); } });
+def("sphinxhum", { name: "a hawk-moth at the flowers", g: "bug",
+  act: A({ doy: [120, 270], tMin: 55, dusk: 1.5, night: 0.8 }),
+  gap: [15, 40], dist: [0.05, 0.2], n: [1, 1],
+  gen() { const dur = ru(2, 5), n = (dur * SR) | 0, x = new Float32Array(n);
+    const f = ru(42, 70); let ph = 0, wander = 0;
+    for (let i = 0; i < n; i++) {
+      const tf = i / n;
+      wander = 0.999 * wander + 0.001 * (Math.random() * 2 - 1);
+      ph += 2 * Math.PI * f * (1 + 0.25 * wander) / SR;
+      x[i] = (Math.sin(ph) + 0.6 * Math.sin(2 * ph) + 0.4 * Math.sin(3 * ph)
+            + 0.25 * Math.sin(4 * ph) + 0.12 * Math.sin(5 * ph))
+           * Math.pow(Math.sin(Math.PI * tf), 0.6) * (0.7 + 0.3 * Math.sin(2 * Math.PI * 1.7 * i / SR));
+    }
+    return normA(x); } });
+def("hbhawk", { name: "a hummingbird hawk-moth", g: "bug",
+  act: A({ doy: [130, 260], day: 1, dusk: 0.6 }), gap: [20, 50], dist: [0.05, 0.18], n: [1, 1],
+  gen() { const dur = ru(1.2, 2.5), n = (dur * SR) | 0, x = new Float32Array(n);
+    const f = ru(70, 85); let ph = 0;
+    for (let i = 0; i < n; i++) {
+      const tf = i / n;
+      ph += 2 * Math.PI * f * (1 + 0.1 * Math.sin(2 * Math.PI * 2.4 * i / SR)) / SR;
+      x[i] = (Math.sin(ph) + 0.5 * Math.sin(2 * ph) + 0.3 * Math.sin(3 * ph))
+           * Math.pow(Math.sin(Math.PI * tf), 0.7);
+    }
+    return normA(x); } });
+def("ghostlek", { name: "ghost moths, swaying", g: "bug",
+  act: A({ doy: [150, 220], tMin: 48, dusk: 2, night: 0.3 }),
+  gap: [20, 45], dist: [0.1, 0.3], n: [1, 1],
+  gen() { const dur = ru(6, 10), n = (dur * SR) | 0, x = new Float32Array(n);
+    for (let v = 0, nv = ri(3, 5); v < nv; v++) {
+      const f = ru(55, 75) * (1 + v * 0.013); let ph = ru(0, 6.28);
+      const swayPh = ru(0, 6.28), g = ru(0.2, 0.4);
+      for (let i = 0; i < n; i++) {
+        ph += 2 * Math.PI * f / SR;
+        const sway = 0.5 + 0.5 * Math.sin(2 * Math.PI * 0.4 * i / SR + swayPh);
+        x[i] += (Math.sin(ph) + 0.4 * Math.sin(2 * ph)) * sway * g;
+      }
+    }
+    return env3(normA(x), 1, 1.5); } });
+def("bogong", { name: "the bogong passage", g: "bug",
+  act: A({ doy: [60, 150], tMin: 50, night: 1.2, dusk: 1 }),
+  gap: [8, 20], dist: [0.05, 0.25], n: [1, 1],
+  gen() { const dur = ru(3, 6), n = (dur * SR) | 0, x = new Float32Array(n);
+    for (let v = 0, nv = ri(5, 9); v < nv; v++)
+      addTo(x, scaleA(flutterBuf(ru(1, 2.2), ru(11, 17), 750, 2), ru(0.3, 0.7)),
+        (ru(0, dur - 1) * SR) | 0);
+    return normA(x); } });
+def("deathshead", { name: "the death's-head's complaint", g: "bug",
+  act: A({ doy: [150, 280], tMin: 55, night: 1 }), gap: [300, 800], dist: [0.04, 0.12], n: [1, 1],
+  gen() { const parts = [];
+    for (let k = 0, m = ri(2, 4); k < m; k++) {
+      parts.push(tone(ru(0.1, 0.16), [[0, ru(1900, 2400)], [0.4, ru(1500, 1800)], [1, ru(1100, 1400)]],
+        { harm: [1, 0.5, 0.25], noise: 0.35, atk: 0.005, rel: 0.03 }));
+      parts.push(gapN(ru(0.12, 0.3)));
+    } return cat(...parts); } });
+def("bat", { name: "a bat, hunting", g: "bug",
+  act: A({ doy: [100, 290], tMin: 48, night: 1.2, dusk: 1 }),
+  gap: [25, 70], dist: [0.08, 0.3], n: [1, 1],
+  gen() { const parts = [];
+    let per = 0.14;   /* search chirps closing into the feeding buzz */
+    for (let k = 0; k < 22 && per > 0.011; k++) {
+      const f = ru(2300, 2700);
+      parts.push(tone(Math.min(0.03, per * 0.5), [[0, f], [1, f * 0.55]],
+        { harm: [1, 0.15], atk: 0.002, rel: 0.006 }));
+      parts.push(gapN(Math.max(0.004, per - 0.03)));
+      per *= 0.82;
+    }
+    parts.push(scaleA(rasp(0.18, 1900, 1.2, { am: 110, amd: 0.8, win: 0.4 }), 0.8));
+    if (Math.random() < 0.45) {   /* the moth got away — its clicks say so */
+      parts.push(gapN(0.1));
+      const mk = () => { const L = (0.003 * SR) | 0, c = new Float32Array(L);
+        for (let i = 0; i < L; i++) c[i] = (Math.random() * 2 - 1) * Math.exp(-i / (SR * 0.0007));
+        return bpA(c, 4200, 1.5); };
+      parts.push(pulses(ri(10, 18), 70, mk, { jit: 0.1 }));
+    }
+    return cat(...parts); } });
+
 /* ------------------------------------------- the world's cast tables ----- */
 /* a base bed per climate biome, then each realm's voices on top */
 const WBASE = {
@@ -3587,7 +3713,9 @@ function play(x, when, o = {}) {
   if (o.echo) { const eg = ctx.createGain(); eg.gain.value = 0.5; pan.connect(eg); eg.connect(echoNode); }
   if (DUB.on && DUB.n) {   /* offer this voice to the dub's throw gate */
     const ds = ctx.createGain();
-    ds.gain.value = { bird: 0.9, frog: 0.7, fauna: 0.6, bug: 0.22, air: 0.12 }[o.group || "air"] ?? 0.3;
+    ds.gain.value = MOTH.on && (o.group === "bug")
+      ? 0.75   /* in the moth variation, the moths are what the dub eats */
+      : ({ bird: 0.9, frog: 0.7, fauna: 0.6, bug: 0.22, air: 0.12 }[o.group || "air"] ?? 0.3);
     pan.connect(ds); ds.connect(DUB.n.throw);
   }
   src.start(when);
@@ -3670,7 +3798,8 @@ function steerBed(now) {
   bed.gustV += (arng() - 0.5) * 0.14 + (wState * 0.55 - bed.gust) * 0.05;
   bed.gustV *= 0.86;
   bed.gust = Math.max(0.02, Math.min(1.4, bed.gust + bed.gustV));
-  const g = bed.gust, T = 0.4, t = bed.t, vAir = P.vAir;
+  const g = bed.gust, T = 0.4, t = bed.t;
+  const vAir = P.vAir * (MOTH.on ? 0.3 : 1);   /* the moths ask for hush */
   const set = (p, v) => p.setTargetAtTime(v * vAir, now, T);
   set(t.moan.g.gain, 0.05 * g * g);
   set(t.veg.g.gain, bed.veg[2] * 0.09 * Math.pow(g, 1.6));
@@ -3777,7 +3906,7 @@ function scheduleWater(now, horizon) {
     if (ev.nextT < now - 1) ev.nextT = now + ru(0, 1);
     while (ev.nextT < now + horizon) {
       const t = ev.nextT;
-      const vA = P.vAir;
+      const vA = P.vAir * (MOTH.on ? 0.35 : 1);
       if (ev.kind === "wave")
         play(waveBuf(ru(0.7, 1.15)), t, { dist: ru(0.15, 0.35), pan: ru(-0.7, 0.7), gain: 0.75 * vA, group: "air", rev: 0.08 });
       else if (ev.kind === "swell")
@@ -4073,6 +4202,38 @@ function buildCast() {
 }
 function ri2(r, a, b) { return Math.floor(ru2(r, a, b + 1)); }
 
+/* ----------------------------------------------------- the moth cast ----- */
+let mothAgents = [];
+function mothCast() {
+  const b = site.biome;
+  let list;
+  if (b === "trf") list = ["flutter", "flutter", "bigflutter", "bigflutter", "tigerclicks", "sphinxhum", "bat"];
+  else if (["efor", "sepine", "tfor", "subtrop", "toce", "cal", "med", "flwet"].includes(b))
+    list = ["flutter", "bigflutter", "tigerclicks", "sphinxhum", "micromoths", "bat"];
+  else if (["tgrass", "sgrass", "steppe", "sav"].includes(b))
+    list = ["micromoths", "micromoths", "flutter", "sphinxhum", "bat"];
+  else if (["son", "chih", "des", "sage"].includes(b))
+    list = ["sphinxhum", "sphinxhum", "flutter", "tigerclicks", "bat"];
+  else if (["bor", "mont", "pnw"].includes(b))
+    list = ["ghostlek", "flutter", "micromoths", "bat"];
+  else if (b === "tundra" || b === "ice") list = ["flutter"];   /* nearly no one */
+  else if (b === "sea") list = [];                              /* no one at all */
+  else list = ["flutter", "micromoths", "bat"];
+  if (site.realm === "austral") list = list.concat(["bogong"]);
+  if (site.realm === "wpale" && ["med", "toce", "tfor"].includes(b))
+    list = list.concat(["deathshead", "hbhawk"]);
+  return list;
+}
+function buildMothCast() {
+  mothAgents = [];
+  const mr = mulberry32(fnv("moths:" + site.key + ":" + dayStr));
+  mothCast().forEach((id, i) => {
+    const sp = SP[id]; if (!sp) return;
+    mothAgents.push({ sp, dist: ru2(mr, sp.dist[0], sp.dist[1]),
+      pan: ru2(mr, -0.9, 0.9), nextT: -1, idx: i });
+  });
+}
+
 /* ---------------------------------------------------------- announce ----- */
 const heardNames = [];
 function announce(name, dist) {
@@ -4153,7 +4314,7 @@ function driftApply(lon, lat) {
       echoNode.delayTime.setTargetAtTime(site.rocky ? 1.1 : 1.5, ctx.currentTime, 0.5);
       announce(BIOME_INFO[site.biome].name, 0);
     }
-    buildBed(); buildWaterEvents(); buildCast();
+    buildBed(); buildWaterEvents(); buildCast(); buildMothCast();
   }
   globeCenter(site.lon, site.lat);   /* the globe follows the wanderer */
   statusLine(envNow());
@@ -4188,9 +4349,10 @@ function tick() {
       thunderNext = now + ru(20, 70);
     }
     const densGate = P.density;
-    for (const ag of agents) {
+    const roster = MOTH.on ? mothAgents : agents;
+    for (const ag of roster) {
       try {
-        if (ag.idx / Math.max(1, agents.length) > densGate + 0.15) continue;
+        if (ag.idx / Math.max(1, roster.length) > densGate + 0.15) continue;
         if (ag.nextT < 0) ag.nextT = now + ru2(arng, 2, Math.max(12, ag.sp.gap[1] * 0.5));
         if (!Number.isFinite(ag.nextT)) ag.nextT = now + 2;
         if (ag.nextT < now - 4) ag.nextT = now + ru2(arng, 0, 3);
@@ -4256,7 +4418,8 @@ function statusLine(e) {
   const wx = (weather.snow > 0.05 ? " · snow" : weather.rain > 0.4 ? " · rain"
     : weather.rain > 0.05 ? " · light rain" : weather.fog > 0.4 ? " · fog" : "")
     + (P.drift ? " · drifting" : "")
-    + (P.dub ? " · dub " + DUB.state : "");
+    + (P.dub ? " · dub " + DUB.state : "")
+    + (MOTH.on ? " · the moth variation" : "");
   document.getElementById("siteline").innerHTML =
     `${Math.abs(site.lat).toFixed(1)}°${site.lat < 0 ? "S" : "N"} ` +
     `${Math.abs(site.lon).toFixed(1)}°${site.lon < 0 ? "W" : "E"} · ` +
@@ -4361,7 +4524,7 @@ function drawGlobeFrame(fine) {
         const d = Math.sqrt(d2);
         if (d > 1.13) continue;
         const u = 1 - (d - 1) / 0.13;
-        const al = (u * u * (dark ? 105 : 125)) | 0;
+        const al = (u * u * (dark ? 105 : 125) * (MOTH.on ? 0.55 : 1)) | 0;
         out[y * iw + x] = (al << 24) | (atB << 16) | (atG << 8) | atR;
         continue;
       }
@@ -4403,6 +4566,7 @@ function drawGlobeFrame(fine) {
         gg += (196 * tb + 140 * (1 - tb) - gg) * wgt;
         b += (150 * tb + 210 * (1 - tb) - b) * wgt;
       }
+      if (MOTH.on) { r *= 0.42; gg *= 0.4; b *= 0.56; }   /* the moth's earth */
       const dd = Math.sqrt(d2);
       if (dd > 0.93) {   /* atmospheric haze inside the limb */
         const hw = ((dd - 0.93) / 0.07); const hz = hw * hw * 0.34;
@@ -4502,7 +4666,7 @@ function drawMap() {
     } else {
       const hmK = Math.round(site ? solarHour() : ((Date.now() / 60000) % 1440));
       const key = GLOBE.lam.toFixed(2) + "|" + GLOBE.phi.toFixed(2) + "|" + GLOBE.zoom.toFixed(3)
-        + "|" + hmK + "|" + P.doy + "|" + W + "|" + isDark();
+        + "|" + hmK + "|" + P.doy + "|" + W + "|" + isDark() + "|" + MOTH.on;
       if (!gCanvas || GLOBE.fineKey !== key) {
         drawGlobeFrame(true); GLOBE.lastRender = nowMs; GLOBE.fineKey = key;
       }
@@ -4572,7 +4736,8 @@ function setSite(lon, lat, announceIt = true) {
   site = s;
   planWeather();
   if (running) {
-    buildBed(); buildWaterEvents(); buildCast(); heardNames.length = 0; renderNames();
+    buildBed(); buildWaterEvents(); buildCast(); buildMothCast();
+    heardNames.length = 0; renderNames();
     conv.buffer = makeIR(BIOME_INFO[site.biome].family);
     echoNode.delayTime.setTargetAtTime(site.rocky ? 1.1 : 1.5, ctx.currentTime, 0.5);
     visEvents.length = 0;
@@ -4769,6 +4934,13 @@ el.drift.addEventListener("click", () => {
   el.drift.setAttribute("aria-checked", String(P.drift));
   if (P.drift) engageDrift();
 });
+el.moth.addEventListener("click", () => {
+  MOTH.on = !MOTH.on;
+  el.moth.setAttribute("aria-checked", String(MOTH.on));
+  document.documentElement.classList.toggle("moth", MOTH.on);
+  GLOBE.fineKey = null;   /* the globe darkens with the page */
+  if (running && site) { buildMothCast(); heardNames.length = 0; renderNames(); }
+});
 el.dub.addEventListener("click", () => {
   P.dub = !P.dub;
   el.dub.setAttribute("aria-checked", String(P.dub));
@@ -4912,7 +5084,7 @@ el.begin.addEventListener("click", async () => {
   elp.connect(echoGain); echoGain.connect(space);
 
   running = true;
-  buildBed(); buildWaterEvents(); buildCast();
+  buildBed(); buildWaterEvents(); buildCast(); buildMothCast();
   startRecorder();
   if (P.dub) { DUB.on = true; startDub(); }
   el.begin.remove();

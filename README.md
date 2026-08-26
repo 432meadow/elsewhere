@@ -65,6 +65,14 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   coordinates). the treatment drifts on its own seeded weather — washing,
   sparse, deep, receding — and the field recording underneath stays
   untouched. a depth fader sets how deep it sits
+- **[ moth variation ]** turns the page to deep night and gives the whole
+  world over to the moths, heard as through a bat detector: wingbeat
+  flutter close to the ear, a tiger moth's tymbal clicks, hawk-moths
+  humming at the flowers, ghost moths swaying over northern grass, the
+  bogong passage in an australian autumn — and now and then a bat's
+  feeding buzz, answered (sometimes) by escape clicks. location- and
+  temperature-honest like everything else; the dub, the drift and the
+  clock all still apply
 - **[ keep .wav ]** downloads the last 90 seconds (recorded linear,
   before the live safety compressor — album convention)
 
