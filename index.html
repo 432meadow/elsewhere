@@ -5442,9 +5442,14 @@ function fmtHour(mins) {
 }
 function reflectHour() {
   const hm = solarHour();
-  el.hour.value = Math.round(hm); out("hour").textContent = fmtHour(hm);
+  el.hour.value = Math.round(hm);
+  out("hour").textContent = fmtHour(hm) + (P.lapse ? " · 24×" : "");
   lastTick = ctx ? ctx.currentTime : 0;
 }
+/* while the carousel turns, the hour row turns with it — the slider sweeps
+   the day and the readout says the pace. begun or not, but never while a
+   hand is on the thumb */
+setInterval(() => { if (P.lapse && !el.hour.matches(":active")) reflectHour(); }, 400);
 el.hour.addEventListener("input", () => {
   P.now = false; P.lapse = false; lapseBase = null;
   el.now.setAttribute("aria-checked", "false"); el.lapse.setAttribute("aria-checked", "false");
