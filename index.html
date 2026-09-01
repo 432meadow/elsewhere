@@ -193,8 +193,8 @@
 </div>
 
 <div class="sect">listening</div>
-<div class="ctl"><div class="row2"><label for="density">density</label><output id="densityV">30</output></div>
-  <input type="range" id="density" min="0" max="100" value="30" aria-label="How many voices"></div>
+<div class="ctl"><div class="row2"><label for="density">density</label><output id="densityV">60</output></div>
+  <input type="range" id="density" min="0" max="100" value="60" aria-label="How many voices"></div>
 <div class="ctl"><div class="row2"><label for="wind">wind</label><output id="windV">light airs</output></div>
   <input type="range" id="wind" min="0" max="100" value="35" aria-label="Wind strength"></div>
 <div class="ctl"><div class="row2"><label for="space">space</label><output id="spaceV">40</output></div>
@@ -685,7 +685,7 @@ const P = {
   hour: 6 * 60,          /* minutes of local solar day when !now */
   doy: (() => { const d = new Date(dayStr + "T12:00:00");
     return Math.max(1, Math.min(365, Math.round((d - new Date(d.getFullYear(), 0, 0)) / 86400000))); })(),
-  density: 0.3, wind: 0.35, space: 0.4, drift: false,
+  density: 0.6, wind: 0.35, space: 0.4, drift: false,
   dub: false, dubDepth: 0.55,
   vBird: 0.7, vBug: 0.7, vFrog: 0.7, vFauna: 0.7, vAir: 0.7,
 };
