@@ -103,7 +103,9 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
 - **[ ride the dawn ]** stands you where the sun is just rising at your
   latitude and carries you west with it, fifteen degrees an hour, so the
   chorus never ends: the realms and biomes pass beneath, and over the sea
-  the ride goes on over the water
+  the ride goes on over the water. with [ a day in an hour ] on, the ride
+  runs at twenty-four times the dawn's own pace — the whole world's
+  sunrise in an hour
 - **the night sky** — on spring and autumn nights a thin traffic of
   flight calls passes overhead from birds a few hundred metres up, dry and
   faint and each somewhere else in the dome: the catharus thrushes' pwee

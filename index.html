@@ -850,6 +850,7 @@ let lapseBase = null;  /* {real: performance.now()/1000, hour: minutes} */
 function solarHour() {
   /* current local solar time at the site, minutes 0..1440 */
   if (!site) return P.hour;
+  if (RIDE.on) return RIDE.hour;   /* riding, the sun stays on the horizon */
   if (P.lapse && lapseBase) {
     const dt = (performance.now() / 1000 - lapseBase.real) * 24; /* 24x, solar s */
     return (lapseBase.hour + dt / 60) % 1440;
@@ -4391,11 +4392,13 @@ def("nightgeese", { ...SP.geese, id: "nightgeese", name: "geese in the dark",
   act: e => migrAct(e, 0.9, 1.2) * 0.35, gap: [240, 700], dist: [0.5, 0.8], n: [1, 1], sky: true });
 def("nightcranes", { name: "cranes passing in the night", g: "bird",
   act: e => migrAct(e, 0.9, 1.1) * 0.3 * (0.5 + 0.5 * MOONF), gap: [300, 900], dist: [0.5, 0.8], n: [1, 1], sky: true,
-  gen() { /* a flock's bugles crossing the sky, on the bright nights */
-    const dur = ru(14, 24), n = (dur * SR) | 0, x = new Float32Array(n);
-    for (let v = 0, nv = ri(3, 7); v < nv; v++) {
+  gen() { /* a flock's bugles crossing the sky, on the bright nights: a few
+             voices rendered once and thrown across the sky many times */
+    const dur = ru(10, 16), n = (dur * SR) | 0, x = new Float32Array(n);
+    const voices = []; for (let v = 0, nv = ri(3, 5); v < nv; v++) voices.push(SP.sandhill.gen());
+    for (const b of voices) {
       let t = ru(0, 3);
-      while (t < dur - 1) { addTo(x, scaleA(SP.sandhill.gen(), ru(0.3, 0.9)), (t * SR) | 0); t += ru(0.8, 3); }
+      while (t < dur - 1) { addTo(x, scaleA(b.slice(), ru(0.3, 0.9)), (t * SR) | 0); t += ru(1.2, 3.5); }
     }
     for (let i = 0; i < n; i++) x[i] *= Math.pow(Math.sin(Math.PI * i / n), 1.1);
     return normA(x); } });
@@ -4465,8 +4468,10 @@ function play(x, when, o = {}) {
   if (!o.omni) {   /* every voice keeps its bearing, so a turn can take the ones already sounding */
     const v = { pan, lp, g, az, dist, fc: lp.frequency.value, amp, until: when + durS + 0.3 };
     if (HEAD.on) aimVoice(v, null);
+    /* only what is still sounding is kept: a held voice is a held buffer */
+    if (HEAD.live.length > 24) HEAD.live = HEAD.live.filter(u => u.until > when);
     HEAD.live.push(v);
-    if (HEAD.live.length > 300) HEAD.live.shift();
+    if (HEAD.live.length > 120) HEAD.live.shift();
   }
   if (o.name) visEvents.push({ t: when, name: o.name, pan: o.pan ?? 0, dist, dur: durS });
   return durS;
@@ -4749,13 +4754,13 @@ function geothermalAt(lon, lat) {
 }
 function geyserBuf(dur) {   /* preplay splashes, then the roar, the column, the fall-off */
   const n = (dur * SR) | 0, x = new Float32Array(n);
-  const roar = bpA(noiseA(n), 180, 0.5), hiss = bpA(noiseA(n), 2600, 0.5), spray = bpA(noiseA(n), 6500, 0.7);
+  const roar = bpA(noiseA(n), 180, 0.5), hiss = hpA(bpA(noiseA(n), 3200, 0.35), 1200);
   for (let i = 0; i < n; i++) {
     const tf = i / n, t = i / SR;
     const rise = Math.min(1, tf / 0.12), fall = tf < 0.6 ? 1 : Math.max(0, 1 - (tf - 0.6) / 0.4);
     const env = Math.pow(rise, 1.5) * fall;
     const surge = 0.7 + 0.3 * Math.sin(2 * Math.PI * 0.35 * t + Math.sin(t * 0.7));
-    x[i] = (roar[i] * 1.6 + hiss[i] * 0.9 * surge + spray[i] * 0.4 * surge) * env;
+    x[i] = (roar[i] * 1.6 + hiss[i] * 1.2 * surge) * env;
   }
   for (let k = 0, m = ri(3, 7); k < m; k++) {
     const at = (ru(0, 0.1) * n) | 0, L = (0.3 * SR) | 0;
@@ -4796,10 +4801,14 @@ function scheduleEarth(now, e, horizon) {
       /* on the clock of the day, so [ a day in an hour ] brings every eruption round */
       const d = (hm - ev.nextH + 1440) % 1440;
       if (d < 20) {
-        const dur = Math.min(60, ru2(ev.rng, ev.gy.dur[0], ev.gy.dur[1]) / (P.lapse ? 24 : 1));
-        play(geyserBuf(Math.max(6, dur)), now + ru(0.1, 0.5), { dist: ru(0.2, 0.45), pan: ru(-0.7, 0.7),
-          gain: 0.9 * vA, group: "air", rev: 0.2, name: ev.gy.name });
-        announce(ev.gy.name, 0.3);
+        const dur = Math.min(24, ru2(ev.rng, ev.gy.dur[0], ev.gy.dur[1]) / (P.lapse ? 24 : 1));
+        const name = ev.gy.name;
+        synth({ fn: "geyserBuf", args: [Math.max(6, dur)] }, x => {
+          if (!x || !running) return;
+          play(x, ctx.currentTime + ru(0.1, 0.5), { dist: ru(0.2, 0.45), pan: ru(-0.7, 0.7),
+            gain: 0.9 * vA, group: "air", rev: 0.2, name });
+          announce(name, 0.3);
+        });
       }
       if (d < 720) ev.nextH = (ev.nextH + ru2(ev.rng, ev.gy.per[0], ev.gy.per[1])) % 1440;
       continue;
@@ -5051,7 +5060,7 @@ let agents = [];
 const MONTANE = { wpale: ["chough", "marmot"], epale: ["whistlingthrush", "laughingthrush"],
                   indo: ["whistlingthrush", "laughingthrush"], neotropic: ["andsolitaire"] };
 function buildCast() {
-  agents = [];
+  agents = []; SYNTH.gen++;   /* voices still rendering belong to the old cast */
   arng = mulberry32(fnv("cast:" + site.key + ":" + dayStr));
   let list = site.world ? castWorld(site.biome, site.realm) : (CASTS[site.biome] || []);
   if (site.island) list = list.concat(["tropicbird", "booby", "shearwater"]);
@@ -5254,9 +5263,11 @@ function driftApply(lon, lat) {
 /* ----------------------------------------------------- ride the dawn ----- */
 /* [ ride the dawn ]: the listener stands where the sun is just rising at
    this latitude and moves west with it, fifteen degrees an hour, so the
-   chorus never ends and the realms pass beneath. the clock is the real one;
-   over the sea the ride goes on over the water */
-const RIDE = { on: false, nextT: 0, realT: 0, busy: false };
+   chorus never ends and the realms pass beneath — or, with [ a day in an
+   hour ] on, twenty-four times that: the whole world's sunrise in an hour.
+   the sun is held on the horizon by the clock itself; over the sea the
+   ride goes on over the water */
+const RIDE = { on: false, nextT: 0, realT: 0, busy: false, hour: 340 };
 function sunriseHour(lat, doy) {
   /* the solar minute the sun crosses the horizon on its way up, or null
      when it never does (midnight sun, polar night) */
@@ -5272,15 +5283,13 @@ function engageRide() {
   const d = new Date(), utcH = d.getUTCHours() + d.getUTCMinutes() / 60 + d.getUTCSeconds() / 3600;
   /* solar time is utc + lon/15: the longitude where it is sunrise this minute */
   const lon = (((hm / 60 - utcH) * 15 + 540) % 360 + 360) % 360 - 180;
-  P.now = true; P.lapse = false; lapseBase = null;
-  el.now.setAttribute("aria-checked", "true"); el.lapse.setAttribute("aria-checked", "false");
   if (P.drift) { P.drift = false; el.drift.setAttribute("aria-checked", "false"); }
-  RIDE.on = true; RIDE.busy = true;
+  RIDE.on = true; RIDE.busy = true; RIDE.hour = hm;
   setSite(lon, lat);
   RIDE.busy = false;
   if (site) globeCenter(site.lon, site.lat);
-  RIDE.realT = performance.now() / 1000;
-  RIDE.nextT = ctx ? ctx.currentTime + 20 : 0;
+  RIDE.realT = performance.now();
+  RIDE.nextT = RIDE.realT + 2000;
   reflectHour();
   el.ride.setAttribute("aria-checked", "true");
   announce("riding the dawn", 0);
@@ -5288,14 +5297,85 @@ function engageRide() {
 function releaseRide() {
   RIDE.on = false;
   el.ride.setAttribute("aria-checked", "false");
+  /* the clock resumes where the dawn left it */
+  if (P.lapse) lapseBase = { real: performance.now() / 1000, hour: RIDE.hour };
+  else if (!P.now) P.hour = RIDE.hour;
+  reflectHour();
 }
-function rideStep(now) {
-  RIDE.nextT = now + 20;
-  const real = performance.now() / 1000, dt = Math.min(120, real - RIDE.realT);
-  RIDE.realT = real;
+function rideStep(nowMs) {
+  /* on the wall clock, not the audio clock: a phone that mutes its audio
+     for a call must not stop the sun */
+  const fast = P.lapse;
+  RIDE.nextT = nowMs + (fast ? 2000 : 20000);
+  const dt = Math.min(120, (nowMs - RIDE.realT) / 1000);
+  RIDE.realT = nowMs;
   if (!site) return;
-  const lon = ((site.lon - 15 * dt / 3600 + 540) % 360 + 360) % 360 - 180;
+  const lon = ((site.lon - (fast ? 360 : 15) * dt / 3600 + 540) % 360 + 360) % 360 - 180;
   driftApply(lon, site.lat);
+}
+
+/* -------------------------------------------------- the synth thread ----- */
+/* every voice is rendered off the main thread: workers built from this
+   page's own species code, told the day's state each tick, answering with
+   a buffer. the tick keeps its horizon; a voice that comes back late plays
+   when it comes. where there are no workers, or one fails, the voices
+   render here as they always did */
+const SYNTH = { w: [], k: 0, jobs: new Map(), id: 0, ok: false, gen: 0 };
+function buildSynth() {
+  if (SYNTH.ok || typeof Worker === "undefined" || typeof Blob === "undefined") return;
+  try {
+    const page = [...document.scripts].map(s => s.textContent).find(t => /\/\* -+ the sun -+ \*\//.test(t));
+    const a = page.match(/\/\* -+ the sun -+ \*\//), b = page.match(/\/\* =+ dub =+ \*\//);
+    const code = '"use strict";\n' +
+      'const location = { search: ' + JSON.stringify(location.search) + ' };\n' +
+      'const weather = { wind: 0.35, rain: 0, drip: 0, snow: 0, fog: 0, thunder: false };\n' +
+      'const RIDE = { on: false }; const announce = () => {};\n' +
+      page.slice(a.index, b.index) +
+      '\nSR = ' + SR + ';\n' +
+      'self.onmessage = ev => { const m = ev.data;\n' +
+      '  if (m.state) { const s = m.state; site = s.site; Object.assign(weather, s.weather);\n' +
+      '    P.now = false; P.lapse = false; P.hour = s.hour; P.doy = s.doy; MOTH.on = s.moth; MIGR.big = s.big; return; }\n' +
+      '  let x = null;\n' +
+      '  try { x = m.fn ? self[m.fn](...m.args) : SP[m.id].gen(m.e); }\n' +
+      '  catch (err) { postMessage({ job: m.job, err: String(err && err.message || err) }); return; }\n' +
+      '  const gap = m.id && SP[m.id]._gap ? SP[m.id]._gap : null;\n' +
+      '  postMessage({ job: m.job, x, gap }, x && x.buffer ? [x.buffer] : []); };\n';
+    const url = URL.createObjectURL(new Blob([code], { type: "text/javascript" }));
+    const n = (navigator.hardwareConcurrency || 2) >= 4 ? 2 : 1;
+    for (let i = 0; i < n; i++) {
+      const w = new Worker(url);
+      w.onmessage = ev => {
+        const m = ev.data, j = SYNTH.jobs.get(m.job);
+        if (!j) return;
+        SYNTH.jobs.delete(m.job);
+        if (m.gap && j.sp) j.sp._gap = m.gap;
+        if (m.err) console.error(j.sp ? j.sp.id : j.fn, m.err);
+        j.cb(m.x || null);
+      };
+      w.onerror = err => {   /* the thread is lost: every waiting voice renders here instead */
+        console.error("synth thread", err && err.message);
+        SYNTH.ok = false; SYNTH.w = [];
+        for (const [job, j] of SYNTH.jobs) { SYNTH.jobs.delete(job); j.cb(renderHere(j)); }
+      };
+      SYNTH.w.push(w);
+    }
+    SYNTH.ok = true;
+  } catch (err) { console.error("synth thread", err); SYNTH.ok = false; SYNTH.w = []; }
+}
+function renderHere(j) {
+  try { return j.fn ? self[j.fn](...j.args) : j.sp.gen(j.e); } catch (err) { console.error(j.sp ? j.sp.id : j.fn, err); return null; }
+}
+function syncSynth(e) {
+  if (!SYNTH.ok || !site) return;
+  const s = { site, weather: { wind: weather.wind, rain: weather.rain, drip: weather.drip, snow: weather.snow, fog: weather.fog },
+              hour: solarHour(), doy: P.doy, moth: MOTH.on, big: MIGR.big };
+  for (const w of SYNTH.w) w.postMessage({ state: s });
+}
+function synth(j, cb) {   /* j: { sp, e } for a voice, or { fn, args } for an event */
+  if (!SYNTH.ok) { cb(renderHere(j)); return; }
+  const job = ++SYNTH.id;
+  SYNTH.jobs.set(job, { ...j, cb });
+  SYNTH.w[SYNTH.k++ % SYNTH.w.length].postMessage(j.fn ? { job, fn: j.fn, args: j.args } : { job, id: j.sp.id, e: j.e });
 }
 
 /* ---------------------------------------------------- countersinging ----- */
@@ -5355,18 +5435,22 @@ function answer(ag, x, ends, e, fader) {
     || { sp, pan: -Math.sign(ag.pan || 1) * ru2(arng, 0.35, 0.9),
          dist: Math.min(0.92, ag.dist + ru2(arng, 0.08, 0.3)), ghost: true };
   const rt = ends + ru2(arng, fam.lat[0], fam.lat[1]) + 0.25 * (ag.dist + nb.dist);
-  let y = x;
-  if (arng() >= fam.same) { try { y = sp.gen(e) || x; } catch { y = x; } }
-  const rdur = play(y, rt, { dist: nb.dist, pan: sp.omni ? 0 : nb.pan, gain: fader * 0.85,
-    group: GROUP_OF[sp.g], rev: sp.rev ?? 0.15, echo: sp.echo, omni: sp.omni, name: sp.name,
-    detune: ru2(arng, 20, 40) * (arng() < 0.5 ? -1 : 1) });
-  if (!nb.ghost) nb.nextT = rt + rdur + ru2(arng, gapR[0], gapR[1]);
-  if (arng() < 0.3) announce(CS_NAME[sp.id] || "another " + sp.name, nb.dist);
-  const until = rt + rdur + Math.max(20, fam.lat[1] * 3);
-  ag.bout = { nb, k: k + 1, until }; sp._boutUntil = until;
-  if (k + 1 >= 5) { sp._refr = until + ru2(arng, fam.refr[0], fam.refr[1]); ag.bout = null; return; }
-  /* and the leader comes back in on the neighbour's tail */
-  ag.nextT = rt + rdur + ru2(arng, fam.lat[0], fam.lat[1]);
+  const detune = ru2(arng, 20, 40) * (arng() < 0.5 ? -1 : 1), say = arng() < 0.3, gen0 = SYNTH.gen;
+  const reply = y => {
+    if (gen0 !== SYNTH.gen || !running) return;
+    const rdur = play(y || x, Math.max(rt, ctx.currentTime + 0.05), { dist: nb.dist, pan: sp.omni ? 0 : nb.pan,
+      gain: fader * 0.85, group: GROUP_OF[sp.g], rev: sp.rev ?? 0.15, echo: sp.echo, omni: sp.omni,
+      name: sp.name, detune });
+    if (!nb.ghost) nb.nextT = rt + rdur + ru2(arng, gapR[0], gapR[1]);
+    if (say) announce(CS_NAME[sp.id] || "another " + sp.name, nb.dist);
+    const until = rt + rdur + Math.max(20, fam.lat[1] * 3);
+    ag.bout = { nb, k: k + 1, until }; sp._boutUntil = until;
+    if (k + 1 >= 5) { sp._refr = until + ru2(arng, fam.refr[0], fam.refr[1]); ag.bout = null; return; }
+    /* and the leader comes back in on the neighbour's tail */
+    ag.nextT = rt + rdur + ru2(arng, fam.lat[0], fam.lat[1]);
+  };
+  /* a different phrase is rendered on the synth thread; a long chorus is never rendered twice */
+  if (arng() >= fam.same && x.length < 4 * SR) synth({ sp, e }, reply); else reply(x);
 }
 
 /* --------------------------------------------------- the chorus clocks --- */
@@ -5416,14 +5500,15 @@ function tick() {
         if (!tickErrs.has(k)) { tickErrs.add(k); console.error("drift", err); }
       }
     }
-    if (RIDE.on && now > RIDE.nextT) {
-      try { rideStep(now); } catch (err) {
+    if (RIDE.on && performance.now() > RIDE.nextT) {
+      try { rideStep(performance.now()); } catch (err) {
         const k = "ride:" + String(err && err.message);
         if (!tickErrs.has(k)) { tickErrs.add(k); console.error("ride", err); }
       }
     }
     const e = envNow();
     stepWeather(e);
+    syncSynth(e);
     steerBed(now);
     scheduleWater(now, horizon);
     scheduleEarth(now, e, horizon);
@@ -5432,8 +5517,9 @@ function tick() {
     /* thunder */
     if (weather.thunder && now > thunderNext) {
       const far = arng() < 0.75;
-      play(thunderBuf(far), now + ru(0.2, 2), { dist: far ? ru(0.6, 0.85) : ru(0.2, 0.45),
-        pan: ru(-0.6, 0.6), gain: (far ? 0.8 : 1.3) * P.vAir, group: "air", rev: 0.5, name: "thunder" });
+      synth({ fn: "thunderBuf", args: [far] }, x => { if (x && running)
+        play(x, ctx.currentTime + ru(0.2, 2), { dist: far ? ru(0.6, 0.85) : ru(0.2, 0.45),
+          pan: ru(-0.6, 0.6), gain: (far ? 0.8 : 1.3) * P.vAir, group: "air", rev: 0.5, name: "thunder" }); });
       thunderNext = now + ru(20, 70);
     }
     const densGate = P.density;
@@ -5475,18 +5561,26 @@ function tick() {
           const gapR = sp._gap || sp.gap;
           if (act > 0.02 && arng() < act) {
             const fader = P[FADER_OF[GROUP_OF[sp.g]]];
-            let x = null;
-            if (fader > 0.02) { try { x = sp.gen(e); } catch (err) { console.error(sp.id, err); } }
-            if (x) {
-              t = phaseIn(sp, t, x.length / SR);
-              const dur = play(x, t, {
-                dist: ag.dist, pan: sp.omni ? 0 : ag.pan, gain: fader,
-                group: GROUP_OF[sp.g], rev: sp.rev ?? 0.15, echo: sp.echo, omni: sp.omni,
-                sky: sp.sky, name: sp.name,
+            if (fader > 0.02 && !ag.pending) {
+              /* the voice renders on the synth thread; the agent waits for it */
+              ag.pending = true; ag.nextT = t + 30;
+              const t0 = t, act0 = act, gen0 = SYNTH.gen;
+              synth({ sp, e }, x => {
+                ag.pending = false;
+                if (gen0 !== SYNTH.gen) return;   /* the cast has changed hands */
+                const gapN2 = sp._gap || sp.gap;
+                if (!x || !running || SLEEP.asleep) { ag.nextT = ctx.currentTime + ru2(arng, gapN2[0], gapN2[1]); return; }
+                let t1 = Math.max(t0, ctx.currentTime + 0.05);
+                t1 = phaseIn(sp, t1, x.length / SR);
+                const dur = play(x, t1, {
+                  dist: ag.dist, pan: sp.omni ? 0 : ag.pan, gain: fader,
+                  group: GROUP_OF[sp.g], rev: sp.rev ?? 0.15, echo: sp.echo, omni: sp.omni,
+                  sky: sp.sky, name: sp.name,
+                });
+                if (arng() < 0.6) announce(sp.name, ag.dist);
+                ag.nextT = t1 + dur + ru2(arng, gapN2[0], gapN2[1]) * (0.7 + 1.6 * (1 - act0));
+                answer(ag, x, t1 + dur, e, fader);
               });
-              if (arng() < 0.6) announce(sp.name, ag.dist);
-              ag.nextT = t + dur + ru2(arng, gapR[0], gapR[1]) * (0.7 + 1.6 * (1 - act));
-              answer(ag, x, t + dur, e, fader);
             } else ag.nextT = t + ru2(arng, gapR[0], gapR[1]);
           } else {
             ag.nextT = t + Math.max(2, ru2(arng, gapR[0], gapR[1]) * 0.6);
@@ -5529,11 +5623,11 @@ function statusLine(e) {
     : weather.rain > 0.05 ? " · light rain" : weather.fog > 0.4 ? " · fog" : "")
     + (ECL.total ? " · totality" : ECL.obs > 0.02 ? " · eclipse" : "")
     + (P.drift ? " · drifting" : "")
-    + (RIDE.on ? " · riding the dawn" : "")
+    + (RIDE.on ? " · riding the dawn" + (P.lapse ? ", 24×" : "") : "")
     + (P.dub ? " · dub " + DUB.state : "")
     + (MOTH.on ? " · moth variation" : "")
     + (SLEEP.asleep ? " · asleep" : "");
-  document.getElementById("siteline").innerHTML =
+  const s =
     `${Math.abs(site.lat).toFixed(1)}°${site.lat < 0 ? "S" : "N"} ` +
     `${Math.abs(site.lon).toFixed(1)}°${site.lon < 0 ? "W" : "E"} · ` +
     `<b>${BIOME_INFO[site.biome].name}</b> · ${site.region} · ` +
@@ -5541,6 +5635,7 @@ function statusLine(e) {
     ((site.elev || 0) >= 700 ? ` · ${site.elev} m` : "") +
     (site.geo ? " · " + site.geo.name : "") +
     ` · ${doyLabel(e.rdoy ?? P.doy)}${wx}`;
+  if (s !== statusLine.last) { statusLine.last = s; document.getElementById("siteline").innerHTML = s; }
 }
 
 /* ============================================================== map ====== */
@@ -5610,12 +5705,14 @@ function globeTexture() {
   return GLOBE.tex;
 }
 let gCanvas = null, gCtx = null, gImg = null;
+/* a phone gets a smaller frame and a slower idle spin: the voices come first */
+const COARSE = matchMedia("(pointer: coarse)").matches;
 function drawGlobeFrame(fine) {
   /* internal buffer matches the canvas aspect, so zoom fills the frame.
      two qualities: a fast nearest-sampled frame while anything moves, and
      a full-resolution bilinear frame once the globe settles. */
   const W = cv.width, H = cv.height;
-  const budget = fine ? Math.min(1500000, W * H) : 430000;
+  const budget = fine ? Math.min(COARSE ? 900000 : 1500000, W * H) : (COARSE ? 220000 : 430000);
   const k = Math.min(1, Math.sqrt(budget / Math.max(1, W * H)));
   const iw = Math.max(64, Math.round(W * k)), ih = Math.max(64, Math.round(H * k));
   if (!gCanvas || gCanvas.width !== iw || gCanvas.height !== ih) {
@@ -5792,7 +5889,7 @@ function drawMap() {
        frame, re-rendered only when the view or the sun actually changes */
     const busy = ptrs.size > 0 || GLOBE.zoom !== GLOBE.zoomT || GLOBE.target || GLOBE.anchor;
     if (busy || spinning) {
-      if (!gCanvas || busy || nowMs - (GLOBE.lastRender || 0) >= 31) {
+      if (!gCanvas || busy || nowMs - (GLOBE.lastRender || 0) >= (COARSE ? 70 : 31)) {
         drawGlobeFrame(false); GLOBE.lastRender = nowMs; GLOBE.fineKey = null;
       }
     } else {
@@ -6064,7 +6161,7 @@ setInterval(() => { if (!running) stepSleep(0); }, 5000);
    stays where it was. every voice keeps the bearing it was placed at, and
    the compass turns the whole field, live. the way you faced when you
    pressed the button is north */
-const HEAD = { on: false, yaw: 0, zero: null, prev: null, live: [], fixed: [], lastT: 0, shownT: 0 };
+const HEAD = { on: false, yaw: 0, aimed: 0, zero: null, prev: null, live: [], fixed: [], lastT: 0, shownT: 0 };
 const wrapDeg = x => ((x % 360) + 540) % 360 - 180;   /* always -180..180, whatever the sign */
 function aimVoice(v, t, tau) {
   /* a bearing off the nose → stereo, by the ear's own symmetry; what is behind
@@ -6104,9 +6201,9 @@ function onHeading(ev) {
     HEAD.shownT = nowMs;
     el.head.textContent = "[ turned " + Math.round(((HEAD.yaw % 360) + 360) % 360) + "° ]";
   }
-  if (nowMs - HEAD.lastT < 50 || !ctx) return;
-  HEAD.lastT = nowMs;
-  aimAll(ctx.currentTime, 0.05);
+  if (nowMs - HEAD.lastT < 100 || !ctx || Math.abs(wrapDeg(HEAD.yaw - HEAD.aimed)) < 0.5) return;
+  HEAD.lastT = nowMs; HEAD.aimed = HEAD.yaw;
+  aimAll(ctx.currentTime, 0.08);
 }
 function engageHead() {
   const listen = () => {
@@ -6167,7 +6264,11 @@ el.now.addEventListener("click", () => {
   if (P.now) reflectHour();
 });
 el.lapse.addEventListener("click", () => {
-  if (RIDE.on) releaseRide();
+  if (RIDE.on) {   /* riding, the switch is the pace: the dawn's own, or twenty-four times it */
+    P.lapse = !P.lapse; el.lapse.setAttribute("aria-checked", String(P.lapse));
+    reflectHour(); if (site) statusLine(envNow());
+    return;
+  }
   const hm = solarHour();
   P.lapse = !P.lapse;
   if (P.lapse) {
@@ -6299,6 +6400,7 @@ el.begin.addEventListener("click", async () => {
   elp.connect(echoGain); echoGain.connect(space);
 
   running = true;
+  buildSynth();
   buildBed(); buildWaterEvents(); buildCast(); buildMothCast();
   if (P.dub) { DUB.on = true; startDub(); }
   el.begin.remove();
