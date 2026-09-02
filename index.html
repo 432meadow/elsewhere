@@ -1247,6 +1247,15 @@ def("crow", { name: "american crow", g: "bird",
         { harm: [1, 0.8, 0.6, 0.5, 0.35], noise: 0.5, atk: 0.008, rel: 0.05 }));
       parts.push(gapN(ru(0.18, 0.4)));
     } return cat(...parts); } });
+def("crow_eu", { name: "carrion crow", g: "bird",
+  act: A({ doy: [1, 365], dawn: 0.8, day: 0.5 }), gap: [8, 20], dist: [0.4, 0.85], n: [1, 2],
+  gen() { /* the old world's kraa: lower and rougher than the caw, evenly spaced */
+    const parts = [];
+    for (let k = 0, m = ri(2, 4); k < m; k++) {
+      parts.push(tone(ru(0.2, 0.32), [[0, 1050], [0.35, 980], [1, 720]],
+        { harm: [1, 0.85, 0.7, 0.55, 0.4], noise: 0.62, nfc: 1100, nq: 0.9, atk: 0.01, rel: 0.06 }));
+      parts.push(gapN(ru(0.22, 0.34)));
+    } return cat(...parts); } });
 
 def("raven", { name: "common raven", g: "bird",
   act: A({ doy: [1, 365], dawn: 0.6, day: 0.45 }), gap: [15, 40], dist: [0.4, 0.9], n: [1, 1],
@@ -3881,7 +3890,7 @@ const WBASE = {
 };
 const WREALM = {
   wpale: {
-    all: ["crow", "fardog", "rooster", "cattle", "churchbell", "muezzin"],
+    all: ["crow_eu", "fardog", "rooster", "cattle", "churchbell", "muezzin"],
     tfor: ["blackbird_eu", "songthrush", "blackcap", "chaffinch", "greattit", "cuckoo",
            "nightingale", "robin_eu", "wren_eu", "goldenoriole", "woodpigeon", "tawny",
            "yaffle", "magpie_eu", "jackdaw", "wolf", "squirrelR", "geese",
@@ -5071,6 +5080,8 @@ function buildCast() {
   if (site.world && (site.elev || 0) >= 1400 && MONTANE[site.realm])
     list = list.concat(MONTANE[site.realm]);
   FROGS.rng = mulberry32(fnv("frogs:" + site.key + ":" + dayStr)); FROGS.on = true; FROGS.until = -1;
+  /* the same voice, two names: hooded east of the elbe and up the north, carrion to the west */
+  SP.crow_eu.name = site.lon > 12 || site.lat > 58 ? "hooded crow" : "carrion crow";
   /* the night sky's passage, put first so the density gate cuts it last */
   const mroll = mulberry32(fnv("migration:" + site.key + ":" + dayStr))();
   MIGR.big = mroll < 0.55 ? 0.12 : mroll < 0.85 ? 0.45 : mroll < 0.96 ? 1 : 2.2;
@@ -5097,6 +5108,8 @@ function buildCast() {
     if ((id === "canyonwren" || id === "rockfall") && !site.rocky) continue;
     if (id === "icewhine" && !w.lake) continue;
     if (id === "sandhill" && !(w.marsh || site.biome === "flwet" || site.biome === "tgrass")) continue;
+    /* iceland: the raven alone among the corvids, no wolves, no cranes */
+    if (site.state === "Iceland" && (id === "crow_eu" || id === "wolf" || id === "nightcranes")) continue;
     const nn = ri2(arng, sp.n ? sp.n[0] : 1, sp.n ? sp.n[1] : 1);
     for (let k = 0; k < nn; k++) {
       agents.push({
@@ -5408,7 +5421,7 @@ for (const [fam, ids] of Object.entries({
   sparrow: "songsparrow wtsparrow grassparrow brewers btsparrow rufcollared caltowhee spottowhee etowhee meadowlark_w meadowlark_e",
   cardinal: "cardinal", parid: "chickadee mtchick titmouse greattit",
   owl: "barred ghowl screech wscreech sawwhet tawny", loon: "loon diver",
-  corvid: "crow raven jcrow jackdaw bluejay stellers scrubjay magpie_eu magpie_au",
+  corvid: "crow crow_eu raven jcrow jackdaw bluejay stellers scrubjay magpie_eu magpie_au",
   canid: "coyote wolf jackals dingoes hyena elk", troop: "howler gibbon kookaburra indri laughingthrush",
 })) for (const id of ids.split(" ")) CS_OF[id] = fam;
 const CS_NAME = { coyote: "coyotes, answering", wolf: "wolves, answering", jackals: "jackals, answering",
