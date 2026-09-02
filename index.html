@@ -145,8 +145,12 @@
     .seg button, .act, .switch { padding: 6px 0; }
   }
   @media (max-width: 480px) {
-    #map { height: 260px; }
-    .row.head { flex-direction: column; gap: 4px; }
+    /* on a phone the title takes the top of the page, the globe the whole
+       width below it, and [ begin ] waits underneath rather than on top */
+    #map { height: 300px; }
+    .row.head { position: static; padding-top: calc(14px + env(safe-area-inset-top, 0px)); }
+    .row.head .g { font-size: 14px; }
+    #begin { position: static; transform: none; display: block; margin: 0 auto; padding: 10px 16px 2px; }
   }
 </style>
 
