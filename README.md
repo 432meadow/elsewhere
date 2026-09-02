@@ -46,7 +46,7 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   hardwood forest, boreal lakes, southern pine, the everglades, tallgrass
   and shortgrass prairie, three deserts, sagebrush, mountain conifer, the
   coastal rainforest, oak & chaparral, and both shores — each with its own
-  cast (now ~305 species worldwide: birds, insects, frogs, mammals — the
+  cast (now ~310 species worldwide: birds, insects, frogs, mammals — the
   waterside pass added mallards, kingfishers, herons, winnowing snipe and
   displaying woodcock wherever there is water, old-world frog choruses to
   european and japanese nights, swallows over every meadow, and the
@@ -100,6 +100,45 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   a fluttering night, a clicking night, a courting night — that drifts
   as you listen. location- and temperature-honest like everything else;
   the dub, the drift and the clock all still apply
+- **[ ride the dawn ]** stands you where the sun is just rising at your
+  latitude and carries you west with it, fifteen degrees an hour, so the
+  chorus never ends: the realms and biomes pass beneath, and over the sea
+  the ride goes on over the water
+- **the night sky** — on spring and autumn nights a thin traffic of
+  flight calls passes overhead from birds a few hundred metres up, dry and
+  faint and each somewhere else in the dome: the catharus thrushes' pwee
+  and burry vheeu over north america, warbler zeeps and sparrow tseeps,
+  the redwing's buzzed *zeeer* over october europe, the olive-backed
+  pipit's arch over east asia, and geese and cranes crossing in the dark.
+  the passage runs later in spring and earlier in autumn the farther from
+  the equator; most nights are quiet, a seeded few are rivers; rain and a
+  headwind ground it
+- **countersinging** — a song is seldom alone: a neighbour of the same
+  kind answers from the other side a beat after the phrase ends, and the
+  two trade a few rounds before one sings on alone. thrushes, wrens,
+  sparrows, cardinals, tits, owls, loons, corvids, the canids, the troops
+  of howlers and gibbons, the kookaburra families — each with its own
+  latency and chance from the literature; most songs still go unanswered
+- **the geothermal fields** — stand within reach of one and the ground
+  speaks: old faithful on its real period in the upper geyser basin,
+  strokkur every few minutes at geysir, pōhutu at whakarewarewa, the
+  fumaroles of hverir and solfatara and bumpass hell hissing without pause,
+  mud pots plopping at wai-o-tapu, springs at the boil at deildartunguhver,
+  el tatio, beppu, the valley of geysers. geysers run on the clock of the
+  day, so [ a day in an hour ] brings every eruption round
+- **eclipses** — the moon's shadow where it truly falls: the central line
+  of every total eclipse crossing land from 2017 to 2035, from nasa's
+  tables. stand in the path on the day (`?day=2027-08-02` at luxor, say,
+  or 2024-04-08 anywhere from durango to newfoundland) and at the minute
+  the tables give, the birds fall quiet, the crickets and nightjars start,
+  the owls hoot, and when the light returns there is a false dawn chorus;
+  for thousands of km around, a partial dimming
+- **[ turn your head ]** — on a phone, the field can stay fixed to the
+  world: turn, and the thrush stays where it was. every voice keeps the
+  bearing it was placed at and the compass turns the whole field live
+- **[ sleep ]** — thirty, sixty or ninety minutes, then the world fades
+  by ear over its last five and goes under; the screen is let go, and a
+  touch wakes it where it stood
 the field research behind the casts — species by species, with
 frequencies and timing for synthesis — is in the album's `notes/usa.md`
 and `notes/global.md`. the maps are built from public-domain data: US

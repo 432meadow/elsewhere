@@ -126,6 +126,7 @@
   .inline { display: flex; gap: 24px; align-items: baseline; flex-wrap: wrap;
             padding: 12px 16px; }
   .inline.between { justify-content: space-between; }
+  .inline[hidden] { display: none; }
   #dubDepthWrap { display: inline-flex; align-items: center; gap: 10px; align-self: center; }
   #dubDepthWrap[hidden] { display: none; }
   #dubDepthWrap input[type="range"] { width: 110px; }
@@ -163,6 +164,8 @@
     <button class="act" id="jump" aria-label="Go somewhere else at random">[ elsewhere ]</button>
     <button class="switch" id="drift" role="switch" aria-checked="false"
       aria-label="Drift: the listener wanders the land">[ &infin; drift ]</button>
+    <button class="switch" id="ride" role="switch" aria-checked="false"
+      aria-label="Ride the dawn: move west with the sunrise so the chorus never ends">[ ride the dawn ]</button>
     <button class="switch" id="dub" role="switch" aria-checked="false"
       aria-label="Dub: the land through a tape echo">[ dub ]</button>
     <span id="dubDepthWrap" hidden>
@@ -170,7 +173,11 @@
       <output id="dubDepthV">55</output>
     </span>
   </div>
-  <button class="act" id="share" aria-label="Copy a link to this site and day">[ share this place ]</button>
+  <div class="seg">
+    <button class="switch" id="sleep" role="switch" aria-checked="false"
+      aria-label="Sleep timer: the world fades out in 30, 60 or 90 minutes">[ sleep ]</button>
+    <button class="act" id="share" aria-label="Copy a link to this site and day">[ share this place ]</button>
+  </div>
 </div>
 
 <div class="sect">when</div>
@@ -197,6 +204,10 @@
 </div>
 
 <div class="sect">listening</div>
+<div class="inline" id="headRow" hidden>
+  <button class="switch" id="head" role="switch" aria-checked="false"
+    aria-label="Turn with the phone: every voice stays where it is in the world as you turn">[ turn your head ]</button>
+</div>
 <div class="ctl"><div class="row2"><label for="density">density</label><output id="densityV">60</output></div>
   <input type="range" id="density" min="0" max="100" value="60" aria-label="How many voices"></div>
 <div class="ctl"><div class="row2"><label for="wind">wind</label><output id="windV">light airs</output></div>
@@ -610,7 +621,7 @@ function makeSite(lon, lat) {
     state: st.name, region: regionName(st, lon, lat), key, water, rocky,
     farm: (biome === "efor" || biome === "tgrass" || biome === "sepine") && srng() < 0.45,
     town: srng() < 0.3,   /* near-enough town: train horns reachable */
-    realm: "nearctic", kg: null, world: false,
+    realm: "nearctic", kg: null, world: false, geo: geothermalAt(lon, lat),
     seed: fnv("elsewhere:" + key + ":" + dayStr),
   };
 }
@@ -678,9 +689,143 @@ function makeWorldSite(lon, lat) {
     state: co.name, region, key, water, rocky,
     farm: ["tfor", "toce", "subtrop", "med", "sav", "steppe"].includes(biome) && srng() < 0.5,
     town: srng() < 0.3,
-    realm, kg, world: true, elev: elevAt(lon, lat), island,
+    realm, kg, world: true, elev: elevAt(lon, lat), island, geo: geothermalAt(lon, lat),
     seed: fnv("elsewhere:" + key + ":" + dayStr),
   };
+}
+
+/* ------------------------------------------------------------ eclipses --- */
+/* the moon's shadow, where it truly falls: the central line of every total
+   eclipse crossing land from 2017 to 2035 (nasa/gsfc path tables), sampled
+   along its length — [utc hours, lat, lon, path width km, totality s].
+   inside the path the sun goes out for as long as the tables say; around
+   it, for thousands of km, a partial dimming. as the light goes the birds
+   fall quiet and the crickets start; when it returns, a false dawn */
+const ECLIPSES = {
+  "2017-08-21": [[16.833, 41.49, -162.85, 70, 61], [17.1, 44.82, -134.28, 93, 102], [17.367, 44.64, -120.12, 102, 125],
+    [17.633, 43.43, -109.63, 107, 141], [17.9, 41.63, -101.14, 111, 152],
+    [18.167, 39.41, -93.91, 113, 158], [18.433, 37.36, -87.49, 115, 160], [18.7, 34.05, -81.54, 115, 156],
+    [18.967, 31.01, -75.71, 114, 148], [19.233, 27.63, -69.62, 111, 135], [19.5, 23.84, -62.67, 105, 118],
+    [19.767, 19.35, -53.45, 94, 94], [20.033, 11.57, -29.93, 60, 50]],
+  "2019-07-02": [[18.067, -33.40, -151.30, 136, 139], [18.267, -26.25, -136.68, 156, 184],
+    [18.467, -22.84, -129.32, 169, 213], [18.667, -20.60, -123.83, 180, 236],
+    [18.867, -19.08, -119.22, 189, 253], [19.067, -18.08, -115.09, 196, 265],
+    [19.267, -17.52, -111.21, 200, 271], [19.467, -17.38, -107.41, 201, 272],
+    [19.667, -17.63, -103.54, 198, 268], [19.867, -18.32, -99.45, 193, 257],
+    [20.067, -19.50, -94.93, 185, 242], [20.267, -21.35, -89.61, 175, 221],
+    [20.467, -24.25, -82.68, 163, 194], [20.667, -29.80, -70.67, 145, 154],
+    [20.7, -31.71, -66.61, 140, 143]],
+  "2020-12-14": [[14.567, -11.19, -125.46, 45, 38], [14.867, -22.53, -105.41, 72, 75],
+    [15.167, -28.60, -95.56, 82, 97], [15.467, -33.13, -87.48, 87, 112],
+    [15.767, -36.63, -79.88, 90, 123], [16.067, -39.28, -72.17, 90, 128],
+    [16.367, -41.08, -64.06, 90, 129], [16.667, -41.97, -55.31, 88, 123],
+    [16.967, -41.81, -45.73, 84, 112], [17.267, -40.34, -34.95, 77, 96], [17.567, -36.97, -21.93, 67, 74],
+    [17.9, -24.69, -8.61, 33, 28]],
+  "2023-04-20": [[2.633, -46.12, 73.11, 1, 1], [2.9, -35.43, 97.76, 24, 31], [3.167, -28.93, 106.97, 34, 48],
+    [3.433, -23.33, 112.99, 40, 60], [3.7, -18.53, 117.62, 45, 69], [3.967, -14.20, 121.45, 47, 74],
+    [4.233, -10.24, 125.30, 49, 76], [4.5, -6.61, 129.03, 49, 75], [4.767, -3.28, 132.89, 47, 70],
+    [5.033, 0.27, 137.50, 44, 62], [5.3, 2.35, 143.26, 37, 50], [5.567, 4.39, 150.88, 27, 34],
+    [5.833, 5.17, 163.69, 9, 11], [5.933, 3.95, 175.63, 5, 6]],
+  "2024-04-08": [[16.667, -7.83, -158.53, 144, 126], [16.933, 0.27, -132.22, 186, 191],
+    [17.2, 5.78, -123.73, 198, 220], [17.467, 10.83, -117.85, 202, 241],
+    [17.733, 15.64, -113.08, 202, 255], [18, 20.32, -108.76, 201, 264],
+    [18.267, 24.91, -104.50, 198, 268], [18.533, 29.46, -99.91, 194, 267],
+    [18.8, 33.97, -94.59, 190, 259], [19.067, 38.44, -87.95, 185, 246], [19.333, 42.80, -78.99, 179, 226],
+    [19.6, 46.80, -65.46, 170, 197], [19.9, 48.47, -27.32, 147, 134]],
+  "2026-08-12": [[17.033, 82.28, -112.49, 273, 105], [17.133, 87.82, -33.00, 275, 117],
+    [17.233, 83.93, -21.19, 276, 124], [17.367, 78.48, -27.54, 278, 131], [17.5, 73.68, -27.79, 282, 135],
+    [17.633, 69.30, -26.76, 288, 137], [17.767, 65.17, -25.20, 294, 138], [17.9, 61.20, -23.28, 302, 137],
+    [18.033, 57.30, -20.95, 309, 134], [18.167, 53.37, -18.06, 316, 130], [18.3, 49.28, -14.24, 319, 123],
+    [18.433, 44.71, -8.40, 311, 113], [18.533, 39.41, 2.95, 270, 95]],
+  "2027-08-02": [[8.433, 30.49, -36.23, 213, 204], [8.667, 35.24, -12.46, 232, 270], [8.9, 35.71, -0.33, 240, 309],
+    [9.133, 34.91, 8.72, 246, 338], [9.367, 33.36, 16.05, 251, 359], [9.6, 31.30, 22.21, 254, 374],
+    [9.833, 28.85, 27.56, 256, 382], [10.067, 26.06, 32.33, 258, 383], [10.3, 22.98, 36.74, 258, 379],
+    [10.533, 19.60, 40.97, 259, 369], [10.767, 15.91, 45.23, 258, 354], [11, 11.85, 49.77, 257, 334],
+    [11.233, 7.30, 55.01, 254, 309], [11.467, 1.97, 61.80, 246, 277], [11.7, -5.16, 73.11, 230, 233],
+    [11.8, -11.10, 86.42, 211, 195]],
+  "2028-07-22": [[1.567, -15.16, 84.85, 171, 172], [1.767, -11.59, 98.78, 197, 221], [1.967, -10.75, 106.14, 213, 252],
+    [2.167, -10.84, 111.65, 225, 275], [2.367, -11.52, 116.22, 232, 292],
+    [2.567, -12.64, 120.23, 234, 303], [2.767, -14.14, 123.92, 233, 309],
+    [2.967, -16.00, 127.45, 229, 309], [3.167, -18.23, 130.95, 223, 304],
+    [3.367, -20.85, 134.58, 216, 294], [3.567, -23.95, 138.54, 208, 280],
+    [3.767, -27.66, 143.16, 200, 261], [3.967, -32.30, 149.07, 191, 236],
+    [4.167, -38.79, 158.24, 180, 204], [4.3, -47.46, 173.65, 166, 164]],
+  "2030-11-25": [[5.267, -18.88, 8.23, 126, 102], [5.467, -27.07, 25.92, 149, 141], [5.667, -31.47, 34.85, 158, 164],
+    [5.867, -34.79, 41.93, 163, 182], [6.067, -37.47, 48.25, 166, 197], [6.267, -39.65, 54.24, 168, 209],
+    [6.467, -41.41, 60.12, 169, 217], [6.667, -42.76, 66.04, 169, 222], [6.867, -43.73, 72.10, 169, 224],
+    [7.067, -44.28, 78.37, 169, 222], [7.467, -44.07, 91.73, 166, 208], [8.4, -29.98, 141.97, 129, 107]],
+  "2033-03-30": [[17.7, 61.84, -174.56, 794, 140], [17.767, 63.91, -166.92, 832, 148],
+    [17.833, 65.80, -162.63, 831, 152], [17.9, 67.70, -159.53, 816, 155],
+    [17.967, 69.65, -157.21, 797, 156], [18.033, 71.69, -155.56, 778, 157],
+    [18.1, 73.87, -154.72, 760, 156], [18.167, 76.23, -155.14, 746, 154],
+    [18.233, 78.85, -158.22, 738, 151], [18.3, 81.73, -169.48, 738, 145],
+    [18.333, 83.04, 173.79, 744, 140]],
+  "2034-03-20": [[8.633, 0.89, -32.98, 104, 100], [8.833, 1.11, -13.15, 131, 149], [9.033, 3.13, -4.76, 142, 176],
+    [9.233, 5.15, 1.26, 150, 198], [9.433, 7.19, 6.13, 155, 215], [9.633, 9.23, 10.34, 158, 229],
+    [9.833, 11.29, 14.15, 159, 239], [10.033, 13.37, 17.74, 160, 246], [10.233, 15.46, 21.23, 159, 249],
+    [10.433, 17.57, 24.76, 158, 248], [10.633, 19.71, 28.44, 156, 244], [10.833, 21.88, 32.39, 154, 236],
+    [11.033, 24.08, 36.80, 151, 225], [11.233, 26.32, 41.70, 146, 210], [11.433, 28.61, 48.02, 141, 192],
+    [11.933, 34.56, 83.02, 110, 110]],
+  "2035-09-02": [[0.3, 39.51, 91.80, 73, 70], [0.6, 39.98, 118.74, 94, 114], [0.9, 38.29, 131.97, 104, 140],
+    [1.2, 35.96, 141.47, 110, 158], [1.5, 33.28, 149.06, 113, 169], [1.8, 30.36, 155.55, 116, 174],
+    [2.1, 27.24, 161.47, 117, 172], [2.4, 23.93, 167.25, 116, 164], [2.7, 20.39, 173.35, 113, 150],
+    [3, 16.56, -179.51, 107, 130], [3.3, 12.19, -169.68, 94, 103], [3.567, 6.46, -149.24, 65, 60]],
+};
+const ECL = { obs: 0, dim: 0, total: false, phase: 0, said: 0 };
+function obscuration(mag) {   /* two equal discs: the covered area for a magnitude */
+  const th = Math.acos(1 - Math.min(1, mag));
+  return (2 * th - Math.sin(2 * th)) / Math.PI;
+}
+function eclipseShadow(hm) {
+  /* where the shadow's centre stands on the earth at this solar minute, for the globe */
+  const path = ECLIPSES[dayStr];
+  if (!path) return null;
+  const utc = ((hm / 60 - (site ? site.lon : 0) / 15) % 24 + 24) % 24;
+  for (let i = 0; i + 1 < path.length; i++) {
+    const a = path[i], b = path[i + 1];
+    if (utc < a[0] || utc > b[0]) continue;
+    const u = (utc - a[0]) / Math.max(1e-6, b[0] - a[0]);
+    let dl = b[2] - a[2]; if (dl > 180) dl -= 360; if (dl < -180) dl += 360;
+    const lat = (a[1] + u * (b[1] - a[1])) * Math.PI / 180;
+    return { sinLat: Math.sin(lat), cosLat: Math.cos(lat), lonR: (a[2] + u * dl) * Math.PI / 180,
+             hw: (a[3] + u * (b[3] - a[3])) / 2 };
+  }
+  return null;
+}
+function eclipseNow(hour) {
+  ECL.obs = 0; ECL.dim = 0; ECL.total = false; ECL.phase = 0;
+  const path = site && ECLIPSES[dayStr];
+  if (!path) return;
+  /* the nearest stretch of the central line, in km around the listener */
+  const wl = x => ((x + 540) % 360 + 360) % 360 - 180;
+  const ky = Math.cos(site.lat * Math.PI / 180) * 111;
+  let best = null;
+  for (let i = 0; i + 1 < path.length; i++) {
+    const a = path[i], b = path[i + 1];
+    const x1 = wl(a[2] - site.lon) * ky, y1 = (a[1] - site.lat) * 111;
+    const x2 = wl(b[2] - site.lon) * ky, y2 = (b[1] - site.lat) * 111;
+    const vx = x2 - x1, vy = y2 - y1, L2 = vx * vx + vy * vy || 1;
+    const u = Math.max(0, Math.min(1, -(x1 * vx + y1 * vy) / L2));
+    const d = Math.hypot(x1 + u * vx, y1 + u * vy);
+    if (!best || d < best.d)
+      best = { d, t: a[0] + u * (b[0] - a[0]), w: a[3] + u * (b[3] - a[3]), s: a[4] + u * (b[4] - a[4]) };
+  }
+  /* solar time is utc + lon/15; the tables are utc. hours from greatest eclipse */
+  const dt = (((hour - site.lon / 15 - best.t) + 12) % 24 + 24) % 24 - 12;
+  const hw = best.w / 2, magMax = Math.max(0, 1 - Math.max(0, best.d - hw) / 3400);   /* the penumbra's reach */
+  /* the moon's centre slides past the sun's: their offset in sun diameters,
+     first contact at one diameter, about 75 minutes out */
+  const mag = Math.max(0, 1 - Math.hypot(1 - magMax, dt / 1.25));
+  if (mag <= 0) { ECL.said = 0; return; }
+  ECL.obs = obscuration(mag);
+  const tot = best.d <= hw ? best.s * Math.sqrt(1 - Math.pow(best.d / hw, 2)) : 0;
+  ECL.total = Math.abs(dt) * 3600 <= tot / 2;
+  if (ECL.total) ECL.obs = 1;
+  ECL.dim = ECL.total ? 1 : smooth((ECL.obs - 0.7) / 0.3);
+  ECL.phase = dt < 0 ? -1 : 1;
+  if (ECL.obs > 0.02 && ECL.said < 1) { ECL.said = 1; announce("the eclipse begins", 0); }
+  if (ECL.total && ECL.said < 2) { ECL.said = 2; announce("totality", 0); }
+  if (ECL.phase > 0 && !ECL.total && ECL.dim < 0.3 && ECL.said === 2) { ECL.said = 3; announce("the light returns", 0); }
 }
 
 /* -------------------------------------------------------- time control --- */
@@ -718,7 +863,10 @@ function solarHour() {
    the sun itself always uses the real calendar day. */
 function envNow() {
   const hm = solarHour(), hour = hm / 60;
-  const el = site ? sunElevation(site.lat, P.doy, hour) : 0;
+  let el = site ? sunElevation(site.lat, P.doy, hour) : 0;
+  /* the moon's shadow: the sun sinks toward a false dusk as the light goes */
+  eclipseNow(hour);
+  if (ECL.dim > 0) el -= ECL.dim * (el + 12);
   const rising = hour < 12.5;
   const sdoy = site && site.lat < 0 ? ((P.doy + 182 - 1) % 365) + 1 : P.doy;
   const tF = site ? tempF(site, sdoy, hour) : 60;
@@ -1939,8 +2087,24 @@ def("ghopper", { name: "grasshoppers", g: "bug",
     return pulses(ri(8, 20), ru(28, 45), mk, { jit: 0.25 }); } });
 
 /* ============================================================= frogs ===== */
-function chorusBuf(dur, nVoices, mkVoice) {
+function chorusBuf(dur, nVoices, mkVoice, o = {}) {
   const n = (dur * SR) | 0, x = new Float32Array(n);
+  if (o.phase !== false) {
+    /* a phased chorus: the lowest voice leads and the rest sit a beat behind
+       it — strict alternation in the gaps when they are few, a phase-locked
+       smear when they are many; a voice sits one out now and then */
+    const calls = []; for (let v = 0; v < nVoices; v++) calls.push({ ...mkVoice(), g: ru(0.3, 1) });
+    calls.sort((a, b) => (a.f || 0) - (b.f || 0));
+    const per = calls[0].per, few = nVoices <= 3;
+    for (let t = ru(0, per); t < dur; t += per * ru(0.94, 1.08)) {
+      calls.forEach((c, v) => {
+        const at = t + (few ? per * v / nVoices : v * ru(0.04, 0.07));
+        if (at < dur - c.x.length / SR && (v === 0 || Math.random() < 0.85))
+          addTo(x, scaleA(c.x.slice(), c.g), (at * SR) | 0);
+      });
+    }
+    return normA(x);
+  }
   for (let v = 0; v < nVoices; v++) {
     const call = mkVoice(), per = call.per, cx = call.x, g = ru(0.3, 1);
     let t = ru(0, per);
@@ -1956,7 +2120,7 @@ def("peeper", { name: "spring peepers", g: "frog",
   gen() { return chorusBuf(ru(6, 9), ri(5, 9), () => {
       const f = ru(2700, 3300);
       return { x: tone(0.14, [[0, f * 0.88], [1, f]], { harm: [1, 0.08], atk: 0.015, rel: 0.03 }),
-               per: ru(0.8, 1.6) }; }); } });
+               per: ru(0.8, 1.6), f }; }); } });
 def("pacfrog", { name: "pacific chorus frogs", g: "frog",
   act: A({ doy: [320, 150], tMin: 42, dusk: 1.3, night: 1.1 }), gap: [0.1, 0.4], dist: [0.3, 0.7], n: [2, 3],
   gen() { return chorusBuf(ru(6, 9), ri(4, 8), () => {
@@ -1965,7 +2129,7 @@ def("pacfrog", { name: "pacific chorus frogs", g: "frog",
         tone(0.09, [[0, f * 0.8], [1, f * 0.9]], { harm: [1, 0.45, 0.15], noise: 0.12, atk: 0.008, rel: 0.02 }),
         gapN(0.05),
         tone(0.11, [[0, f * 0.95], [1, f * 1.1]], { harm: [1, 0.45, 0.15], noise: 0.12, atk: 0.008, rel: 0.03 }));
-      return { x, per: ru(0.9, 1.8) }; }); } });
+      return { x, per: ru(0.9, 1.8), f }; }); } });
 def("graytree", { name: "gray treefrog", g: "frog",
   act: A({ doy: [120, 200], tMin: 59, dusk: 1.2, night: 1 }), gap: [2, 6], dist: [0.25, 0.6], n: [1, 3],
   gen() { const dur = ru(0.5, 1.5), n = (dur * SR) | 0, x = new Float32Array(n);
@@ -2012,7 +2176,7 @@ def("woodfrog", { name: "wood frogs", g: "frog",
         tone(0.05, [[0, f], [1, f * 0.9]], { harm: [1, 0.6, 0.3], noise: 0.15, atk: 0.004, rel: 0.015 }),
         gapN(0.04),
         tone(0.05, [[0, f * 0.95], [1, f * 0.85]], { harm: [1, 0.6, 0.3], noise: 0.15, atk: 0.004, rel: 0.015 }));
-      return { x, per: ru(0.6, 1.4) }; }); } });
+      return { x, per: ru(0.6, 1.4), f }; }); } });
 def("greentree", { name: "green treefrogs", g: "frog",
   act: A({ doy: [105, 260], tMin: 62, dusk: 1.3, night: 1.1 }), gap: [0.2, 0.6], dist: [0.3, 0.7], n: [2, 3],
   gen() { return chorusBuf(ru(5, 8), ri(4, 8), () => {
@@ -2892,7 +3056,7 @@ def("treefrogs_t", { name: "treefrogs", g: "frog",
   gen() { return chorusBuf(ru(5, 8), ri(5, 10), () => {
       const f = ru(900, 3200);
       return { x: tone(ru(0.06, 0.16), [[0, f * 0.92], [1, f]],
-        { harm: [1, 0.35, 0.1], noise: 0.1, atk: 0.008, rel: 0.02 }), per: ru(0.5, 2) }; }); } });
+        { harm: [1, 0.35, 0.1], noise: 0.1, atk: 0.008, rel: 0.02 }), per: ru(0.5, 2), f }; }); } });
 def("rainfrogs", { name: "frogs after rain", g: "frog",
   act: e => (weather.rain > 0.12 || weather.drip > 0.25) ? 0.6 + 0.6 * e.night : 0,
   gap: [0.3, 1], dist: [0.25, 0.65], n: [1, 2],
@@ -2900,7 +3064,7 @@ def("rainfrogs", { name: "frogs after rain", g: "frog",
       const f = ru(600, 1800);
       const x = cat(tone(0.07, [[0, f], [1, f * 1.15]], { harm: [1, 0.4, 0.12], atk: 0.005, rel: 0.015 }),
         gapN(0.05), tone(0.06, [[0, f * 1.1], [1, f * 0.95]], { harm: [1, 0.4, 0.12], atk: 0.005, rel: 0.015 }));
-      return { x, per: ru(0.7, 1.6) }; }); } });
+      return { x, per: ru(0.7, 1.6), f }; }); } });
 def("gecko", { name: "a house gecko", g: "beast",
   act: A({ doy: [1, 365], tMin: 68, night: 1 }), gap: [40, 100], dist: [0.08, 0.3], n: [1, 1],
   gen() { const parts = []; const f = ru(1300, 1600);
@@ -3318,7 +3482,7 @@ def("paddyfrogs", { name: "the paddy frog chorus", g: "frog",
       const f = ru(1100, 1900);
       const x = cat(tone(0.06, [[0, f], [1, f * 0.9]], { harm: [1, 0.6, 0.25], noise: 0.2, atk: 0.003, rel: 0.015 }),
         gapN(0.05), tone(0.06, [[0, f * 0.95], [1, f * 0.85]], { harm: [1, 0.6, 0.25], noise: 0.2, atk: 0.003, rel: 0.015 }));
-      return { x, per: ru(0.5, 1.2) }; }); } });
+      return { x, per: ru(0.5, 1.2), f }; }); } });
 def("kajika", { name: "kajika frog", g: "frog",
   act: A({ doy: [120, 220], tMin: 55, dusk: 1.3, night: 1, day: 0.4 }), gap: [4, 9], dist: [0.2, 0.5], n: [1, 2],
   gen() { const parts = []; const f = ru(1700, 2100);
@@ -4152,6 +4316,85 @@ def("cowbells", { name: "cowbells on the high meadow", g: "air",
     }
     return env3(normA(x), 0.3, 1); } });
 
+/* ------------------------------------------ the night sky: migration ----- */
+/* on spring and autumn nights the sky carries a thin traffic of flight
+   calls from birds a few hundred metres up: single notes, no room around
+   them, each somewhere else in the dome. most nights are quiet; a few are
+   rivers. the passage runs later in spring and earlier in autumn the
+   farther from the equator; rain and a headwind ground it */
+const MIGR = { big: 1 };   /* the night's traffic, rolled per site+day in buildCast */
+const MIGRANTS = { nearctic: ["nightthrush", "nightseep", "nightgeese", "nightcranes"],
+                   wpale: ["nightredwing", "nightgeese", "nightcranes"],
+                   epale: ["nightpipit", "nightgeese"], neotropic: ["nightseep"] };
+function migrAct(e, spring = 1, autumn = 1) {
+  const lat = Math.abs(site ? site.lat : 45);
+  if (lat < 18 || lat > 72) return 0;
+  const sp = gauss(e.doy, 96 + (lat - 30) * 1.8, 20) * spring;
+  const au = gauss(e.doy, 290 - (lat - 30) * 1.4, 24) * autumn;
+  let a = Math.max(sp, au) * e.night * MIGR.big;
+  if (weather.rain > 0.1) a = 0;
+  a *= 1 - 0.6 * Math.max(0, (weather.wind || 0) - 0.6);
+  return Math.min(1, a);
+}
+function flightCall(kind) {
+  switch (kind) {
+    case "swainson":   /* the rising pure pwee */
+      return tone(ru(0.12, 0.18), [[0, 2700], [1, ru(3700, 4000)]], { harm: [1, 0.08], atk: 0.01, rel: 0.03, decay: 0.1 });
+    case "veery":      /* burry, falling */
+      return tone(ru(0.15, 0.22), [[0, ru(2300, 2600)], [1, ru(1700, 1900)]], { harm: [1, 0.25, 0.08], vib: [70, 60], atk: 0.01, rel: 0.04 });
+    case "greycheek":  /* a raspy arch */
+      return tone(ru(0.14, 0.2), [[0, 3300], [0.5, ru(4000, 4200)], [1, 3200]], { harm: [1, 0.2], noise: 0.25, vib: [90, 40], atk: 0.008, rel: 0.03 });
+    case "hermit":     /* plaintive, falling */
+      return tone(ru(0.14, 0.2), [[0, ru(3400, 3800)], [1, ru(2600, 2900)]], { harm: [1, 0.06], atk: 0.012, rel: 0.05 });
+    case "woodthrush": /* a buzzy monotone */
+      return tone(ru(0.1, 0.14), [[0, 2900], [1, 3300]], { harm: [1, 0.3], noise: 0.35, nfc: 3100, vib: [110, 50], atk: 0.006, rel: 0.02 });
+    case "zeep":       /* a warbler's, buzzed */
+      return tone(ru(0.05, 0.1), [[0, ru(6500, 7500)], [0.5, ru(8200, 9500)], [1, ru(6800, 7800)]], { harm: [1], noise: 0.3, nfc: 8000, nq: 2, vib: [200, 30], atk: 0.004, rel: 0.01 });
+    case "tseep":      /* a sparrow's, slow-warbled */
+      return tone(ru(0.1, 0.16), [[0, ru(7200, 7800)], [0.4, ru(8800, 9500)], [1, ru(7500, 8200)]], { harm: [1], vib: [25, 80], atk: 0.005, rel: 0.02 });
+    case "redwing":    /* zeeer, finely buzzed: the october sound */
+      return tone(ru(0.25, 0.34), [[0, 8100], [1, 6100]], { harm: [1], noise: 0.35, nfc: 7000, nq: 2.5, vib: [140, 30], atk: 0.01, rel: 0.04 });
+    case "tsip":       /* the song thrush's raindrop */
+      return tone(0.025, [[0, 6600], [1, 7400]], { harm: [1], atk: 0.003, rel: 0.006 });
+    case "srri":       /* the blackbird's silvery trill */
+      return tone(ru(0.18, 0.22), [[0, 6600], [1, 7000]], { harm: [1], vib: [24, 60], atk: 0.008, rel: 0.03 });
+    case "tsi":        /* the robin's kinked note */
+      return tone(ru(0.07, 0.1), [[0, 6500], [0.5, 8400], [1, 7200]], { harm: [1], atk: 0.004, rel: 0.015 });
+    case "pipit":      /* the olive-backed pipit's buzzy arch */
+      return tone(ru(0.1, 0.18), [[0, 6200], [0.5, 5900], [1, 5400]], { harm: [1, 0.1], noise: 0.4, nfc: 5800, nq: 2, vib: [120, 40], atk: 0.006, rel: 0.02 });
+    default:           /* a bunting's tick */
+      return tone(0.035, [[0, 4600], [1, 4200]], { harm: [1, 0.4], atk: 0.002, rel: 0.008 });
+  }
+}
+function skyCall(kinds) {   /* one note, now and then doubled */
+  const k = pick(kinds), a = flightCall(k);
+  return Math.random() < 0.3 ? cat(a, gapN(ru(0.25, 0.6)), flightCall(k)) : a;
+}
+def("nightthrush", { name: "thrushes passing over", g: "bird",
+  act: e => migrAct(e, 1, 0.8), gap: [4, 14], dist: [0.6, 0.88], n: [1, 2], sky: true,
+  gen() { return skyCall(["swainson", "veery", "greycheek", "hermit", "woodthrush"]); } });
+def("nightseep", { name: "warblers and sparrows passing over", g: "bird",
+  act: e => migrAct(e, 1, 1), gap: [3, 10], dist: [0.6, 0.88], n: [1, 2], sky: true,
+  gen() { return skyCall(["zeep", "zeep", "tseep"]); } });
+def("nightredwing", { name: "redwings passing over", g: "bird",
+  act: e => migrAct(e, 0.5, 1.3), gap: [3, 10], dist: [0.6, 0.88], n: [1, 2], sky: true,
+  gen() { return skyCall(["redwing", "redwing", "tsip", "srri", "tsi"]); } });
+def("nightpipit", { name: "pipits and buntings passing over", g: "bird",
+  act: e => migrAct(e, 1, 1), gap: [3, 10], dist: [0.6, 0.88], n: [1, 2], sky: true,
+  gen() { return skyCall(["pipit", "pipit", "tick", "redwing"]); } });
+def("nightgeese", { ...SP.geese, id: "nightgeese", name: "geese in the dark",
+  act: e => migrAct(e, 0.9, 1.2) * 0.35, gap: [240, 700], dist: [0.5, 0.8], n: [1, 1], sky: true });
+def("nightcranes", { name: "cranes passing in the night", g: "bird",
+  act: e => migrAct(e, 0.9, 1.1) * 0.3 * (0.5 + 0.5 * MOONF), gap: [300, 900], dist: [0.5, 0.8], n: [1, 1], sky: true,
+  gen() { /* a flock's bugles crossing the sky, on the bright nights */
+    const dur = ru(14, 24), n = (dur * SR) | 0, x = new Float32Array(n);
+    for (let v = 0, nv = ri(3, 7); v < nv; v++) {
+      let t = ru(0, 3);
+      while (t < dur - 1) { addTo(x, scaleA(SP.sandhill.gen(), ru(0.3, 0.9)), (t * SR) | 0); t += ru(0.8, 3); }
+    }
+    for (let i = 0; i < n; i++) x[i] *= Math.pow(Math.sin(Math.PI * i / n), 1.1);
+    return normA(x); } });
+
 /* ============================================================ engine ===== */
 let running = false, wetGain, echoNode, echoGain, comp, master, conv = null;
 let sum = null, space = null;   /* linear pre-comp mix bus + the reverb/echo return */
@@ -4182,23 +4425,26 @@ function mkbuf(x) { const b = ctx.createBuffer(1, x.length, SR); b.copyToChannel
 
 const visEvents = [];
 function play(x, when, o = {}) {
-  /* o: dist 0..1, pan -1..1, gain, group, name, rev, echo, omni, fog */
+  /* o: dist 0..1, pan -1..1, gain, group, name, rev, echo, omni, fog, detune (cents) */
   if (!running || !x || !x.length) return 0;
   const dist = o.dist ?? 0.5;
   const fog = o.fog ?? weather.fog;
-  let fc = 11000 * Math.pow(2, -dist * 3.1);
+  /* a voice high overhead has no room around it; only the air thins it */
+  let fc = o.sky ? 14000 - 6000 * dist : 11000 * Math.pow(2, -dist * 3.1);
   fc *= 1 - 0.45 * fog;
   const amp = (o.gain ?? 1) * Math.pow(1 - 0.82 * dist, 1.5);
   const src = ctx.createBufferSource(); src.buffer = mkbuf(x);
-  src.playbackRate.value = Math.pow(2, ru(-4, 4) / 1200);
+  src.playbackRate.value = Math.pow(2, ((o.detune || 0) + ru(-4, 4)) / 1200);
   const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = Math.max(300, fc); lp.Q.value = 0.4;
   const g = ctx.createGain(); g.gain.value = amp;
-  const pan = ctx.createStereoPanner(); pan.pan.value = o.omni ? 0 : (o.pan ?? 0) * (1 - 0.45 * dist);
+  const az = (o.pan ?? 0) * 90;   /* the voice's bearing, degrees off the listener's nose */
+  const pan = ctx.createStereoPanner();
+  pan.pan.value = o.omni ? 0 : HEAD.on ? headPan(az, dist) : (o.pan ?? 0) * (1 - 0.45 * dist);
   src.connect(lp); lp.connect(g); g.connect(pan);
   const grp = groups[o.group || "air"];
   pan.connect(grp.dry);
   const wet = ctx.createGain();
-  wet.gain.value = (o.rev ?? 0.15) + 0.55 * dist;
+  wet.gain.value = o.sky ? 0.03 : (o.rev ?? 0.15) + 0.55 * dist;
   pan.connect(wet); wet.connect(grp.wet);
   if (o.echo) { const eg = ctx.createGain(); eg.gain.value = 0.5; pan.connect(eg); eg.connect(echoNode); }
   if (DUB.on && DUB.n) {   /* offer this voice to the dub's throw gate */
@@ -4211,6 +4457,10 @@ function play(x, when, o = {}) {
   src.start(when);
   const durS = x.length / SR;
   src.stop(when + durS + 0.1);
+  if (HEAD.on && !o.omni) {
+    HEAD.live.push({ node: pan, az, dist, until: when + durS + 0.3 });
+    if (HEAD.live.length > 300) HEAD.live.shift();
+  }
   if (o.name) visEvents.push({ t: when, name: o.name, pan: o.pan ?? 0, dist, dur: durS });
   return durS;
 }
@@ -4278,6 +4528,10 @@ function buildBed() {
     t.rumble = tap(src, "lowpass", 190, 0.6, 0.05, dest);
     t.swash = tap(src, "bandpass", 1100, 0.7, 0.0, dest);
   }
+  if (site.geo && site.geo.fum) {   /* the fumaroles: steam without pause */
+    t.fum = tap(src, "bandpass", 2400, 0.45, 0.0, dest);
+    t.fumLow = tap(src, "lowpass", 220, 0.6, 0.0, dest);
+  }
   t.rain = tap(src, "bandpass", 3800, 0.5, 0.0, dest);      /* rain hiss */
   bed = { src, nodes, t, veg, out, outWet, gust: bed ? bed.gust : 0.3, gustV: 0 };
 }
@@ -4301,6 +4555,11 @@ function steerBed(now) {
   if (t.rumble) {
     const swell = 0.045 + 0.02 * Math.sin(now * 0.42 + 1);
     set(t.rumble.g.gain, (site.water.lakeSurf ? 0.4 : 1) * swell);
+  }
+  if (t.fum) {
+    const breath = 0.8 + 0.2 * Math.sin(now * 0.9 + 2) * Math.sin(now * 0.23);
+    set(t.fum.g.gain, 0.03 * site.geo.fum * breath);
+    set(t.fumLow.g.gain, 0.03 * site.geo.fum);
   }
   set(t.rain.g.gain, weather.rain * 0.05);
   /* rain suppresses; gusts duck the distant bed a touch via master wet */
@@ -4390,6 +4649,7 @@ function buildWaterEvents() {
   if (w.lake && !w.lakeSurf) waterEvents.push({ kind: "lap", per: [1.5, 4], nextT: 0 });
   if (w.stream) waterEvents.push({ kind: "bubble", per: [0.4, 1.6], nextT: 0 });
   if (w.marsh || site.biome === "flwet") waterEvents.push({ kind: "plop", per: [8, 25], nextT: 0 });
+  buildEarthEvents();
 }
 function scheduleWater(now, horizon) {
   for (const ev of waterEvents) {
@@ -4423,6 +4683,118 @@ function scheduleWater(now, horizon) {
   }
   if (weather.drip > 0.05 && arng() < weather.drip * 0.5) {
     play(dripBuf(), now + ru(0, horizon), { dist: ru(0.05, 0.4), pan: ru(-0.9, 0.9), gain: ru(0.1, 0.35) * P.vAir, group: "air", rev: 0.2 });
+  }
+}
+
+/* ------------------------------------------------ the geothermal fields -- */
+/* in a few places the ground itself speaks: geysers on their real periods,
+   fumaroles hissing without pause, mud pots plopping, springs at the boil.
+   stand within a field's reach and it joins the site. periods in minutes,
+   eruptions in seconds, reach in km */
+const GEOTHERMAL = [
+  { name: "the upper geyser basin", lat: 44.46, lon: -110.83, r: 14, fum: 0.5, mud: 0.3, boil: 0.6,
+    geysers: [{ name: "old faithful", per: [88, 100], dur: [100, 280] },
+              { name: "a geyser across the basin", per: [150, 400], dur: [60, 240] }] },
+  { name: "norris geyser basin", lat: 44.73, lon: -110.70, r: 8, fum: 1, mud: 0.4, boil: 0.5,
+    geysers: [{ name: "a small geyser", per: [20, 60], dur: [30, 90] }] },
+  { name: "geysir", lat: 64.31, lon: -20.30, r: 6, fum: 0.4, mud: 0.2, boil: 0.8,
+    geysers: [{ name: "strokkur", per: [5, 10], dur: [8, 15] }] },
+  { name: "hverir", lat: 65.64, lon: -16.81, r: 8, fum: 1, mud: 0.8, boil: 0.2, geysers: [] },
+  { name: "krýsuvík", lat: 63.90, lon: -22.05, r: 6, fum: 0.8, mud: 0.6, boil: 0.4, geysers: [] },
+  { name: "gunnuhver", lat: 63.82, lon: -22.69, r: 5, fum: 1, mud: 0.5, boil: 0.3, geysers: [] },
+  { name: "deildartunguhver", lat: 64.66, lon: -21.41, r: 4, fum: 0.2, mud: 0, boil: 1, geysers: [] },
+  { name: "hveravellir", lat: 64.87, lon: -19.56, r: 6, fum: 0.6, mud: 0.2, boil: 0.7, geysers: [] },
+  { name: "whakarewarewa", lat: -38.16, lon: 176.26, r: 8, fum: 0.6, mud: 0.6, boil: 0.5,
+    geysers: [{ name: "pōhutu", per: [40, 90], dur: [300, 1200] }] },
+  { name: "wai-o-tapu", lat: -38.36, lon: 176.37, r: 8, fum: 0.6, mud: 1, boil: 0.5, geysers: [] },
+  { name: "waimangu", lat: -38.29, lon: 176.39, r: 6, fum: 0.7, mud: 0.3, boil: 0.9, geysers: [] },
+  { name: "el tatio", lat: -22.33, lon: -68.01, r: 12, fum: 0.8, mud: 0.2, boil: 0.8,
+    geysers: [{ name: "a geyser on the altiplano", per: [15, 45], dur: [30, 120] }] },
+  { name: "sol de mañana", lat: -22.43, lon: -67.76, r: 8, fum: 0.9, mud: 0.6, boil: 0.3, geysers: [] },
+  { name: "the valley of geysers", lat: 54.43, lon: 160.14, r: 10, fum: 0.7, mud: 0.4, boil: 0.6,
+    geysers: [{ name: "velikan", per: [300, 420], dur: [60, 100] },
+              { name: "a geyser down the valley", per: [10, 40], dur: [20, 90] }] },
+  { name: "beppu", lat: 33.32, lon: 131.48, r: 6, fum: 0.6, mud: 0.4, boil: 0.8,
+    geysers: [{ name: "tatsumaki jigoku", per: [30, 40], dur: [360, 600] }] },
+  { name: "owakudani", lat: 35.24, lon: 139.02, r: 5, fum: 1, mud: 0, boil: 0.3, geysers: [] },
+  { name: "noboribetsu", lat: 42.49, lon: 141.15, r: 5, fum: 0.9, mud: 0.3, boil: 0.5, geysers: [] },
+  { name: "dallol", lat: 14.24, lon: 40.30, r: 8, fum: 0.6, mud: 0.2, boil: 0.8, geysers: [] },
+  { name: "solfatara", lat: 40.83, lon: 14.14, r: 4, fum: 1, mud: 0.3, boil: 0.1, geysers: [] },
+  { name: "bumpass hell", lat: 40.46, lon: -121.50, r: 6, fum: 1, mud: 0.5, boil: 0.5, geysers: [] },
+  { name: "hell's gate", lat: -0.90, lon: 36.32, r: 8, fum: 0.8, mud: 0.1, boil: 0.2, geysers: [] },
+  { name: "sikidang", lat: -7.21, lon: 109.91, r: 6, fum: 0.8, mud: 0.5, boil: 0.5, geysers: [] },
+];
+function geothermalAt(lon, lat) {
+  const ky = Math.cos(lat * Math.PI / 180) * 111;
+  for (const f of GEOTHERMAL)
+    if (Math.hypot((f.lon - lon) * ky, (f.lat - lat) * 111) <= f.r) return f;
+  return null;
+}
+function geyserBuf(dur) {   /* preplay splashes, then the roar, the column, the fall-off */
+  const n = (dur * SR) | 0, x = new Float32Array(n);
+  const roar = bpA(noiseA(n), 180, 0.5), hiss = bpA(noiseA(n), 2600, 0.5), spray = bpA(noiseA(n), 6500, 0.7);
+  for (let i = 0; i < n; i++) {
+    const tf = i / n, t = i / SR;
+    const rise = Math.min(1, tf / 0.12), fall = tf < 0.6 ? 1 : Math.max(0, 1 - (tf - 0.6) / 0.4);
+    const env = Math.pow(rise, 1.5) * fall;
+    const surge = 0.7 + 0.3 * Math.sin(2 * Math.PI * 0.35 * t + Math.sin(t * 0.7));
+    x[i] = (roar[i] * 1.6 + hiss[i] * 0.9 * surge + spray[i] * 0.4 * surge) * env;
+  }
+  for (let k = 0, m = ri(3, 7); k < m; k++) {
+    const at = (ru(0, 0.1) * n) | 0, L = (0.3 * SR) | 0;
+    const s = bpA(noiseA(L), ru(400, 900), 1.2);
+    for (let i = 0; i < L && at + i < n; i++) x[at + i] += s[i] * Math.exp(-i / (SR * 0.08)) * 0.8;
+  }
+  return normA(x);
+}
+function mudBuf() {   /* a mud pot's plop: a slow bubble through the skin */
+  const dur = ru(0.08, 0.16), n = (dur * SR) | 0, x = new Float32Array(n);
+  const f = ru(60, 180);
+  for (let i = 0; i < n; i++) { const t = i / SR;
+    x[i] = Math.sin(2 * Math.PI * f * (1 + 2.5 * Math.exp(-t / 0.02)) * t) * Math.exp(-t / (dur * 0.35)); }
+  const sp = bpA(noiseA((0.03 * SR) | 0), 1800, 1);
+  for (let i = 0; i < sp.length && i < n; i++) x[i] += sp[i] * 0.5 * Math.exp(-i / (SR * 0.006));
+  return normA(x, 0.9);
+}
+function boilBuf() {   /* a spring at the boil: a burst of bubbles */
+  const dur = ru(0.4, 1.2), n = (dur * SR) | 0, x = new Float32Array(n);
+  for (let k = 0, m = ri(4, 14); k < m; k++) addTo(x, scaleA(bubbleBuf(), ru(0.3, 1)), (ru(0, dur - 0.07) * SR) | 0);
+  for (let i = 0; i < n; i++) x[i] *= Math.pow(Math.sin(Math.PI * i / n), 0.5);
+  return normA(x);
+}
+const earthEvents = [];   /* built per site alongside the water */
+function buildEarthEvents() {
+  earthEvents.length = 0;
+  const g = site.geo; if (!g) return;
+  const gr = mulberry32(fnv("earth:" + site.key + ":" + dayStr));
+  for (const gy of g.geysers) earthEvents.push({ kind: "geyser", gy, rng: gr, nextH: ru2(gr, 0, gy.per[1]) });
+  if (g.mud) earthEvents.push({ kind: "mud", per: [3 / g.mud, 12 / g.mud], nextT: 0 });
+  if (g.boil) earthEvents.push({ kind: "boil", per: [2 / g.boil, 8 / g.boil], nextT: 0 });
+}
+function scheduleEarth(now, e, horizon) {
+  if (!earthEvents.length) return;
+  const hm = e.hour * 60, vA = P.vAir * (MOTH.on ? 0.35 : 1);
+  for (const ev of earthEvents) {
+    if (ev.kind === "geyser") {
+      /* on the clock of the day, so [ a day in an hour ] brings every eruption round */
+      const d = (hm - ev.nextH + 1440) % 1440;
+      if (d < 20) {
+        const dur = Math.min(60, ru2(ev.rng, ev.gy.dur[0], ev.gy.dur[1]) / (P.lapse ? 24 : 1));
+        play(geyserBuf(Math.max(6, dur)), now + ru(0.1, 0.5), { dist: ru(0.2, 0.45), pan: ru(-0.7, 0.7),
+          gain: 0.9 * vA, group: "air", rev: 0.2, name: ev.gy.name });
+        announce(ev.gy.name, 0.3);
+      }
+      if (d < 720) ev.nextH = (ev.nextH + ru2(ev.rng, ev.gy.per[0], ev.gy.per[1])) % 1440;
+      continue;
+    }
+    if (ev.nextT < now - 1) ev.nextT = now + ru(0, 1);
+    while (ev.nextT < now + horizon) {
+      const t = ev.nextT;
+      if (ev.kind === "mud")
+        play(mudBuf(), t, { dist: ru(0.15, 0.5), pan: ru(-0.8, 0.8), gain: ru(0.3, 0.7) * vA, group: "air", rev: 0.15 });
+      else play(boilBuf(), t, { dist: ru(0.15, 0.45), pan: ru(-0.7, 0.7), gain: ru(0.15, 0.4) * vA, group: "air", rev: 0.12 });
+      ev.nextT = t + ru(ev.per[0], ev.per[1]);
+    }
   }
 }
 
@@ -4668,6 +5040,12 @@ function buildCast() {
   if (site.island) list = list.concat(["tropicbird", "booby", "shearwater"]);
   if (site.world && (site.elev || 0) >= 1400 && MONTANE[site.realm])
     list = list.concat(MONTANE[site.realm]);
+  FROGS.rng = mulberry32(fnv("frogs:" + site.key + ":" + dayStr)); FROGS.on = true; FROGS.until = -1;
+  /* the night sky's passage, put first so the density gate cuts it last */
+  const mroll = mulberry32(fnv("migration:" + site.key + ":" + dayStr))();
+  MIGR.big = mroll < 0.55 ? 0.12 : mroll < 0.85 ? 0.45 : mroll < 0.96 ? 1 : 2.2;
+  const passage = MIGRANTS[site.realm];
+  if (passage && Math.abs(site.lat) >= 18 && Math.abs(site.lat) <= 72) list = passage.concat(list);
   const w = site.water;
   for (const id of list) {
     const sp = SP[id];
@@ -4835,7 +5213,8 @@ function driftStep(now) {
   }
 }
 function driftApply(lon, lat) {
-  const s = makeSite(lon, lat);
+  let s = makeSite(lon, lat);
+  if (!s && RIDE.on && Math.abs(lat) < 78) s = makeOceanSite(lon, lat);   /* the dawn rides on over the water */
   if (!s) return;
   const sameWorld = s.biome === site.biome
     && JSON.stringify(s.water) === JSON.stringify(site.water)
@@ -4855,6 +5234,153 @@ function driftApply(lon, lat) {
   statusLine(envNow());
 }
 
+/* ----------------------------------------------------- ride the dawn ----- */
+/* [ ride the dawn ]: the listener stands where the sun is just rising at
+   this latitude and moves west with it, fifteen degrees an hour, so the
+   chorus never ends and the realms pass beneath. the clock is the real one;
+   over the sea the ride goes on over the water */
+const RIDE = { on: false, nextT: 0, realT: 0, busy: false };
+function sunriseHour(lat, doy) {
+  /* the solar minute the sun crosses the horizon on its way up, or null
+     when it never does (midnight sun, polar night) */
+  const f = h => sunElevation(lat, doy, h);
+  let lo = 0, hi = 12;
+  if (f(lo) >= 0 || f(hi) <= 0) return null;
+  for (let k = 0; k < 24; k++) { const mid = (lo + hi) / 2; if (f(mid) < 0) lo = mid; else hi = mid; }
+  return (lo + hi) / 2 * 60;
+}
+function engageRide() {
+  const lat = site ? site.lat : 45;
+  const hm = sunriseHour(lat, P.doy) ?? 5.667 * 60;
+  const d = new Date(), utcH = d.getUTCHours() + d.getUTCMinutes() / 60 + d.getUTCSeconds() / 3600;
+  /* solar time is utc + lon/15: the longitude where it is sunrise this minute */
+  const lon = (((hm / 60 - utcH) * 15 + 540) % 360 + 360) % 360 - 180;
+  P.now = true; P.lapse = false; lapseBase = null;
+  el.now.setAttribute("aria-checked", "true"); el.lapse.setAttribute("aria-checked", "false");
+  if (P.drift) { P.drift = false; el.drift.setAttribute("aria-checked", "false"); }
+  RIDE.on = true; RIDE.busy = true;
+  setSite(lon, lat);
+  RIDE.busy = false;
+  if (site) globeCenter(site.lon, site.lat);
+  RIDE.realT = performance.now() / 1000;
+  RIDE.nextT = ctx ? ctx.currentTime + 20 : 0;
+  reflectHour();
+  el.ride.setAttribute("aria-checked", "true");
+  announce("riding the dawn", 0);
+}
+function releaseRide() {
+  RIDE.on = false;
+  el.ride.setAttribute("aria-checked", "false");
+}
+function rideStep(now) {
+  RIDE.nextT = now + 20;
+  const real = performance.now() / 1000, dt = Math.min(120, real - RIDE.realT);
+  RIDE.realT = real;
+  if (!site) return;
+  const lon = ((site.lon - 15 * dt / 3600 + 540) % 360 + 360) % 360 - 180;
+  driftApply(lon, site.lat);
+}
+
+/* ---------------------------------------------------- countersinging ----- */
+/* a song is seldom alone: a neighbour of the same kind answers from the
+   other side, a beat after the phrase ends, and the two trade a few rounds
+   before one sings on alone. most songs still go unanswered — the silence
+   after a phrase is part of it. per family: the chance, the latency after
+   the leader ends, how often the reply is the same phrase, the decay per
+   round, and the rest after a bout */
+const CS = {
+  thrush:   { p: 0.35, lat: [0.4, 2.5], same: 0.3,  decay: 0.8,  refr: [60, 240] },
+  wren:     { p: 0.45, lat: [0.2, 1.2], same: 0.85, decay: 0.85, refr: [60, 180] },
+  sparrow:  { p: 0.3,  lat: [0.5, 2],   same: 0.6,  decay: 0.8,  refr: [90, 300] },
+  cardinal: { p: 0.5,  lat: [0.3, 1.5], same: 0.8,  decay: 0.85, refr: [60, 200] },
+  parid:    { p: 0.35, lat: [0.3, 1.2], same: 0.7,  decay: 0.8,  refr: [60, 200] },
+  owl:      { p: 0.5,  lat: [2, 8],     same: 0.9,  decay: 0.85, refr: [120, 400] },
+  loon:     { p: 0.4,  lat: [3, 12],    same: 0.7,  decay: 0.8,  refr: [200, 600] },
+  corvid:   { p: 0.25, lat: [1, 5],     same: 0.8,  decay: 0.7,  refr: [90, 300] },
+  canid:    { p: 0.5,  lat: [5, 40],    same: 0.9,  decay: 0.7,  refr: [600, 1500] },
+  troop:    { p: 0.45, lat: [10, 60],   same: 0.9,  decay: 0.6,  refr: [600, 1800] },
+};
+const CS_OF = {};
+for (const [fam, ids] of Object.entries({
+  thrush: "robin woodthrush hermitthrush swainson vthrush mocker thrasher sagethrash curvebill blackbird_eu nightingale robin_eu songthrush magpierobin solitaire andsolitaire whistlingthrush piha",
+  wren: "carwren pacwren rockwren canyonwren cactuswren housewren musicianwren wrentit",
+  sparrow: "songsparrow wtsparrow grassparrow brewers btsparrow rufcollared caltowhee spottowhee etowhee meadowlark_w meadowlark_e",
+  cardinal: "cardinal", parid: "chickadee mtchick titmouse greattit",
+  owl: "barred ghowl screech wscreech sawwhet tawny", loon: "loon diver",
+  corvid: "crow raven jcrow jackdaw bluejay stellers scrubjay magpie_eu magpie_au",
+  canid: "coyote wolf jackals dingoes hyena elk", troop: "howler gibbon kookaburra indri laughingthrush",
+})) for (const id of ids.split(" ")) CS_OF[id] = fam;
+const CS_NAME = { coyote: "coyotes, answering", wolf: "wolves, answering", jackals: "jackals, answering",
+  dingoes: "dingoes, answering", hyena: "another hyena", elk: "another bull, answering",
+  howler: "another troop, answering", gibbon: "another troop of gibbons",
+  kookaburra: "another family of kookaburras", indri: "another indri", laughingthrush: "laughingthrushes, answering" };
+function answer(ag, x, ends, e, fader) {
+  const sp = ag.sp, fam = CS[CS_OF[sp.id]];
+  if (!fam || MOTH.on) return;
+  const now = ctx.currentTime;
+  const live = ag.bout && ag.bout.until > now;
+  if (!live) ag.bout = null;
+  if (weather.rain > 0.15 || weather.snow > 0.05 || (bed && bed.gust > 0.7)) return;
+  const k = live ? ag.bout.k : 0;
+  /* an exchange is an event, not the texture: one per species at a time, then a rest */
+  if (!k && ((sp._refr || 0) > now || (sp._boutUntil || 0) > now)) return;
+  const gapR = sp._gap || sp.gap;
+  if (arng() >= fam.p * Math.pow(fam.decay, k) * (0.35 + 0.85 * P.density)) {
+    if (k) {   /* the bout ends: mostly the singer carries on alone; sometimes both fall quiet */
+      if (arng() < 0.14) ag.nextT += 3 * gapR[1];
+      sp._refr = now + ru2(arng, fam.refr[0], fam.refr[1]); sp._boutUntil = 0; ag.bout = null;
+    }
+    return;
+  }
+  /* the neighbour: a real second bird across the field, else one conjured farther off */
+  const nb = live ? ag.bout.nb
+    : agents.find(a => a.sp === sp && a !== ag && Math.sign(a.pan) !== Math.sign(ag.pan))
+    || { sp, pan: -Math.sign(ag.pan || 1) * ru2(arng, 0.35, 0.9),
+         dist: Math.min(0.92, ag.dist + ru2(arng, 0.08, 0.3)), ghost: true };
+  const rt = ends + ru2(arng, fam.lat[0], fam.lat[1]) + 0.25 * (ag.dist + nb.dist);
+  let y = x;
+  if (arng() >= fam.same) { try { y = sp.gen(e) || x; } catch { y = x; } }
+  const rdur = play(y, rt, { dist: nb.dist, pan: sp.omni ? 0 : nb.pan, gain: fader * 0.85,
+    group: GROUP_OF[sp.g], rev: sp.rev ?? 0.15, echo: sp.echo, omni: sp.omni, name: sp.name,
+    detune: ru2(arng, 20, 40) * (arng() < 0.5 ? -1 : 1) });
+  if (!nb.ghost) nb.nextT = rt + rdur + ru2(arng, gapR[0], gapR[1]);
+  if (arng() < 0.3) announce(CS_NAME[sp.id] || "another " + sp.name, nb.dist);
+  const until = rt + rdur + Math.max(20, fam.lat[1] * 3);
+  ag.bout = { nb, k: k + 1, until }; sp._boutUntil = until;
+  if (k + 1 >= 5) { sp._refr = until + ru2(arng, fam.refr[0], fam.refr[1]); ag.bout = null; return; }
+  /* and the leader comes back in on the neighbour's tail */
+  ag.nextT = rt + rdur + ru2(arng, fam.lat[0], fam.lat[1]);
+}
+
+/* --------------------------------------------------- the chorus clocks --- */
+/* frogs sing in unison bouts and fall silent together: a seeded clock of
+   bout and hush per site and night, the hushes shorter when it is warm or
+   raining, a lone straggler allowed in the quiet. the katydids do not
+   decide anything: true katydids answer in the gaps between one another's
+   phrases, coneheads and tree crickets fall into step */
+const FROGS = { rng: Math.random, on: true, until: -1 };
+function stepFrogs(now, e) {
+  if (FROGS.until < 0) FROGS.until = now + ru2(FROGS.rng, 20, 120);
+  if (now < FROGS.until) return;
+  FROGS.on = !FROGS.on;
+  const warm = Math.max(0, Math.min(1, (e.tF - 45) / 35));
+  FROGS.until = now + (FROGS.on ? ru2(FROGS.rng, 20, 120)
+    : ru2(FROGS.rng, 10, 60) * (1 - 0.5 * weather.rain) * (1 - 0.4 * warm));
+}
+const CHORUS_LOCK = { katydid: "alternate", conehead: "sync", treecricket: "sync", meadowkaty: "sync" };
+function phaseIn(sp, t, dur) {
+  const mode = CHORUS_LOCK[sp.id];
+  if (!mode) return t;
+  if (sp._last != null && sp._per > 0 && t - sp._last < sp._per * 8) {
+    const per = sp._per, half = mode === "alternate" ? 0.5 : 0;
+    const k = Math.ceil((t - sp._last) / per - half - 1e-6);
+    t = sp._last + per * (k + half) + (mode === "sync" ? ru(0, 0.14) : 0);
+  }
+  const gapR = sp._gap || sp.gap;
+  sp._last = t; sp._per = dur + (gapR[0] + gapR[1]) / 2;
+  return t;
+}
+
 /* --------------------------------------------------------- scheduler ----- */
 /* the ticker is armored: no exception anywhere in a tick may kill the
    loop — one bad agent skips ahead, one bad tick logs once, and the
@@ -4863,18 +5389,28 @@ let lastTick = 0;
 const tickErrs = new Set();
 function tick() {
   if (!running) return;
+  if (SLEEP.asleep) { setTimeout(tick, 500); return; }   /* the world holds its breath */
   try {
     const now = ctx.currentTime, horizon = 0.7;
+    stepSleep(now);
     if (P.drift && drift.rng && now > drift.nextT) {
       try { driftStep(now); } catch (err) {
         const k = "drift:" + String(err && err.message);
         if (!tickErrs.has(k)) { tickErrs.add(k); console.error("drift", err); }
       }
     }
+    if (RIDE.on && now > RIDE.nextT) {
+      try { rideStep(now); } catch (err) {
+        const k = "ride:" + String(err && err.message);
+        if (!tickErrs.has(k)) { tickErrs.add(k); console.error("ride", err); }
+      }
+    }
     const e = envNow();
     stepWeather(e);
     steerBed(now);
     scheduleWater(now, horizon);
+    scheduleEarth(now, e, horizon);
+    stepFrogs(now, e);
     dubTick(now, horizon);
     /* thunder */
     if (weather.thunder && now > thunderNext) {
@@ -4892,12 +5428,15 @@ function tick() {
         if (!Number.isFinite(ag.nextT)) ag.nextT = now + 2;
         if (ag.nextT < now - 4) ag.nextT = now + ru2(arng, 0, 3);
         while (ag.nextT < now + horizon) {
-          const t = ag.nextT, sp = ag.sp;
+          let t = ag.nextT; const sp = ag.sp;
           let act = sp.act(e);
+          if (sp.g === "frog" && !FROGS.on) act *= 0.08;   /* the hush, with a straggler */
           /* rain quiets the singers (except a couple of rain-singers) */
           if (weather.rain > 0.15 && sp.g === "bird" && !["vthrush", "pacwren"].includes(sp.id))
             act *= Math.max(0, 1 - weather.rain * 1.6);
           if (weather.snow > 0.05 && sp.g !== "air") act *= 0.25;
+          if (ECL.dim > 0 && sp.g === "bird")   /* hushed as the light goes; a chorus as it comes back */
+            act *= ECL.total ? 0.05 : ECL.phase < 0 ? Math.max(0, 1 - ECL.dim * 1.3) : Math.min(1, 1 + ECL.dim);
           if (sp.id === "foghorn") act *= weather.fog > 0.25 ? 1 : 0;
           if (FULLMOON && e.night > 0.3) {   /* moonlit nights carry more song */
             if (sp.id === "mocker" || sp.id === "nightingale" || sp.id === "robin_eu") act = Math.min(1, act * 1.8);
@@ -4922,13 +5461,15 @@ function tick() {
             let x = null;
             if (fader > 0.02) { try { x = sp.gen(e); } catch (err) { console.error(sp.id, err); } }
             if (x) {
+              t = phaseIn(sp, t, x.length / SR);
               const dur = play(x, t, {
                 dist: ag.dist, pan: sp.omni ? 0 : ag.pan, gain: fader,
                 group: GROUP_OF[sp.g], rev: sp.rev ?? 0.15, echo: sp.echo, omni: sp.omni,
-                name: sp.name,
+                sky: sp.sky, name: sp.name,
               });
               if (arng() < 0.6) announce(sp.name, ag.dist);
               ag.nextT = t + dur + ru2(arng, gapR[0], gapR[1]) * (0.7 + 1.6 * (1 - act));
+              answer(ag, x, t + dur, e, fader);
             } else ag.nextT = t + ru2(arng, gapR[0], gapR[1]);
           } else {
             ag.nextT = t + Math.max(2, ru2(arng, gapR[0], gapR[1]) * 0.6);
@@ -4969,15 +5510,19 @@ function statusLine(e) {
   const hh = String((hm / 60) | 0).padStart(2, "0"), mm = String((hm % 60) | 0).padStart(2, "0");
   const wx = (weather.snow > 0.05 ? " · snow" : weather.rain > 0.4 ? " · rain"
     : weather.rain > 0.05 ? " · light rain" : weather.fog > 0.4 ? " · fog" : "")
+    + (ECL.total ? " · totality" : ECL.obs > 0.02 ? " · eclipse" : "")
     + (P.drift ? " · drifting" : "")
+    + (RIDE.on ? " · riding the dawn" : "")
     + (P.dub ? " · dub " + DUB.state : "")
-    + (MOTH.on ? " · moth variation" : "");
+    + (MOTH.on ? " · moth variation" : "")
+    + (SLEEP.asleep ? " · asleep" : "");
   document.getElementById("siteline").innerHTML =
     `${Math.abs(site.lat).toFixed(1)}°${site.lat < 0 ? "S" : "N"} ` +
     `${Math.abs(site.lon).toFixed(1)}°${site.lon < 0 ? "W" : "E"} · ` +
     `<b>${BIOME_INFO[site.biome].name}</b> · ${site.region} · ` +
     `${hh}:${mm} · ${phaseWord(e)} · ${Math.round(e.tF)}°F` +
     ((site.elev || 0) >= 700 ? ` · ${site.elev} m` : "") +
+    (site.geo ? " · " + site.geo.name : "") +
     ` · ${doyLabel(e.rdoy ?? P.doy)}${wx}`;
 }
 
@@ -5071,6 +5616,7 @@ function drawGlobeFrame(fine) {
   const sd = Math.sin(decl), cd = Math.cos(decl);
   const hm = site ? solarHour() : ((Date.now() / 60000) % 1440);
   const lamS = ((site ? site.lon : 0) - (hm / 60 - 12) * 15) * RAD;
+  const shade = eclipseShadow(hm);   /* the moon's shadow, on the days it crosses */
   const dark = isDark();
   const atR = dark ? 152 : 173, atG = dark ? 164 : 186, atB = dark ? 208 : 224;   /* atmosphere */
   const Rg = R * 1.13;   /* the glow reaches a little past the limb */
@@ -5119,6 +5665,13 @@ function drawGlobeFrame(fine) {
       let sh = 0.86 + 0.14 * z;                          /* the limb */
       const nfl = FULLMOON ? 0.73 : 0.66;                /* moonlit nights are paler */
       if (cosz < 0.05) sh *= cosz < -0.09 ? nfl : nfl + (1 - nfl) * (cosz + 0.09) / 0.14;
+      if (shade) {   /* a wide dusk around the shadow, and the dark dot of totality */
+        const cc = shade.sinLat * sinLat + shade.cosLat * Math.cos(latR) * Math.cos(lonD * RAD - shade.lonR);
+        const dk = Math.acos(Math.max(-1, Math.min(1, cc))) * 6371;
+        const mg = Math.max(0, 1 - Math.max(0, dk - shade.hw) / 3400);
+        if (mg > 0) sh *= 1 - 0.6 * obscuration(mg);
+        if (dk < shade.hw) sh *= 0.35;
+      }
       r *= sh; gg *= sh; b *= sh;
       if (cosz > -0.22 && cosz < 0.22) {
         /* the twilight band: rose-gold toward the sun, lavender into night */
@@ -5270,6 +5823,7 @@ function drawMap() {
 
 /* ----------------------------------------------------- interactions ------ */
 function setSite(lon, lat, announceIt = true) {
+  if (RIDE.on && !RIDE.busy) releaseRide();   /* to stand somewhere is to step off */
   let s = makeSite(lon, lat);
   if (!s) {   /* clicked the sea: snap to the nearest coast */
     const c = coastNear(lon, lat);
@@ -5438,6 +5992,104 @@ function randomSite() {
   }
 }
 
+/* ------------------------------------------------------------ sleep ------ */
+/* [ sleep ] — the world fades over its last minutes and goes under. the tick
+   keeps its thread (there is no road back to [ begin ]) but stops singing,
+   the screen is let go, and a touch of the button wakes it where it stood */
+const SLEEP = { min: 0, endT: 0, asleep: false, fade: 300, lock: null, shown: "" };
+const SLEEP_STEPS = [0, 30, 60, 90];
+function holdScreen() {
+  if (!navigator.wakeLock || SLEEP.asleep) return;
+  navigator.wakeLock.request("screen").then(l => { SLEEP.lock = l; }).catch(() => {});
+}
+function sleepLabel() {
+  if (SLEEP.asleep) return "[ asleep ]";
+  if (!SLEEP.min) return "[ sleep ]";
+  const left = Math.max(1, Math.ceil((SLEEP.endT - performance.now()) / 60000));
+  return "[ sleep in " + left + " min ]";
+}
+function reflectSleep() {
+  const s = sleepLabel();
+  if (s !== SLEEP.shown) { SLEEP.shown = s; el.sleep.textContent = s; }
+  el.sleep.setAttribute("aria-checked", String(SLEEP.min > 0 || SLEEP.asleep));
+}
+function stepSleep(now) {
+  if (!SLEEP.min || SLEEP.asleep) return;
+  const left = (SLEEP.endT - performance.now()) / 1000;
+  if (left <= 0) { fallAsleep(); return; }
+  if (master && left < SLEEP.fade) {
+    /* by ear, not by amplitude: a straight line down to −50 dB */
+    const frac = 1 - left / SLEEP.fade;
+    master.gain.setTargetAtTime(0.9 * Math.pow(10, -2.5 * frac), now, 0.3);
+  }
+  reflectSleep();
+}
+function fallAsleep() {
+  SLEEP.asleep = true; SLEEP.min = 0;
+  if (master && ctx) master.gain.setTargetAtTime(0, ctx.currentTime, 0.2);
+  if (SLEEP.lock) { SLEEP.lock.release().catch(() => {}); SLEEP.lock = null; }
+  setTimeout(() => { if (SLEEP.asleep && ctx) ctx.suspend().catch(() => {}); }, 1500);
+  reflectSleep();
+  if (site) statusLine(envNow());
+}
+function wake() {
+  SLEEP.asleep = false;
+  if (ctx) ctx.resume().catch(() => {});
+  if (master && ctx) master.gain.setTargetAtTime(0.9, ctx.currentTime, 1.2);
+  holdScreen();
+  reflectSleep();
+}
+/* before [ begin ] there is no tick to carry the countdown */
+setInterval(() => { if (!running) stepSleep(0); }, 5000);
+
+/* ---------------------------------------------------- turn your head ----- */
+/* on a phone the field can stay fixed to the world: turn, and the thrush
+   stays where it was. every voice keeps the bearing it was placed at, and
+   the compass turns the whole field, live. the way you faced when you
+   pressed the button is north */
+const HEAD = { on: false, yaw: 0, zero: null, live: [], lastT: 0, ev: "deviceorientation" };
+function headPan(az, dist) {   /* a bearing off the nose → stereo; behind folds by the ear's own symmetry */
+  return Math.sin((az - HEAD.yaw) * Math.PI / 180) * (1 - 0.45 * dist);
+}
+function onHeading(ev) {
+  let h = ev.webkitCompassHeading;
+  if (h == null) { if (ev.alpha == null) return; h = 360 - ev.alpha; }
+  const so = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
+  h = (h + so + 720) % 360;
+  if (HEAD.zero == null) HEAD.zero = h;
+  const want = ((h - HEAD.zero + 540) % 360) - 180;
+  const d = ((want - HEAD.yaw + 540) % 360) - 180;
+  HEAD.yaw += d * 0.2;
+  const nowMs = performance.now();
+  if (nowMs - HEAD.lastT < 50 || !ctx) return;
+  HEAD.lastT = nowMs;
+  const t = ctx.currentTime;
+  HEAD.live = HEAD.live.filter(v => v.until > t);
+  for (const v of HEAD.live) v.node.pan.setTargetAtTime(headPan(v.az, v.dist), t, 0.05);
+}
+function engageHead() {
+  const listen = () => {
+    HEAD.ev = "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation";
+    window.addEventListener(HEAD.ev, onHeading);
+    HEAD.on = true; HEAD.zero = null; HEAD.yaw = 0;
+    el.head.setAttribute("aria-checked", "true");
+  };
+  /* ios asks first, and only from a tap */
+  if (typeof DeviceOrientationEvent !== "undefined" && DeviceOrientationEvent.requestPermission)
+    DeviceOrientationEvent.requestPermission()
+      .then(s => { if (s === "granted") listen(); else el.head.textContent = "[ turn your head — not allowed ]"; })
+      .catch(() => {});
+  else listen();
+}
+function releaseHead() {
+  window.removeEventListener(HEAD.ev, onHeading);
+  HEAD.on = false; HEAD.yaw = 0;
+  el.head.setAttribute("aria-checked", "false");
+  if (ctx) { const t = ctx.currentTime;
+    for (const v of HEAD.live) v.node.pan.setTargetAtTime(headPan(v.az, v.dist), t, 0.2); }
+  HEAD.live.length = 0;
+}
+
 /* ------------------------------------------------------------- UI -------- */
 const el = new Proxy({}, { get: (t, k) => document.getElementById(k) });
 const out = id => document.getElementById(id + "V");
@@ -5455,6 +6107,7 @@ function reflectHour() {
    hand is on the thumb */
 setInterval(() => { if (P.lapse && !el.hour.matches(":active")) reflectHour(); }, 400);
 el.hour.addEventListener("input", () => {
+  if (RIDE.on) releaseRide();
   P.now = false; P.lapse = false; lapseBase = null;
   el.now.setAttribute("aria-checked", "false"); el.lapse.setAttribute("aria-checked", "false");
   P.hour = +el.hour.value; out("hour").textContent = fmtHour(P.hour);
@@ -5464,6 +6117,7 @@ el.doy.addEventListener("input", () => {
   if (site) planWeather();
 });
 el.now.addEventListener("click", () => {
+  if (RIDE.on) releaseRide();
   const hm = solarHour();   /* before the mode flips, so time freezes in place */
   P.now = !P.now;
   if (P.now) { P.lapse = false; lapseBase = null; el.lapse.setAttribute("aria-checked", "false"); }
@@ -5472,6 +6126,7 @@ el.now.addEventListener("click", () => {
   if (P.now) reflectHour();
 });
 el.lapse.addEventListener("click", () => {
+  if (RIDE.on) releaseRide();
   const hm = solarHour();
   P.lapse = !P.lapse;
   if (P.lapse) {
@@ -5508,8 +6163,12 @@ bind("vAir", "vAir", v => Math.round(v * 100));
 el.drift.addEventListener("click", () => {
   P.drift = !P.drift;
   el.drift.setAttribute("aria-checked", String(P.drift));
-  if (P.drift) engageDrift();
+  if (P.drift) { engageDrift(); if (RIDE.on) releaseRide(); }
 });
+el.ride.addEventListener("click", () => { RIDE.on ? releaseRide() : engageRide(); });
+/* the compass row only where there is a compass to turn */
+if ("DeviceOrientationEvent" in window && matchMedia("(pointer: coarse)").matches) el.headRow.hidden = false;
+el.head.addEventListener("click", () => { HEAD.on ? releaseHead() : engageHead(); });
 el.moth.addEventListener("click", () => {
   MOTH.on = !MOTH.on;
   el.moth.setAttribute("aria-checked", String(MOTH.on));
@@ -5536,6 +6195,14 @@ out("doy").textContent = doyLabel(P.doy); el.doy.value = P.doy;
 out("wind").textContent = WINDWORDS[Math.min(6, (P.wind * 7) | 0)];
 
 el.jump.addEventListener("click", randomSite);
+el.sleep.addEventListener("click", () => {
+  if (SLEEP.asleep) { wake(); return; }
+  const i = SLEEP_STEPS.indexOf(SLEEP.min);
+  SLEEP.min = SLEEP_STEPS[(i + 1) % SLEEP_STEPS.length];
+  SLEEP.endT = performance.now() + SLEEP.min * 60000;
+  if (master && ctx) master.gain.setTargetAtTime(0.9, ctx.currentTime, 0.5);   /* a fade underway lets go */
+  reflectSleep();
+});
 el.share.addEventListener("click", async () => {
   if (!site) return;
   const u = location.origin + location.pathname
@@ -5552,17 +6219,15 @@ el.begin.addEventListener("click", async () => {
   SR = ctx.sampleRate;
   try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch {}
   await ctx.resume();
-  ctx.onstatechange = () => { if (ctx.state !== "running" && !document.hidden) ctx.resume(); };
+  ctx.onstatechange = () => { if (ctx.state !== "running" && !document.hidden && !SLEEP.asleep) ctx.resume(); };
   document.addEventListener("touchend", () => {
-    if (ctx && ctx.state !== "running") ctx.resume();
+    if (ctx && ctx.state !== "running" && !SLEEP.asleep) ctx.resume();
   }, { passive: true });
-  const grabLock = () => { if (navigator.wakeLock)
-    navigator.wakeLock.request("screen").catch(() => {}); };
-  grabLock();
+  holdScreen();
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) return;
-    if (ctx && ctx.state !== "running") ctx.resume();
-    grabLock();
+    if (ctx && ctx.state !== "running" && !SLEEP.asleep) ctx.resume();
+    holdScreen();
   });
 
   comp = ctx.createDynamicsCompressor();
