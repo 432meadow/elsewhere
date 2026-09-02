@@ -113,13 +113,17 @@
     background: transparent; border: 0; padding: 0; font: inherit; cursor: pointer;
     color: var(--s2); touch-action: manipulation;
   }
-  .seg button:hover, .act:hover, .switch:hover { color: var(--s1); }
-  .act:hover { color: var(--warm); }
+  /* hover only where there is a hover: a touch must not leave a switch looking on */
+  @media (hover: hover) {
+    .seg button:hover, .act:hover, .switch:hover { color: var(--s1); }
+    .act:hover { color: var(--warm); }
+    #moth:hover { color: var(--cool); }
+  }
   .act[disabled] { color: var(--s3); cursor: default; }
   .switch[aria-checked="true"] { color: var(--s1); }
   /* the moth button wears the palette's cool blue — muted off, full on */
   #moth { color: color-mix(in srgb, var(--cool) 60%, var(--s2)); }
-  #moth:hover, #moth[aria-checked="true"] { color: var(--cool); }
+  #moth[aria-checked="true"] { color: var(--cool); }
   .seg button:focus-visible, .act:focus-visible, .switch:focus-visible {
     outline: 1px solid var(--focus); outline-offset: 4px;
   }
@@ -4439,7 +4443,7 @@ function play(x, when, o = {}) {
   const g = ctx.createGain(); g.gain.value = amp;
   const az = (o.pan ?? 0) * 90;   /* the voice's bearing, degrees off the listener's nose */
   const pan = ctx.createStereoPanner();
-  pan.pan.value = o.omni ? 0 : HEAD.on ? headPan(az, dist) : (o.pan ?? 0) * (1 - 0.45 * dist);
+  pan.pan.value = o.omni ? 0 : (o.pan ?? 0) * (1 - 0.45 * dist);
   src.connect(lp); lp.connect(g); g.connect(pan);
   const grp = groups[o.group || "air"];
   pan.connect(grp.dry);
@@ -4457,8 +4461,10 @@ function play(x, when, o = {}) {
   src.start(when);
   const durS = x.length / SR;
   src.stop(when + durS + 0.1);
-  if (HEAD.on && !o.omni) {
-    HEAD.live.push({ node: pan, az, dist, until: when + durS + 0.3 });
+  if (!o.omni) {   /* every voice keeps its bearing, so a turn can take the ones already sounding */
+    const v = { pan, lp, g, az, dist, fc: lp.frequency.value, amp, until: when + durS + 0.3 };
+    if (HEAD.on) aimVoice(v, null);
+    HEAD.live.push(v);
     if (HEAD.live.length > 300) HEAD.live.shift();
   }
   if (o.name) visEvents.push({ t: when, name: o.name, pan: o.pan ?? 0, dist, dur: durS });
@@ -6047,46 +6053,70 @@ setInterval(() => { if (!running) stepSleep(0); }, 5000);
    stays where it was. every voice keeps the bearing it was placed at, and
    the compass turns the whole field, live. the way you faced when you
    pressed the button is north */
-const HEAD = { on: false, yaw: 0, zero: null, live: [], lastT: 0, ev: "deviceorientation" };
-function headPan(az, dist) {   /* a bearing off the nose → stereo; behind folds by the ear's own symmetry */
-  return Math.sin((az - HEAD.yaw) * Math.PI / 180) * (1 - 0.45 * dist);
+const HEAD = { on: false, yaw: 0, zero: null, live: [], lastT: 0, shownT: 0, absT: 0 };
+function aimVoice(v, t, tau) {
+  /* a bearing off the nose → stereo, by the ear's own symmetry; what is behind
+     the head is dulled and a touch quieter, which is how you know it is behind */
+  const rel = (v.az - HEAD.yaw) * Math.PI / 180, behind = (1 - Math.cos(rel)) / 2;
+  const pan = Math.sin(rel) * (1 - 0.25 * v.dist), fc = v.fc * (1 - 0.45 * behind), amp = v.amp * (1 - 0.25 * behind);
+  if (t == null) { v.pan.pan.value = pan; v.lp.frequency.value = fc; v.g.gain.value = amp; return; }
+  v.pan.pan.setTargetAtTime(pan, t, tau);
+  v.lp.frequency.setTargetAtTime(fc, t, tau);
+  v.g.gain.setTargetAtTime(amp, t, tau);
 }
 function onHeading(ev) {
+  /* both events are listened for; a true compass reading, when one comes,
+     outranks the relative one for the next second */
+  const nowMs = performance.now();
+  if (ev.type === "deviceorientationabsolute" || ev.absolute) HEAD.absT = nowMs;
+  else if (nowMs - HEAD.absT < 1000) return;
   let h = ev.webkitCompassHeading;
   if (h == null) { if (ev.alpha == null) return; h = 360 - ev.alpha; }
   const so = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
   h = (h + so + 720) % 360;
-  if (HEAD.zero == null) HEAD.zero = h;
+  if (HEAD.zero == null) {   /* the compass settles before the way you face is taken as north */
+    const still = HEAD.prev != null && Math.abs(((h - HEAD.prev + 540) % 360) - 180) < 5;
+    HEAD.prev = h;
+    if (!still || ev.webkitCompassAccuracy < 0) return;
+    HEAD.zero = h;
+  }
   const want = ((h - HEAD.zero + 540) % 360) - 180;
   const d = ((want - HEAD.yaw + 540) % 360) - 180;
   HEAD.yaw += d * 0.2;
-  const nowMs = performance.now();
+  if (nowMs - HEAD.shownT > 200) {   /* the button says how far you have turned */
+    HEAD.shownT = nowMs;
+    el.head.textContent = "[ turned " + Math.round(((HEAD.yaw % 360) + 360) % 360) + "° ]";
+  }
   if (nowMs - HEAD.lastT < 50 || !ctx) return;
   HEAD.lastT = nowMs;
   const t = ctx.currentTime;
   HEAD.live = HEAD.live.filter(v => v.until > t);
-  for (const v of HEAD.live) v.node.pan.setTargetAtTime(headPan(v.az, v.dist), t, 0.05);
+  for (const v of HEAD.live) aimVoice(v, t, 0.05);
 }
 function engageHead() {
   const listen = () => {
-    HEAD.ev = "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation";
-    window.addEventListener(HEAD.ev, onHeading);
-    HEAD.on = true; HEAD.zero = null; HEAD.yaw = 0;
+    window.addEventListener("deviceorientationabsolute", onHeading);
+    window.addEventListener("deviceorientation", onHeading);
+    HEAD.on = true; HEAD.zero = null; HEAD.prev = null; HEAD.yaw = 0; HEAD.absT = 0;
     el.head.setAttribute("aria-checked", "true");
+    el.head.textContent = "[ turned 0° ]";
+    if (ctx) { const t = ctx.currentTime; HEAD.live = HEAD.live.filter(v => v.until > t);
+      for (const v of HEAD.live) aimVoice(v, t, 0.2); }
   };
   /* ios asks first, and only from a tap */
   if (typeof DeviceOrientationEvent !== "undefined" && DeviceOrientationEvent.requestPermission)
     DeviceOrientationEvent.requestPermission()
       .then(s => { if (s === "granted") listen(); else el.head.textContent = "[ turn your head — not allowed ]"; })
-      .catch(() => {});
+      .catch(() => { el.head.textContent = "[ turn your head — no compass ]"; });
   else listen();
 }
 function releaseHead() {
-  window.removeEventListener(HEAD.ev, onHeading);
+  window.removeEventListener("deviceorientationabsolute", onHeading);
+  window.removeEventListener("deviceorientation", onHeading);
   HEAD.on = false; HEAD.yaw = 0;
   el.head.setAttribute("aria-checked", "false");
-  if (ctx) { const t = ctx.currentTime;
-    for (const v of HEAD.live) v.node.pan.setTargetAtTime(headPan(v.az, v.dist), t, 0.2); }
+  el.head.textContent = "[ turn your head ]";
+  if (ctx) { const t = ctx.currentTime; for (const v of HEAD.live) aimVoice(v, t, 0.2); }
   HEAD.live.length = 0;
 }
 

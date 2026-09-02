@@ -134,8 +134,10 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   the owls hoot, and when the light returns there is a false dawn chorus;
   for thousands of km around, a partial dimming
 - **[ turn your head ]** — on a phone, the field can stay fixed to the
-  world: turn, and the thrush stays where it was. every voice keeps the
-  bearing it was placed at and the compass turns the whole field live
+  world: turn, and the thrush stays where it was. the phone is the
+  compass (hold it, or pocket it), headphones on; every voice keeps the
+  bearing it was placed at, the whole field turns live, what is behind
+  you goes dull and a little quiet, and the button counts the degrees
 - **[ sleep ]** — thirty, sixty or ninety minutes, then the world fades
   by ear over its last five and goes under; the screen is let go, and a
   touch wakes it where it stood
