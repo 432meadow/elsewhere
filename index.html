@@ -6062,7 +6062,6 @@ function endPointer(e) {
       && performance.now() - (had.lastT || 0) < 120) {
     GLOBE.spinVel = Math.max(-380, Math.min(380, had.vel));
     GLOBE.target = null;
-    if (running) flingWhoosh(Math.abs(GLOBE.spinVel));
   }
   const isTap = had && had.moved < 8 && performance.now() - had.t < 600;
   if (!isTap || ptrs.size) return;
@@ -6073,19 +6072,6 @@ function endPointer(e) {
 }
 cv.addEventListener("pointerup", endPointer);
 cv.addEventListener("pointercancel", endPointer);
-function flingWhoosh(speed) {
-  /* the air of the world going by */
-  const dur = 0.7 + Math.min(0.6, speed / 500);
-  const n = (dur * SR) | 0, x = new Float32Array(n);
-  const nz = bpA(noiseA(n), 700, 0.6);
-  for (let i = 0; i < n; i++) {
-    const tf = i / n;
-    x[i] = nz[i] * Math.pow(Math.sin(Math.PI * tf), 1.5) * (1 + 0.4 * Math.sin(2 * Math.PI * 1.3 * tf));
-  }
-  normA(x);
-  play(x, ctx.currentTime + 0.02, { dist: 0.25, pan: GLOBE.spinVel > 0 ? -0.4 : 0.4,
-    gain: Math.min(0.45, 0.12 + speed / 700) * P.vAir, group: "air", rev: 0.2 });
-}
 cv.addEventListener("keydown", e => {
   const step = e.shiftKey ? 12 : 4;
   if (e.key === "ArrowLeft") GLOBE.lam += step;
