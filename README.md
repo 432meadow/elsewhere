@@ -140,6 +140,10 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   compass (hold it, or pocket it), headphones on; every voice keeps the
   bearing it was placed at, the whole field turns live, what is behind
   you goes dull and a little quiet, and the button counts the degrees
+- **the page wears the hour** — the two accents follow the site's sun:
+  rose-gold and lavender at first light, ochre and slate through the day,
+  ember and violet at dusk, a moonlit ochre over deep slate at night,
+  blended by the same weights the voices use (an eclipse dims them too)
 - **[ sleep ]** — thirty, sixty or ninety minutes, then the world fades
   by ear over its last five and goes under; the screen is let go, and a
   touch wakes it where it stood

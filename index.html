@@ -5616,6 +5616,7 @@ function tick() {
     for (let i = visEvents.length - 1; i >= 0; i--)
       if (now - visEvents[i].t > Math.min(4, visEvents[i].dur + 1)) visEvents.splice(i, 1);
     statusLine(e);
+    wearHour(e);
     if (now - lastTick > 30 && P.now && !P.lapse) reflectHour();
   } catch (err) {
     const k = "tick:" + String(err && err.message);
@@ -6109,6 +6110,44 @@ function randomSite() {
   }
 }
 
+/* ------------------------------------------------- the hour's colours ---- */
+/* the two accents follow the site's sun: rose-gold and lavender at dawn,
+   ochre and slate through the day, ember and violet at dusk, a moonlit
+   ochre and a deep slate at night — blended by the weights the voices use,
+   in each theme's own values. ?accent= holds one pair still instead */
+const DRESS = {
+  dawn:  ["#c49470", "#8f89ad", "#a06a48", "#6f6a92"],
+  day:   ["#a08558", "#6e8494", "#8a6f42", "#5b7484"],
+  dusk:  ["#c08a5a", "#7a7aa6", "#a0663a", "#5c5c8a"],
+  night: ["#8f8370", "#5f6e94", "#7a6a55", "#4f5c80"],
+  fixed: false, worn: "",
+};
+function wearHour(e) {
+  const root = document.documentElement.style;
+  if (MOTH.on || DRESS.fixed) {   /* the moth has its own dress; a fixed pair keeps it */
+    if (DRESS.worn) { root.removeProperty("--warm"); root.removeProperty("--cool"); DRESS.worn = ""; }
+    return;
+  }
+  const w = { dawn: e.dawn, day: e.day, dusk: e.dusk, night: e.night };
+  let sum = 0; for (const k in w) sum += w[k];
+  if (sum < 0.05) { w.night = 1; sum = 1; }
+  const col = isDark() ? 0 : 2;
+  const mix = i => {
+    let r = 0, g = 0, b = 0;
+    for (const k in w) {
+      const c = parseInt(DRESS[k][i + col].slice(1), 16), f = w[k] / sum;
+      r += (c >> 16) * f; g += ((c >> 8) & 255) * f; b += (c & 255) * f;
+    }
+    return "#" + ((1 << 24) | (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(b)).toString(16).slice(1);
+  };
+  const warm = mix(0), cool = mix(1), key = warm + cool;
+  if (key === DRESS.worn) return;
+  DRESS.worn = key;
+  root.setProperty("--warm", warm); root.setProperty("--cool", cool);
+}
+/* before [ begin ] there is no tick to carry the hour */
+setInterval(() => { if (!running && site) wearHour(envNow()); }, 1000);
+
 /* ------------------------------------------------------------ sleep ------ */
 /* [ sleep ] — the world fades over its last minutes and goes under. the tick
    keeps its thread (there is no road back to [ begin ]) but stops singing,
@@ -6427,6 +6466,7 @@ el.begin.addEventListener("click", async () => {
                     shore: ["#b0785a", "#6f9c92", "#91583c", "#4f7d74"],
                     ember: ["#c9a35f", "#6c7cb0", "#a17f3a", "#4f5f97"] };
   const acc = ACCENTS[params.get("accent")];
+  if (acc) DRESS.fixed = true;
   if (acc) document.head.insertAdjacentHTML("beforeend",
     `<style>:root{--warm:${acc[0]};--cool:${acc[1]}}` +
     `@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--warm:${acc[2]};--cool:${acc[3]}}}` +
