@@ -6421,6 +6421,16 @@ el.begin.addEventListener("click", async () => {
   if (!isNaN(qh)) { P.now = false; P.hour = qh * 60;
     el.now.setAttribute("aria-checked", "false");
     el.hour.value = P.hour; out("hour").textContent = fmtHour(P.hour); }
+  /* ?accent= — another pair of accents tried on for size: sun and night,
+     each with its own dark and light values */
+  const ACCENTS = { dusk: ["#b8925c", "#8f89ad", "#9a7238", "#6f6a92"],
+                    shore: ["#b0785a", "#6f9c92", "#91583c", "#4f7d74"],
+                    ember: ["#c9a35f", "#6c7cb0", "#a17f3a", "#4f5f97"] };
+  const acc = ACCENTS[params.get("accent")];
+  if (acc) document.head.insertAdjacentHTML("beforeend",
+    `<style>:root{--warm:${acc[0]};--cool:${acc[1]}}` +
+    `@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--warm:${acc[2]};--cool:${acc[3]}}}` +
+    `:root[data-theme="light"]{--warm:${acc[2]};--cool:${acc[3]}}</style>`);
   /* the compass only speaks to a secure page */
   if (location.protocol === "http:" && !/^(localhost|127\.)/.test(location.hostname))
     location.replace("https://" + location.host + location.pathname + location.search);
