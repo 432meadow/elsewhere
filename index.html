@@ -18,20 +18,20 @@
     --s3: #4a4b52;        /* dim ink */
     --rule: #2e2e33;
     --focus: #ffffff;
-    --warm: #a08558;       /* day, birds */
+    --warm: #b17c77;       /* day, birds */
     --cool: #6e8494;       /* night, water */
   }
   @media (prefers-color-scheme: light) {
     :root:not([data-theme="dark"]) {
       --bg: #fafafa; --s1: #121212; --s2: #85858c; --s3: #b9b9bf;
       --rule: #e4e4e6; --focus: #121212;
-      --warm: #8a6f42; --cool: #5b7484;
+      --warm: #9d6460; --cool: #5b7484;
     }
   }
   :root[data-theme="light"] {
     --bg: #fafafa; --s1: #121212; --s2: #85858c; --s3: #b9b9bf;
     --rule: #e4e4e6; --focus: #121212;
-    --warm: #8a6f42; --cool: #5b7484;
+    --warm: #9d6460; --cool: #5b7484;
   }
   /* the moth variation: deep night, wing-dust and violet, in any theme */
   :root.moth, :root.moth[data-theme="light"] {
@@ -6111,15 +6111,15 @@ function randomSite() {
 }
 
 /* ------------------------------------------------- the hour's colours ---- */
-/* the two accents follow the site's sun: rose-gold and lavender at dawn,
-   ochre and slate through the day, ember and violet at dusk, a moonlit
-   ochre and a deep slate at night — blended by the weights the voices use,
+/* the two accents follow the site's sun: pale rose and lavender at dawn,
+   dusty rose and slate through the day, coral and violet at dusk, a moonlit
+   mauve and a deep slate at night — blended by the weights the voices use,
    in each theme's own values. ?accent= holds one pair still instead */
 const DRESS = {
-  dawn:  ["#c49470", "#8f89ad", "#a06a48", "#6f6a92"],
-  day:   ["#a08558", "#6e8494", "#8a6f42", "#5b7484"],
-  dusk:  ["#c08a5a", "#7a7aa6", "#a0663a", "#5c5c8a"],
-  night: ["#8f8370", "#5f6e94", "#7a6a55", "#4f5c80"],
+  dawn:  ["#d18d83", "#8f89ad", "#a6655d", "#6f6a92"],
+  day:   ["#b17c77", "#6e8494", "#9d6460", "#5b7484"],
+  dusk:  ["#c9846e", "#7a7aa6", "#a76055", "#5c5c8a"],
+  night: ["#a07c7d", "#5f6e94", "#896365", "#4f5c80"],
   fixed: false, worn: "",
 };
 function wearHour(e) {
@@ -6461,10 +6461,14 @@ el.begin.addEventListener("click", async () => {
     el.now.setAttribute("aria-checked", "false");
     el.hour.value = P.hour; out("hour").textContent = fmtHour(P.hour); }
   /* ?accent= — another pair of accents tried on for size: sun and night,
-     each with its own dark and light values */
+     each with its own dark and light values. coral, peach and sage keep
+     the blue and change only the sun */
   const ACCENTS = { dusk: ["#b8925c", "#8f89ad", "#9a7238", "#6f6a92"],
                     shore: ["#b0785a", "#6f9c92", "#91583c", "#4f7d74"],
-                    ember: ["#c9a35f", "#6c7cb0", "#a17f3a", "#4f5f97"] };
+                    ember: ["#c9a35f", "#6c7cb0", "#a17f3a", "#4f5f97"],
+                    coral: ["#c17565", "#6e8494", "#ac5e4e", "#5b7484"],
+                    peach: ["#b57c5a", "#6e8494", "#9f6642", "#5b7484"],
+                    sage:  ["#7b8f70", "#6e8494", "#647a59", "#5b7484"] };
   const acc = ACCENTS[params.get("accent")];
   if (acc) DRESS.fixed = true;
   if (acc) document.head.insertAdjacentHTML("beforeend",
