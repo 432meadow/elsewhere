@@ -161,4 +161,8 @@ hemisphere at dusk, twilight arc and halo (`tools/make_icon.py`).
 no dependencies, no build, no server. open `index.html` or serve it
 from anywhere static.
 
+© 2026 Simon Toolin Remiszewski — licensed CC BY-NC-SA 4.0, see `LICENSE`:
+share and adapt it with credit, under the same license, not for
+commercial use without asking.
+
 there are also one or two things it will not tell you about.
