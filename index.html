@@ -101,7 +101,8 @@
     padding: 2px 16px 6px; font-size: 13px;
     color: var(--s3); min-height: 32px; font-style: italic;
   }
-  #voicesline span { transition: opacity 3s; }
+  #voicesline span { transition: opacity 3s; display: inline-block; }   /* a name keeps to one line where it can */
+  :root.lost #voicesline { color: var(--s2); }   /* here the names are the point: a shade clearer */
 
   .sect { padding: 18px 16px 2px; color: var(--s2); font-size: 13px; }
   .ctl { display: block; padding: 12px 16px 10px; }
@@ -4465,11 +4466,11 @@ def("nightcranes", { name: "cranes passing in the night", g: "bird",
    elsewhere), described (someone wrote the sound down), inferred (nothing
    survives but the body and its living relatives) — and the less we know,
    the fainter and farther it sings. every range is [lon0, lat0, lon1, lat1]
-   with, where it matters, the real-calendar days it held (d), the words the
-   status line gives it there (by), or its emergence cycle (cyc).
+   with, where it matters, the real-calendar days it held (d), its source
+   there (by), or its emergence cycle (cyc).
    hawaiʻi and aotearoa are left unsung: their lost birds live on in the
    knowledge of their own people, and are theirs to voice. every voice
-   was researched source by source; its `by` line says where it comes from */
+   was researched source by source; its `by` keeps where it comes from */
 const LOST_TIER = {
   recorded:  { g: 1,    d: 0,    r: 0 },
   kin:       { g: 1,    d: 0,    r: 0 },
@@ -5454,6 +5455,40 @@ def("raiateathrush", { name: "raiatea thrushes", g: "bird", n: [1, 1],
       parts.push(tone(ru(0.2, 0.4), [[0, f], [0.5, f * ru(1, 1.12)], [1, f * ru(0.9, 1)]], { harm: [1, 0.2, 0.05], vib: [6, 20], atk: 0.03, rel: 0.08 }), gapN(ru(0.1, 0.3))); }
     return cat(...parts); } });
 
+/* when each was last heard — or last seen, where no one wrote of hearing
+   it; in a cage, where the last one died in one. this is what the page
+   says beside the name. a list follows the order of the voice's ranges.
+   (the `by` of each voice above keeps its source, for whoever reads this) */
+const LOST_LAST = {
+  ppigeon: "1914", ppigeonroost: "1914", cparakeet: "1918", heathhen: "1932", greatauk: "1844",
+  labduck: "1875", ivorybill: ["1944", "1987"], bachman: "1962", eskcurlew: "1963", duskysparrow: "1987",
+  rmlocust: "1904", wolves_lost: ["1786", "c. 1680", "c. 1500", "1905", "c. 1900", "in the 1930s"],
+  elk_east: "in the 1870s", bisonrut: ["in the 1880s", "c. 1830"], brood11: "1954", brood21: "1870",
+  imperialwp: "1956", sbgrackle: "1910",
+  cubanmacaw: "1864", monkseal: "1952", webcoqui: "1976", goldentoad: "1989", rabbs: "2016",
+  goldenfrog: "2009 in the wild", spix: "2000 in the wild", glaucousmacaw: "1951", alagoasfg: "2011",
+  treehunter: "2007", pernowl: "2001", atitlangrebe: "1989", warrah: "1876",
+  aurochs: "1627", tarpan: "1909", slbcurlew: "1995", baiji: "2002", jsealion: "1974", pinkduck: "1935",
+  himquail: "1876", arabostrich: "1966", syrianass: "1927",
+  lions_lost: ["1942", "1942", "in the 1880s", "in the 1860s"], tiger_lost: ["in the 1950s", "1976", "1937"],
+  cheetah_in: "1947", quagga: "1883", nwrhino: "2008 in the wild", stellercow: "1768",
+  graywhale_atl: "c. 1700", codchorus: "1992",
+  dodo: "1662", rsolitaire: "before 1755", greyparrots: ["1764", "1732"], rodstarling: "1726",
+  hoopoestarling: "c. 1840", mblupigeon: "1826", redrail: "1693", flyingfoxes: ["1859", "1862", "1968"],
+  seyparakeet: "1893", alaotragrebe: "1985",
+  thylacine: "1936", gbfrog: ["1981", "1985"], ssdayfrog: "1997", paradiseparrot: "1927", ratkangaroo: "1935",
+  pigfoot: "in the 1950s", toolache: "1939", islandemu: ["1822", "c. 1827"], melomys: "2009",
+  cipipistrelle: "26 august 2009", maclearrat: "1903",
+  lhgerygone: "1928", lhthrush: ["c. 1924", "1975"], tasstarling: ["1919", "1923"], robustwe: "c. 1920",
+  lhboobook: "in the 1950s", norfolkkaka: "1851", wcwhiteeye: "in the 1970s",
+  bridledwe: "1983", guamflycatcher: "1983", boningrosbeak: "1828",
+  tahitisandpiper: "1774", tahitirail: "1844", raiateathrush: "1774",
+};
+function lostLast(sp, r) {
+  const L = LOST_LAST[sp.id];
+  return Array.isArray(L) ? L[Math.max(0, sp.lost.r.indexOf(r))] : L || "";
+}
+
 /* ============================================================ engine ===== */
 let running = false, wetGain, echoNode, echoGain, comp, master, conv = null;
 let sum = null, space = null;   /* linear pre-comp mix bus + the reverb/echo return */
@@ -6256,7 +6291,7 @@ function lostList(s) {
   }
   return out;
 }
-function lostSig(s) { return lostList(s).map(([sp, r]) => sp.id + (r[4] && r[4].by || "")).join("|"); }
+function lostSig(s) { return lostList(s).map(([sp, r]) => sp.id + lostLast(sp, r)).join("|"); }
 function buildLostCast() {
   lostAgents = []; LOST.sayT = 0;
   if (!site) return;
@@ -6268,9 +6303,11 @@ function buildLostCast() {
     const j = (lr() * (i + 1)) | 0; const t = list[i]; list[i] = list[j]; list[j] = t;
   }
   for (const [sp, r] of list) {
-    const T = LOST_TIER[sp.lost.tier], by = (r[4] && r[4].by) || sp.lost.by;
+    /* beside its name, the year it was last heard */
+    const T = LOST_TIER[sp.lost.tier], last = lostLast(sp, r),
+          say = sp.name + (last ? " · last heard " + last : "");
     for (let k = 0, nn = ri2(lr, sp.n ? sp.n[0] : 1, sp.n ? sp.n[1] : 1); k < nn; k++)
-      lostAgents.push({ sp, by, tg: T.g, tr: T.r,
+      lostAgents.push({ sp, say, tg: T.g, tr: T.r,
         dist: Math.min(0.95, ru2(lr, sp.dist[0], sp.dist[1]) + T.d),
         pan: ru2(lr, -0.9, 0.9), nextT: -1, idx: lostAgents.length });
   }
@@ -6334,16 +6371,19 @@ function stepTraces(now, e) {
     if (!x || !running || gen0 !== SYNTH.gen) return;
     play(x, ctx.currentTime + 0.1, { dist: ru(0.5, 0.78), pan: ru(-0.7, 0.7), gain: fader * 0.8,
       group: GROUP_OF[sp.g], rev: (sp.rev ?? 0.15) + 0.2, name: sp.name });
-    announce(t[4], 0);
+    announce(t[4], 0, x.length / SR);
   });
 }
 
 /* ---------------------------------------------------------- announce ----- */
 const heardNames = [];
-function announce(name, dist) {
+function announce(name, dist, hold = 0) {
+  /* hold: seconds the voice itself lasts — its name stays at least that long */
   const label = dist > 0.72 && !name.startsWith("a ") ? name + ", far off" : name;
-  if (heardNames.some(h => h.label === label)) return;
-  heardNames.push({ label, t: performance.now() });
+  const until = performance.now() + Math.max(14000, (hold + 4) * 1000);
+  const was = heardNames.find(h => h.label === label);
+  if (was) { if (hold) was.until = Math.max(was.until, until); return; }
+  heardNames.push({ label, until });
   if (heardNames.length > 5) heardNames.shift();
   renderNames();
 }
@@ -6360,7 +6400,7 @@ function renderNames() {
 setInterval(() => {
   const now = performance.now();
   for (let i = heardNames.length - 1; i >= 0; i--)
-    if (now - heardNames[i].t > 14000) heardNames.splice(i, 1);
+    if (now > heardNames[i].until) heardNames.splice(i, 1);
   renderNames();
 }, 3000);
 
@@ -6744,8 +6784,11 @@ function tick() {
                   group: GROUP_OF[sp.g], rev: (sp.rev ?? 0.15) + (ag.tr || 0), echo: sp.echo, omni: sp.omni,
                   sky: sp.sky, name: sp.name,
                 });
-                /* a lost voice says how it is known */
-                if (arng() < 0.6) announce(ag.by ? sp.name + " · " + ag.by : sp.name, ag.by ? 0 : ag.dist);
+                /* a lost voice is always named, with the year it was last heard,
+                   for as long as it sounds: they are few, and the name is the point */
+                const say = arng() < 0.6;
+                if (ag.say) announce(ag.say, 0, dur);
+                else if (say) announce(sp.name, ag.dist);
                 ag.nextT = t1 + dur + ru2(arng, gapN2[0], gapN2[1]) * (0.7 + 1.6 * (1 - act0));
                 answer(ag, x, t1 + dur, e, fader);
               });

@@ -110,8 +110,8 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   plains; the bison bulls roar in august like distant thunder; the great
   auks croak over the surf of funk island and eldey; the rodrigues
   solitaire whirrs its wings like a rattle; a quagga says its own name.
-  each voice says how it is known, and the less is known the fainter and
-  farther it sings: **recorded** (real audio survives, and the synthesis
+  each voice is named with the year it was last heard, and the less is
+  known of its sound the fainter and farther it sings: **recorded** (real audio survives, and the synthesis
   is measured from it: the ivory-bill's kents at 465 hz with the third
   harmonic leading, bachman's warbler's twenty buzz notes at 5.6–7.8
   khz, the atitlán grebe's pumping, the cryptic treehunter's rattle and
@@ -128,8 +128,7 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   and aotearoa are left unsung: their lost birds live on in the
   knowledge of their own people, and are theirs to voice. where nothing
   lost is known, there is only the wind. every voice was researched
-  source by source, and its doubts kept: the line it sings under says
-  where it comes from
+  source by source, and its doubts kept
 - **[ ride the dawn ]** stands you where the sun is just rising at your
   latitude and carries you west with it, fifteen degrees an hour, so the
   chorus never ends: the realms and biomes pass beneath, and over the sea
