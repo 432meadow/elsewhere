@@ -100,6 +100,36 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   a fluttering night, a clicking night, a courting night — that drifts
   as you listen. location- and temperature-honest like everything else;
   the dub, the drift and the clock all still apply
+- **[ what can no longer be heard ]** is a separate world: the page goes
+  cold and pale, the colour goes out of the globe, and only the lost sing,
+  on their old ranges at their old numbers. passenger pigeon flocks go
+  over the eastern forest with their kecks and the gale of their wings,
+  and the roost keeps up its uproar all night; carolina parakeets cry
+  qui-qui-qui-i-i over the bottomlands; heath hens boom on the coastal
+  barrens; the rocky mountain locust darkens a summer day over the
+  plains; the bison bulls roar in august like distant thunder; the great
+  auks croak over the surf of funk island and eldey; the rodrigues
+  solitaire whirrs its wings like a rattle; a quagga says its own name.
+  each voice says how it is known, and the less is known the fainter and
+  farther it sings: **recorded** (real audio survives, and the synthesis
+  is measured from it: the ivory-bill's kents at 465 hz with the third
+  harmonic leading, bachman's warbler's twenty buzz notes at 5.6–7.8
+  khz, the atitlán grebe's pumping, the cryptic treehunter's rattle and
+  burrs, never played, only measured), **kin** (lost from this place,
+  but the same kind still sings elsewhere: wolves in ireland and japan,
+  lions in the atlas, tigers by the caspian, and at sea whales six to
+  twenty times as many as now), **described** (someone wrote the sound
+  down: craig's metronome marks, hull's lord howe notebook, leguat,
+  steller, ward) and **inferred** (nothing survives but the body and its
+  kin: the dodo, the aurochs, the labrador duck). eighty-odd voices on
+  every continent but antarctica, and the small islands the map is too
+  coarse to draw (mauritius, rodrigues, lord howe, norfolk, christmas
+  island, guam, tahiti, bering island) are now places to stand. hawaiʻi
+  and aotearoa are left unsung: their lost birds live on in the
+  knowledge of their own people, and are theirs to voice. where nothing
+  lost is known, there is only the wind. the research behind every voice,
+  its sources and its doubts, is in `reports/Extinct species sound
+  catalogue.md`
 - **[ ride the dawn ]** stands you where the sun is just rising at your
   latitude and carries you west with it, fifteen degrees an hour, so the
   chorus never ends: the realms and biomes pass beneath, and over the sea
