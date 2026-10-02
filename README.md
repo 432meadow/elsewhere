@@ -121,12 +121,23 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   twenty times as many as now), **described** (someone wrote the sound
   down: craig's metronome marks, hull's lord howe notebook, leguat,
   steller, ward) and **inferred** (nothing survives but the body and its
-  kin: the dodo, the aurochs, the labrador duck). eighty-odd voices on
+  kin: the dodo, the aurochs, the labrador duck). a second pass filled
+  the silences the first left: gibbons singing at dawn across a china
+  that last heard them in the old gazetteers, the corncrake's rasp over
+  the english hay meadows, a sumatran rhinoceros singing in malaya, the
+  javan lapwing's toy trumpet from a naturalist's notebook of 1927, the
+  kihansi spray toad ticking almost inaudibly under its waterfall, the
+  yellow croakers fishermen once found with an ear to the planks, the
+  dnieper rapids before the dam, the springbok trekking across the
+  karoo for days, and the small glaciers that have died, heard as
+  meltwater and a crack now and then. a hundred and thirty-odd voices on
   every continent but antarctica, and the small islands the map is too
   coarse to draw (mauritius, rodrigues, lord howe, norfolk, christmas
-  island, guam, tahiti, bering island) are now places to stand. hawaiʻi
-  and aotearoa are left unsung: their lost birds live on in the
-  knowledge of their own people, and are theirs to voice. where nothing
+  island, guam, tahiti, bering island, guadalupe, wake, bermuda, pinta)
+  are now places to stand. hawaiʻi and aotearoa are left unsung: their
+  lost birds live on in the knowledge of their own people, and are
+  theirs to voice; so are the sounds that belong to a living religion
+  or tradition, the drowned falls of the columbia among them. where nothing
   lost is known, there is only the wind. every voice was researched
   source by source, and its doubts kept
 - **[ ride the dawn ]** stands you where the sun is just rising at your

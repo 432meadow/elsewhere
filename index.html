@@ -4488,6 +4488,9 @@ const LOST_ISLES = [
   [-151.43, -16.83, 0.15, "Raiatea", "trf"], [166.2, 55.0, 0.6, "Bering Island", "tundra"],
   [143.98, -39.87, 0.3, "King Island", "toce"], [137.25, -35.8, 0.6, "Kangaroo Island", "med"],
   [143.87, -9.14, 0.08, "Bramble Cay", "shore"], [-70.62, 41.4, 0.15, "Martha's Vineyard", "toce"],
+  [-118.29, 29.03, 0.3, "Guadalupe Island", "med"], [166.63, 19.29, 0.12, "Wake Island", "shore"],
+  [-64.76, 32.31, 0.22, "Bermuda", "subtrop"], [-78.4, 26.62, 0.55, "Grand Bahama", "subtrop"],
+  [-90.76, 0.58, 0.14, "Pinta, Galápagos", "sav"], [-90.43, -1.3, 0.16, "Floreana, Galápagos", "sav"],
 ];
 function lostRange(sp, lon, lat) {
   if (!sp.lost) return null;
@@ -4550,7 +4553,7 @@ function squawk(dur, f0, f1, o = {}) {
 }
 
 /* ---------------------------------------------------- north america ---- */
-const PP_R = [[-98, 29, -64, 50]];
+const PP_R = [[-98, 29, -66, 50]];
 def("ppigeon", { name: "passenger pigeons", g: "bird", n: [2, 3],
   lost: { tier: "described", by: "after craig, 1911, and audubon", r: PP_R },
   act: e => lostWin(SP.ppigeon, e) * A({ doy: [1, 365], dawn: 1.2, day: 0.8, dusk: 0.9 })(e),
@@ -4603,7 +4606,7 @@ def("ppigeonroost", { name: "the pigeon roost, all night", g: "bird", n: [1, 1],
       }
     })); } });
 def("cparakeet", { name: "carolina parakeets", g: "bird", n: [1, 2],
-  lost: { tier: "described", by: "after swenk and butler", r: [[-100, 25, -73, 43]] },
+  lost: { tier: "described", by: "after swenk and butler", r: [[-100, 25, -79.9, 31], [-100, 31, -73, 43]] },
   act: e => lostWin(SP.cparakeet, e) * A({ doy: [1, 365], dawn: 1.1, day: 0.9, dusk: 1 })(e),
   gap: [30, 90], dist: [0.2, 0.6], rev: 0.2,
   gen(e) { const dur = ru(5, 10);
@@ -4768,11 +4771,12 @@ lostKin("wolves_lost", "wolves", "wolf", { dist: [0.45, 0.85], gap: [700, 1800],
   [-7.8, 54.6, -0.7, 59, { by: "gone from scotland since about 1680" }],
   [-6, 49.9, 1.8, 54.6, { by: "gone from england since about 1500" }],
   [129.5, 31, 142.2, 41.6, { by: "the japanese wolf, gone since 1905" }],
-  [-100, 25, -66, 47.5, { by: "gone from here by the 1900s" }],
+  [-100, 25, -79.9, 31, { by: "gone from here by the 1900s" }],
+  [-100, 31, -66, 47.5, { by: "gone from here by the 1900s" }],
   [-125, 32, -100, 49, { by: "gone from most of here by the 1930s" }]] });
 lostKin("elk_east", "elk bugling", "elk", { by: "gone from the east by the 1870s", r: [[-92, 33, -73, 45]] });
 def("bisonrut", { name: "the bison herds", g: "beast", n: [1, 2],
-  lost: { tier: "kin", by: "gone from here by the 1880s", r: [[-114, 26, -90, 58], [-90, 30, -78, 43, { by: "gone from the east by 1830" }]] },
+  lost: { tier: "kin", by: "gone from here by the 1880s", r: [[-114, 37, -90, 58], [-106, 26, -90, 37], [-90, 30, -78, 43, { by: "gone from the east by 1830" }]] },
   act: e => lostWin(SP.bisonrut, e) * (["des", "son", "ice"].includes(site.biome) ? 0.2 : 1)
     * A({ doy: [1, 365], day: 0.5, dawn: 0.8, dusk: 0.9, night: 0.6 })(e),
   gap: [40, 150], dist: [0.45, 0.9], rev: 0.35,
@@ -4808,13 +4812,20 @@ def("brood21", { name: "brood xxi cicadas", g: "bug", n: [1, 2],
         add(buzzNote(ru(1, 1.5), ru(5800, 6400), 400, ru(180, 240), { rise: 0.05, atk: 0.1, rel: 0.2 }), at + 0.6, ru(0.2, 0.6));
       } } })); } });
 def("imperialwp", { name: "imperial woodpeckers", g: "bird", n: [1, 1],
-  lost: { tier: "inferred", by: "imagined from the ivory-bill", r: [[-109, 18.5, -101.5, 31]] },
-  act: e => lostWin(SP.imperialwp, e) * A({ doy: [1, 365], dawn: 1.2, day: 0.6 })(e),
-  gap: [30, 90], dist: [0.3, 0.7], rev: 0.3,
-  gen() { const parts = [], f0 = ru(360, 400);   /* a bigger body, a lower toy trumpet */
-    for (let k = 0, m = ri(2, 6); k < m; k++) parts.push(kentNote(f0, ru(0.1, 0.14)), gapN(ru(0.2, 0.6)));
-    if (Math.random() < 0.4) parts.push(gapN(1), knockBuf(700, 0.04, 3), gapN(0.08), scaleA(knockBuf(700, 0.035, 3), 0.6));
-    return cat(...parts); } });
+  lost: { tier: "described", by: "after nelson, 1898", r: [[-109, 18.5, -101.5, 31]] },
+  act: e => lostWin(SP.imperialwp, e) * A({ doy: [1, 365], dawn: 1.6, day: 0.25 })(e),
+  gap: [20, 70], dist: [0.3, 0.7], rev: 0.3,
+  gen() { /* nelson heard them from just before sunrise: "queer, nasal,
+             penny-trumpet-like notes", weak for so powerful a bird yet heard
+             at a mile, a party of five to ten; the drumming louder and slower
+             than any other woodpecker's */
+    if (Math.random() < 0.3) { const parts = [];
+      for (let k = 0, m = ri(3, 7); k < m; k++) parts.push(knockBuf(ru(600, 800), 0.05, 2.5), gapN(ru(0.28, 0.36)));
+      return cat(...parts); }
+    const dur = ru(3, 6);
+    return scaleA(normA(lmix(dur, add => { for (let b = 0, nb = ri(2, 4); b < nb; b++) { const f0 = ru(520, 620);
+      for (let t = ru(0, 1.5); t < dur - 0.4; t += ru(0.35, 1.1))
+        add(tone(ru(0.14, 0.22), [[0, f0 * 1.05], [1, f0 * 0.93]], { harm: [0.4, 0.5, 1, 0.9, 0.5, 0.3], noise: 0.08, atk: 0.01, rel: 0.04 }), t, ru(0.4, 1)); } })), 0.7); } });
 def("sbgrackle", { name: "slender-billed grackles", g: "bird", n: [1, 1],
   lost: { tier: "inferred", by: "imagined from its kin", r: [[-99.9, 18.9, -98.7, 20]] },
   act: e => lostWin(SP.sbgrackle, e) * A({ doy: [1, 365], dawn: 1.1, day: 0.7, dusk: 0.8 })(e),
@@ -4866,26 +4877,28 @@ def("goldentoad", { name: "golden toads, nearly silent", g: "frog", n: [1, 1],
     return scaleA(tone(0.05, [[0, 900], [1, 780]], { harm: [1, 0.3], noise: 0.3, atk: 0.004, rel: 0.02 }), 0.4); } });
 def("rabbs", { name: "rabbs' fringe-limbed treefrog", g: "frog", n: [1, 2],
   lost: { tier: "recorded", by: "from toughie, the last one, recorded 2014", r: [[-80.35, 8.4, -79.9, 8.8]] },
-  act: e => lostWin(SP.rabbs, e) * A({ doy: [1, 365], night: 1, dusk: 0.8 })(e) * (inDoy(e.rdoy ?? e.doy, 70, 150) ? 1 : 0.4),
-  gap: [8, 30], dist: [0.15, 0.5],
-  gen() { /* grrrck, repeated at even intervals, sometimes after a few warm-up notes */
-    const grr = () => { const mk = () => knockBuf(ru(1300, 1700), 0.006, 3);
-      return scaleA(pulses(ri(9, 13), 85, mk, { jit: 0.08 }), 1); };
+  act: e => lostWin(SP.rabbs, e) * A({ doy: [1, 365], night: 1 })(e) * (inDoy(e.rdoy ?? e.doy, 70, 150) ? 1 : 0.4)
+    * (0.6 + 0.6 * MOONF),   /* it called most around the full moon */
+  gap: [6, 20], dist: [0.15, 0.5],
+  gen() { /* from a tree hole, at night: three to five owl-like warm-up notes, then a single grrrrrck */
     const parts = [];
-    if (Math.random() < 0.4) for (let k = 0, m = ri(3, 5); k < m; k++)
-      parts.push(scaleA(pulses(ri(3, 4), 85, () => knockBuf(1500, 0.005, 3)), 0.5), gapN(0.15));
-    for (let k = 0, m = ri(3, 7); k < m; k++) parts.push(grr(), gapN(ru(1.6, 2.2)));
+    for (let k = 0, m = ri(3, 5); k < m; k++)
+      parts.push(scaleA(tone(0.09, [[0, 620], [1, 560]], { harm: [1, 0.3, 0.1], atk: 0.02, rel: 0.04 }), 0.5), gapN(ru(0.25, 0.4)));
+    parts.push(pulses(ri(16, 24), 85, () => knockBuf(ru(1300, 1700), 0.006, 3), { jit: 0.08 }));
     return cat(...parts); } });
 def("goldenfrog", { name: "panamanian golden frogs", g: "frog", n: [1, 2],
   lost: { tier: "recorded", by: "from captive frogs, 2023: gone from the wild", r: [[-81, 8.2, -79.5, 9]] },
-  act: e => lostWin(SP.goldenfrog, e) * A({ doy: [1, 365], day: 1, dawn: 0.6 })(e),
+  act: e => lostWin(SP.goldenfrog, e) * A({ doy: [1, 365], dawn: 1.1, day: 0.6, dusk: 1 })(e),
   gap: [10, 30], dist: [0.1, 0.4],
-  gen() { /* by the loud streams, by day: chirps and pulsed trills */
-    const f = ru(1900, 2300), parts = [];
-    if (Math.random() < 0.5) parts.push(pulses(ri(12, 30), ru(60, 80), () => tone(0.008, [[0, f], [1, f]], { harm: [1, 0.5, 0.3], atk: 0.001, rel: 0.004 })));
-    else for (let k = 0, m = ri(2, 4); k < m; k++)
-      parts.push(tone(0.05, [[0, f * 0.95], [1, f * 1.05]], { harm: [1, 0.5, 0.3, 0.15], atk: 0.004, rel: 0.015 }), gapN(ru(0.2, 0.5)));
-    return cat(...parts); } });
+  gen() { /* by the loud streams, morning and late afternoon: one utterance
+             of up to fifty pulses, 0.39-0.65 s, the first few spaced wider;
+             1.7-2.4 khz with a second band near 6 (plos one, 2023) */
+    const f = ru(1700, 2400), parts = [], m = ri(34, 50);
+    for (let k = 0; k < m; k++) {
+      const p = tone(0.006, [[0, f], [1, f]], { harm: [1, 0.25, 0.5], atk: 0.001, rel: 0.003 });
+      parts.push(p, gapN((k < 4 ? ru(0.014, 0.02) : ru(0.0079, 0.0111)) - 0.006));
+    }
+    return env3(cat(...parts), 0.02, 0.05); } });
 def("spix", { name: "spix's macaws", g: "bird", n: [1, 1],
   lost: { tier: "recorded", by: "from the last wild male, 2000", r: [[-40.8, -10.3, -38.3, -8.3]] },
   act: e => lostWin(SP.spix, e) * A({ doy: [1, 365], dawn: 1.3, dusk: 1.2, day: 0.4 })(e),
@@ -5058,7 +5071,8 @@ def("tiger_lost", { name: "a tiger", g: "beast", n: [1, 1],
   lost: { tier: "kin", by: "gone from here", r: [
     [26, 35, 90, 46.5, { by: "the caspian tiger, gone since the 1950s" }],
     [105, -8.9, 114.6, -5.8, { by: "the javan tiger, gone since 1976" }],
-    [114.4, -8.9, 115.8, -8, { by: "the bali tiger, gone since 1937" }]] },
+    [114.4, -8.9, 115.8, -8, { by: "the bali tiger, gone since 1937" }],
+    [102.3, 10.4, 107.6, 14.7], [102.1, 8.5, 109.5, 23.4], [100.1, 13.9, 107.7, 22.5], [108, 22, 120, 31]] },
   act: e => lostWin(SP.tiger_lost, e) * A({ doy: [1, 365], night: 1, dusk: 0.8, dawn: 0.6 })(e),
   gap: [900, 2600], dist: [0.45, 0.85], rev: 0.45,
   gen() { /* the long moaning roar, aaonh, and the soft chuff of prusten */
@@ -5115,7 +5129,7 @@ def("stellercow", { name: "a steller's sea cow, breathing", g: "beast", n: [4, 7
     const sigh = normA(lpA(noiseA((ru(0.6, 1) * SR) | 0), 500)); swell(sigh, 1.5);
     return cat(normA(x), gapN(ru(0.3, 0.8)), scaleA(sigh, 0.5)); } });
 def("graywhale_atl", { name: "a gray whale", g: "beast", n: [1, 1],
-  lost: { at: "coast", tier: "kin", by: "gone from the atlantic since the 1700s", r: [[-80, 30, -50, 48], [-25, 43, 12, 66]] },
+  lost: { at: "coast", tier: "kin", by: "gone from the atlantic since the 1700s", r: [[-81, 30, -66, 46], [-25, 43, 12, 66]] },
   act: e => lostWin(SP.graywhale_atl, e) * (site.biome === "sea" || site.coastDeg < 0.8 ? 1 : 0) * A({ doy: [1, 365], day: 0.6, dawn: 0.6, dusk: 0.6, night: 0.3 })(e),
   gap: [300, 900], dist: [0.35, 0.8],
   gen() { /* the blow; at sea, through the hull, a set of knocks */
@@ -5264,18 +5278,23 @@ def("gbfrog", { name: "gastric-brooding frogs", g: "frog", n: [2, 4],
     [152.3, -27.1, 153.05, -26.2, { d: [265, 345] }], [148.2, -21.4, 148.9, -20.7, { d: [265, 345] }]] },
   act: e => lostWin(SP.gbfrog, e) * A({ doy: [1, 365], night: 1, dusk: 0.6 })(e),
   gap: [5.5, 7.5], dist: [0.1, 0.45],
-  gen() { /* an upward-inflected call of some thirty pulses, near 1 khz, every six or seven seconds */
-    const m = ri(30, 34), parts = [];
-    for (let k = 0; k < m; k++) { const f = 850 + 330 * k / m;
-      parts.push(tone(0.0055, [[0, f], [1, f]], { harm: [0.6, 1, 0.4, 0.3], atk: 0.001, rel: 0.003, decay: 0 }), gapN(0.003)); }
-    return env3(cat(...parts), 0.03, 0.05); } });
+  gen() { /* the southern frog: half a second of pulses with a slight upward
+             turn, every six seconds. the northern: several staccato notes,
+             deeper and shorter, and less often */
+    const parts = [];
+    if (site && site.lat > -24) { for (let k = 0, m = ri(3, 5); k < m; k++)
+        parts.push(tone(0.07, [[0, 650], [1, 700]], { harm: [0.6, 1, 0.4, 0.3], noise: 0.1, atk: 0.004, rel: 0.02 }), gapN(0.11));
+      parts.push(gapN(ru(3, 7))); return cat(...parts); }
+    const m = ri(30, 34);
+    for (let k = 0; k < m; k++) { const f = 930 + 170 * k / m;
+      parts.push(tone(0.008, [[0, f], [1, f]], { harm: [0.6, 1, 0.4, 0.3], atk: 0.001, rel: 0.004, decay: 0 }), gapN(0.0075)); }
+    return env3(cat(...parts), 0.04, 0.07); } });
 def("ssdayfrog", { name: "sharp-snouted day frogs", g: "frog", n: [1, 2],
-  lost: { tier: "described", by: "after the field notes", r: [[145.3, -18.2, 146.1, -16.4, { d: [300, 30] }]] },
-  act: e => lostWin(SP.ssdayfrog, e) * A({ doy: [1, 365], day: 1, dawn: 0.6, dusk: 0.4 })(e),
+  lost: { tier: "described", by: "after liem & hosmer, 1973", r: [[145.3, -18.2, 146.1, -16.4, { d: [320, 35] }]] },
+  act: e => lostWin(SP.ssdayfrog, e) * A({ doy: [1, 365], day: 1, dawn: 0.6, dusk: 0.5, night: 0.4 })(e),
   gap: [8, 25], dist: [0.1, 0.4],
-  gen() { const parts = [];   /* a fast metallic tinkling at the torrent, by day */
-    for (let k = 0, m = ri(6, 12); k < m; k++)
-      parts.push(tone(0.028, [[0, ru(3600, 4300)], [1, 3500]], { harm: [1, 0.5, 0.3], atk: 0.001, rel: 0.012 }), gapN(0.055));
+  gen() { const parts = [];   /* "a sharp pitched tapping sound repeated 3-4 times in quick succession" */
+    for (let k = 0, m = ri(3, 4); k < m; k++) parts.push(knockBuf(ru(2600, 3200), 0.014, 3.5), gapN(0.1));
     return cat(...parts); } });
 def("paradiseparrot", { name: "paradise parrots", g: "bird", n: [1, 1],
   lost: { tier: "inferred", by: "imagined from its kin", r: [[148, -28.6, 152.6, -23.8]] },
@@ -5312,7 +5331,7 @@ def("toolache", { name: "toolache wallabies", g: "beast", n: [1, 1],
     for (let a = 0, na = ri(3, 6); a < na; a++) { let t = ru(0, 1);
       for (let k = 0, m = ri(5, 10); k < m; k++) { add(thud(ru(70, 120), 0.08), t, ru(0.3, 1) * (1 - k / m)); t += ru(0.28, 0.36); } } })); } });
 def("islandemu", { name: "island emus, drumming", g: "bird", n: [1, 1],
-  lost: { tier: "inferred", by: "imagined from the emu", r: [[143.7, -40.2, 144.2, -39.5], [136.5, -36.2, 138.2, -35.5]] },
+  lost: { tier: "inferred", by: "imagined from the emu", r: [[143.7, -40.2, 144.2, -39.5], [136.5, -36.2, 138.2, -35.5], [144.5, -43.7, 148.5, -40.6]] },
   act: e => lostWin(SP.islandemu, e) * A({ doy: [1, 365], dawn: 1, dusk: 1, night: 0.5 })(e),
   gap: [60, 200], dist: [0.3, 0.7], rev: 0.25,
   gen() { const parts = [];   /* the low drum, a smaller bird's, pitched a little higher */
@@ -5455,6 +5474,486 @@ def("raiateathrush", { name: "raiatea thrushes", g: "bird", n: [1, 1],
       parts.push(tone(ru(0.2, 0.4), [[0, f], [0.5, f * ru(1, 1.12)], [1, f * ru(0.9, 1)]], { harm: [1, 0.2, 0.05], vib: [6, 20], atk: 0.03, rel: 0.08 }), gapN(ru(0.1, 0.3))); }
     return cat(...parts); } });
 
+/* ------------------------------------------- the second pass: the gaps --- */
+/* what the first cast left silent. most of the strongest are kin: loud
+   voices alive somewhere, gone from a mapped place since a known year.
+   left out on purpose, because the sound belongs to a living religion or
+   tradition: celilo, kettle and guaíra falls, the sturgeon's drumming at
+   keshena, the gods' crossing on lake suwa, kariba gorge, the bush
+   stone-curlew's wail, and what is known of a voice only through a
+   community's own telling */
+const GUADALUPE = [[-118.6, 28.7, -118.0, 29.35]];
+def("javanlapwing", { name: "javan lapwings", g: "bird", n: [1, 2],
+  lost: { tier: "described", by: "after spennemann's notes, 1927–28", r: [[106.6, -6.6, 108.4, -5.9], [112.6, -8.5, 114.4, -8.0]] },
+  act: e => lostWin(SP.javanlapwing, e) * A({ doy: [1, 365], dusk: 1.4, dawn: 0.6, day: 0.4, night: 0.3 })(e),
+  gap: [20, 60], dist: [0.2, 0.6], rev: 0.2,
+  gen() { /* rattling, toy-trumpet calls, written down like a score: tret tret
+             tret trettrt! — tat tat tat tat, tahhhhht! — trrrek-terrrr! — krahhh! */
+    const f0 = ru(760, 900);
+    const tr = (d, rattle) => { const x = tone(d, [[0, f0], [1, f0 * ru(0.94, 1.02)]],
+        { harm: [0.6, 1, 0.8, 0.5, 0.3, 0.15], noise: 0.12, atk: 0.004, rel: 0.02 });
+      if (rattle) for (let i = 0; i < x.length; i++) x[i] *= 0.3 + 0.7 * Math.pow(0.5 + 0.5 * Math.sin(2 * Math.PI * rattle * i / SR), 2);
+      return x; };
+    const r = Math.random(), parts = [];
+    if (r < 0.35) { for (let k = 0; k < 3; k++) parts.push(tr(0.07, 0), gapN(0.11)); parts.push(tr(0.16, 48)); }
+    else if (r < 0.65) { for (let k = 0; k < 4; k++) parts.push(tr(0.06, 0), gapN(0.12)); parts.push(gapN(0.25), tr(ru(0.45, 0.6), 0)); }
+    else if (r < 0.85) parts.push(tr(0.28, 42), gapN(0.08), tr(ru(0.4, 0.55), 42));
+    else for (let k = 0, m = ri(1, 3); k < m; k++) parts.push(squawk(ru(0.3, 0.45), f0 * 1.3, f0, { noise: 0.4 }), gapN(ru(0.3, 0.6)));
+    return cat(...parts); } });
+def("bahamanuthatch", { name: "bahama nuthatches", g: "bird", n: [1, 2],
+  lost: { tier: "recorded", by: "measured by levy & cox from the 2012 recording", r: [[-78.95, 26.45, -77.85, 26.85]] },
+  act: e => lostWin(SP.bahamanuthatch, e) * A({ doy: [1, 365], dawn: 1.2, day: 0.8 })(e),
+  gap: [8, 22], dist: [0.15, 0.45],
+  gen() { /* the two-syllable "rubber ducky": a slur down to its peak near
+             6.1 khz, then 6.4; 0.27 s in all, higher than its mainland kin */
+    const parts = [];
+    for (let k = 0, m = ri(2, 5); k < m; k++)
+      parts.push(tone(0.16, [[0, 7400], [0.5, 6100], [1, 5000]], { harm: [1, 0.25], noise: 0.08, atk: 0.006, rel: 0.02 }), gapN(0.04),
+        tone(0.07, [[0, 6200], [1, 6500]], { harm: [1, 0.25], atk: 0.004, rel: 0.02 }), gapN(ru(0.18, 0.5)));
+    return cat(...parts); } });
+def("pwgrounddove", { name: "purple-winged ground doves", g: "bird", n: [1, 1],
+  lost: { tier: "recorded", by: "from a captive tape, keller, 1992", r: [[-56.5, -28.5, -39, -13]] },
+  act: e => lostWin(SP.pwgrounddove, e) * (["trf", "subtrop", "tfor", "toce"].includes(site.biome) ? 1 : 0.2) * A({ doy: [1, 365], dawn: 1.1, day: 0.6 })(e),
+  gap: [30, 90], dist: [0.25, 0.6], rev: 0.3,
+  gen() { const parts = [];   /* a rising coo of half a second, below 500 hz, in the bamboo */
+    for (let k = 0, m = ri(3, 6); k < m; k++)
+      parts.push(tone(0.5, [[0, ru(310, 340)], [0.7, 430], [1, 450]], { harm: [1, 0.2], atk: 0.08, rel: 0.12 }), gapN(ru(1.5, 2.6)));
+    return cat(...parts); } });
+def("gpetrel", { name: "guadalupe storm petrels", g: "bird", n: [1, 2],
+  lost: { tier: "described", by: "after bryant, 1887", r: GUADALUPE.map(r => [...r, { d: [1, 170] }]) },
+  act: e => lostWin(SP.gpetrel, e) * A({ doy: [1, 365], night: 1 })(e) * Math.max(0, 1 - 1.6 * MOONF),   /* only on the darkest nights */
+  gap: [10, 30], dist: [0.15, 0.5], sky: true,
+  gen() { /* a hurried flight call, "here's-a-letter, here's-a-letter",
+             answered out of the dark: "for you, for you" */
+    const sq = (d, a, b, g) => scaleA(tone(d, [[0, a], [1, b]], { harm: [1, 0.4, 0.15], noise: 0.25, atk: 0.004, rel: 0.02 }), g);
+    const letter = () => cat(sq(0.06, 2300, 2500, 0.8), gapN(0.03), sq(0.05, 2000, 2100, 0.6), gapN(0.03), sq(0.1, 2700, 2400, 1), gapN(0.03), sq(0.07, 1900, 1700, 0.7));
+    return cat(letter(), gapN(0.12), letter(), gapN(ru(0.5, 1.2)),
+      sq(0.12, 1500, 1350, 0.45), gapN(0.05), sq(0.2, 1200, 1050, 0.5), gapN(0.2), sq(0.12, 1500, 1350, 0.4), gapN(0.05), sq(0.2, 1200, 1050, 0.45)); } });
+def("gkinglet", { name: "guadalupe kinglets", g: "bird", n: [1, 2],
+  lost: { tier: "described", by: "after bryant, 1887", r: GUADALUPE.map(r => [...r, { d: [330, 125] }]) },
+  act: e => lostWin(SP.gkinglet, e) * A({ doy: [1, 365], dawn: 1.2, day: 0.9 })(e),
+  gap: [8, 20], dist: [0.15, 0.45],
+  gen() { /* a few low quick notes, a full animated warble, and a disyllable,
+             accented on the first, three to six times over */
+    const parts = [];
+    for (let k = 0, m = ri(3, 5); k < m; k++) parts.push(scaleA(tone(0.05, [[0, 6600], [1, 6900]], { harm: [1], atk: 0.004, rel: 0.012 }), 0.4), gapN(0.07));
+    for (let k = 0, m = ri(8, 14); k < m; k++) { const f = ru(3000, 4600);
+      parts.push(tone(ru(0.04, 0.07), [[0, f], [1, f * ru(0.85, 1.2)]], { harm: [1, 0.15], atk: 0.003, rel: 0.012 }), gapN(0.02)); }
+    for (let k = 0, m = ri(3, 6); k < m; k++)
+      parts.push(tone(0.11, [[0, 3900], [1, 3600]], { harm: [1, 0.15], atk: 0.005, rel: 0.02 }), gapN(0.03),
+        scaleA(tone(0.07, [[0, 2900], [1, 3100]], { harm: [1, 0.15], atk: 0.005, rel: 0.02 }), 0.6), gapN(0.07));
+    return cat(...parts); } });
+def("gtowhee", { name: "guadalupe towhees", g: "bird", n: [1, 1],
+  lost: { tier: "described", by: "after bryant, 1887", r: GUADALUPE },
+  act: e => lostWin(SP.gtowhee, e) * A({ doy: [40, 200], dawn: 1.6, day: 0.3 })(e),
+  gap: [8, 20], dist: [0.2, 0.5],
+  gen() { /* from a cypress top at dawn: a single quick note, a bluebird's, and then the trill */
+    return cat(scaleA(tone(0.07, [[0, 2300], [1, 2600]], { harm: [1, 0.2], atk: 0.01, rel: 0.03 }), 0.6), gapN(0.12),
+      buzzNote(ru(0.7, 1), ru(4300, 4800), 500, ru(28, 36), { atk: 0.02, rel: 0.1 })); } });
+def("gcaracara", { name: "guadalupe caracaras", g: "bird", n: [1, 1],
+  lost: { tier: "described", by: "after palmer, 1875", r: GUADALUPE },
+  act: e => lostWin(SP.gcaracara, e) * A({ doy: [1, 365], day: 0.5, dawn: 0.4 })(e),
+  gap: [120, 400], dist: [0.25, 0.6], rev: 0.25,
+  gen() { /* mostly silent: a loud harsh scream when surprised, and before a
+             fight a curious gabbling, the head thrown back */
+    if (Math.random() < 0.5) return squawk(ru(0.5, 0.8), ru(1900, 2300), ru(1500, 1800), { noise: 0.5 });
+    return pulses(ri(12, 22), ru(16, 22), () => tone(0.03, [[0, ru(500, 700)], [1, 450]], { harm: [1, 0.8, 0.5, 0.3], noise: 0.45, atk: 0.002, rel: 0.012 }), { jit: 0.12 }); } });
+def("gflicker", { name: "guadalupe flickers", g: "bird", n: [1, 1],
+  lost: { tier: "described", by: "after bryant, 1887", r: GUADALUPE },
+  act: e => lostWin(SP.gflicker, e) * A({ doy: [1, 365], dawn: 1.1, day: 0.7 })(e),
+  gap: [20, 60], dist: [0.2, 0.55],
+  gen() { /* the wake-up call and its quick prelude; the scythe-whetting notes; a low chuckle */
+    const k = (a, b, d = 0.07) => tone(d, [[0, a], [1, b]], { harm: [1, 0.45, 0.2], noise: 0.1, atk: 0.005, rel: 0.02 });
+    const r = Math.random(), parts = [];
+    if (r < 0.45) for (let i = 0, m = ri(14, 30); i < m; i++) parts.push(k(2500, 2200), gapN(0.09));
+    else if (r < 0.85) { for (let i = 0; i < 3; i++) parts.push(scaleA(k(2100, 2000, 0.04), 0.5), gapN(0.07));
+      for (let i = 0, m = ri(4, 8); i < m; i++) parts.push(k(1900, 2500, 0.08), gapN(0.03), k(2300, 1700, 0.09), gapN(0.12)); }
+    else for (let i = 0, m = ri(4, 7); i < m; i++) parts.push(scaleA(k(900, 800, 0.05), 0.4), gapN(0.1));
+    return cat(...parts); } });
+def("corncrake_lost", { name: "corncrakes", g: "bird", n: [1, 2],
+  lost: { tier: "kin", by: "measured by budka & osiejuk, 2014", r: [[-5.5, 50, 1.8, 53], [-3.6, 53, 0.2, 55.8]] },
+  act: e => lostWin(SP.corncrake_lost, e) * A({ doy: [125, 200], night: 1.2, dusk: 0.6, dawn: 0.5 })(e),
+  gap: [3, 9], dist: [0.2, 0.6],
+  gen() { /* crex crex: two syllables, each a burst of 14-22 pulses 7-13 ms
+             apart, the energy at 3.4-6.1 khz, once a second through the night */
+    const syl = () => normA(bpA(bpA(pulses(ri(14, 22), 1 / ru(0.008, 0.012), () => knockBuf(ru(3400, 6100), 0.004, 1.6), { jit: 0.1 }), 4700, 1.3), 4700, 1.3));
+    const parts = [];
+    for (let k = 0, m = ri(8, 22); k < m; k++) parts.push(syl(), gapN(0.16), syl(), gapN(ru(0.45, 0.6)));
+    return cat(...parts); } });
+def("pchicken_lost", { name: "prairie-chickens booming", g: "bird", n: [1, 1],
+  lost: { tier: "kin", by: "boom measured at 299 hz, 1.89 s", r: [[-114, 49, -96, 53.5], [-89, 36.5, -81, 42]] },
+  act: e => lostWin(SP.pchicken_lost, e) * A({ doy: [75, 125], dawn: 2, day: 0.1 })(e),
+  gap: [3, 8], dist: [0.35, 0.7], rev: 0.3,
+  gen() { return SP.heathhen.gen({}); } });
+def("siberiancrane", { name: "siberian cranes", g: "bird", n: [1, 1],
+  lost: { tier: "kin", by: "dominant near 1.4 khz", r: [[75, 21, 86, 28.5, { d: [300, 85] }]] },
+  act: e => lostWin(SP.siberiancrane, e) * (site.water.marsh || site.water.lake ? 1 : 0.4) * A({ doy: [1, 365], dawn: 1.1, day: 0.7, dusk: 0.8 })(e),
+  gap: [40, 120], dist: [0.3, 0.7], rev: 0.25,
+  gen(e) { /* a flute-like toyoya, unlike any other crane's trumpet; the pair in duet, hers the higher */
+    const call = f => cat(tone(0.14, [[0, f * 0.93], [1, f * 1.03]], { harm: [1, 0.3, 0.1], atk: 0.02, rel: 0.03 }), gapN(0.03),
+      tone(0.2, [[0, f * 1.07], [1, f * 1.05]], { harm: [1, 0.3, 0.1], atk: 0.02, rel: 0.04 }), gapN(0.03),
+      tone(0.26, [[0, f], [1, f * 0.9]], { harm: [1, 0.3, 0.1], atk: 0.02, rel: 0.08 }));
+    const dur = ru(4, 7);
+    return normA(lmix(dur, add => { for (let t = 0; t < dur - 1; t += ru(0.9, 1.5)) {
+      add(call(1400 * ru(0.97, 1.03)), t, 1); if (!(e && e.solo)) add(call(1620 * ru(0.97, 1.03)), t + ru(0.3, 0.5), 0.7); } })); } });
+def("buttonquail", { name: "andalusian buttonquails", g: "bird", n: [1, 1],
+  lost: { tier: "kin", by: "the torillo, alive in morocco", r: [[-7.5, 36, -5.3, 37.5]] },
+  act: e => lostWin(SP.buttonquail, e) * A({ doy: [90, 240], dawn: 1, dusk: 1, night: 0.6, day: 0.2 })(e),
+  gap: [20, 60], dist: [0.2, 0.55],
+  gen() { /* the hen's deep hoom, hoom, hoom, like cattle lowing far off: the "little bull" */
+    const parts = []; const m = ri(3, 7);
+    for (let k = 0; k < m; k++)
+      parts.push(scaleA(tone(ru(0.7, 0.9), [[0, 175], [0.6, 195], [1, 190]], { harm: [1, 0.3, 0.1], atk: 0.15, rel: 0.2 }), 0.5 + 0.5 * k / m), gapN(ru(0.5, 0.8)));
+    if (Math.random() < 0.3) { parts.push(gapN(0.6));   /* and the cock answers */
+      for (let k = 0; k < 4; k++) parts.push(tone(0.05, [[0, 1500], [1, 1300]], { harm: [1, 0.5], noise: 0.3, atk: 0.003, rel: 0.02 }), gapN(0.12)); }
+    return cat(...parts); } });
+def("wncrow", { name: "white-necked crows", g: "bird", n: [1, 1],
+  lost: { tier: "kin", by: "alive on hispaniola", r: [[-67.3, 17.9, -65.6, 18.5]] },
+  act: e => lostWin(SP.wncrow, e) * A({ doy: [1, 365], dawn: 1.1, day: 0.7, dusk: 0.8 })(e),
+  gap: [25, 70], dist: [0.25, 0.6], rev: 0.25,
+  gen() { const parts = [];   /* more parrot than crow: liquid bubbling, squawks, babble */
+    for (let k = 0, m = ri(5, 12); k < m; k++) {
+      const r = Math.random();
+      parts.push(r < 0.5 ? tone(ru(0.08, 0.18), [[0, ru(700, 1400)], [0.5, ru(900, 1800)], [1, ru(600, 1200)]], { harm: [1, 0.5, 0.25], vib: [ru(25, 40), 120], atk: 0.01, rel: 0.03 })
+        : r < 0.8 ? squawk(ru(0.15, 0.3), ru(900, 1300), ru(700, 1000), { noise: 0.35 })
+        : tone(0.3, [[0, 520], [1, 430]], { harm: [1, 0.8, 0.5, 0.3], noise: 0.3, atk: 0.02, rel: 0.08 }));
+      parts.push(gapN(ru(0.04, 0.25)));
+    } return cat(...parts); } });
+def("rodrail", { name: "rodrigues rails", g: "bird", n: [1, 2],
+  lost: { tier: "described", by: "after tafforet, 1726", r: RODRIGUES },
+  act: e => lostWin(SP.rodrail, e) * A({ doy: [1, 365], dawn: 1, day: 0.8, dusk: 0.9 })(e),
+  gap: [3, 9], dist: [0.15, 0.5],
+  gen() { /* "their cry is a continual whistling"; pursued, a noise like a hiccup */
+    const parts = [];
+    if (Math.random() < 0.12) { for (let k = 0, m = ri(3, 6); k < m; k++)
+      parts.push(tone(0.07, [[0, 600], [1, 380]], { harm: [1, 0.6, 0.3], noise: 0.25, atk: 0.003, rel: 0.03 }), gapN(ru(0.3, 0.5))); return cat(...parts); }
+    for (let k = 0, m = ri(3, 8); k < m; k++) { const f = ru(2300, 2900);
+      parts.push(tone(ru(0.18, 0.3), [[0, f], [0.5, f * 1.08], [1, f * 1.02]], { harm: [1, 0.1], atk: 0.02, rel: 0.05 }), gapN(ru(0.15, 0.35))); }
+    return cat(...parts); } });
+def("whoopingcrane", { name: "whooping cranes", g: "bird", n: [1, 1],
+  lost: { tier: "kin", by: "gone from the prairies", r: [[-112, 41, -90, 54, { d: [95, 290] }]] },
+  act: e => lostWin(SP.whoopingcrane, e) * (site.water.marsh || site.water.lake ? 1 : 0.3) * A({ doy: [1, 365], dawn: 1.3, day: 0.5, dusk: 0.6 })(e),
+  gap: [60, 200], dist: [0.4, 0.85], rev: 0.35,
+  gen() { /* the unison call after waking: his low bugle, her two higher notes on its heels, carrying for miles */
+    const bug = (d, f) => tone(d, [[0, f * 0.85], [0.15, f], [1, f * 0.96]], { harm: [1, 0.9, 0.7, 0.45, 0.25, 0.12], vib: [ru(28, 36), 25], atk: 0.02, rel: 0.06 });
+    const parts = [];
+    for (let k = 0, m = ri(3, 7); k < m; k++) parts.push(bug(0.4, ru(820, 900)), gapN(0.04), bug(0.16, ru(1050, 1150)), gapN(0.04), bug(0.18, ru(1100, 1200)), gapN(ru(0.1, 0.25)));
+    return cat(...parts); } });
+def("caper_ie", { name: "capercaillie at the lek", g: "bird", n: [1, 1],
+  lost: { tier: "kin", by: "alive in scotland and the continent", r: [[-10, 51.5, -6, 55.3]] },
+  act: e => lostWin(SP.caper_ie, e) * A({ doy: [70, 170], dawn: 1.6 })(e),
+  gap: [10, 30], dist: [0.1, 0.4],
+  gen() { /* double clicks like a ping-pong ball bouncing to rest, a cork drawn, and the whetting */
+    const parts = []; let per = 0.9;
+    while (per > 0.12) { parts.push(knockBuf(ru(1800, 2400), 0.012, 3), gapN(0.07), scaleA(knockBuf(ru(1800, 2400), 0.012, 3), 0.7), gapN(per)); per *= 0.78; }
+    parts.push(cat(tone(0.04, [[0, 1100], [1, 350]], { harm: [1, 0.3], atk: 0.002, rel: 0.02 }), gapN(0.08)));
+    for (let k = 0, m = ri(8, 12); k < m; k++) parts.push(scaleA(rasp(0.14, 6000, 1.2, { win: 0.5 }), 0.45), gapN(0.1));
+    return cat(...parts); } });
+def("boeuf", { name: "the boeuf, a booby that bellowed", g: "bird", n: [1, 1],
+  lost: { tier: "described", by: "after tafforet, 1726, and pingré, 1761", r: [...RODRIGUES, ...MAURITIUS] },
+  act: e => lostWin(SP.boeuf, e) * A({ doy: [1, 365], day: 0.6, dawn: 0.8, dusk: 0.9 })(e),
+  gap: [60, 200], dist: [0.3, 0.7], rev: 0.25,
+  gen() { const parts = [];   /* named ox for its voice: a bull's bellow from the treetops */
+    for (let k = 0, m = ri(1, 3); k < m; k++) { const f = ru(230, 300);
+      parts.push(tone(ru(0.8, 1.4), [[0, f * 0.85], [0.3, f * 1.1], [1, f * 0.8]], { harm: [1, 0.9, 0.7, 0.5, 0.3, 0.2], noise: 0.3, nfc: f * 3, vib: [14, 40], atk: 0.1, rel: 0.3 }), gapN(ru(0.6, 1.4))); }
+    return cat(...parts); } });
+def("wakerail", { name: "wake island rails", g: "bird", n: [1, 2],
+  lost: { tier: "described", by: "after the few who watched it", r: [[166.5, 19.2, 166.75, 19.4]] },
+  act: e => lostWin(SP.wakerail, e) * A({ doy: [1, 365], dawn: 1, day: 0.7, dusk: 0.9 })(e),
+  gap: [10, 30], dist: [0.08, 0.35],
+  gen() { const dur = ru(1.5, 3.5);   /* a gentle cluck, or a low chattering, from a small curious company */
+    return scaleA(normA(lmix(dur, add => { for (let t = 0; t < dur - 0.1; t += ru(0.12, 0.5))
+      add(tone(0.04, [[0, ru(750, 1000)], [1, ru(650, 850)]], { harm: [1, 0.5, 0.25], noise: 0.3, atk: 0.004, rel: 0.015 }), t, ru(0.4, 1)); })), 0.6); } });
+def("marianacrow", { name: "mariana crows", g: "bird", n: [1, 1],
+  lost: { tier: "kin", by: "alive on rota", r: GUAM },
+  act: e => lostWin(SP.marianacrow, e) * A({ doy: [1, 365], dawn: 1, day: 0.6 })(e),
+  gap: [30, 90], dist: [0.25, 0.6], rev: 0.25,
+  gen() { const parts = [];   /* one to three caws, high for a crow; a nasal aaa */
+    for (let k = 0, m = ri(1, 3); k < m; k++)
+      parts.push(tone(ru(0.22, 0.32), [[0, ru(850, 1000)], [0.3, 1050], [1, 800]], { harm: [1, 0.85, 0.6, 0.4, 0.2], noise: 0.3, atk: 0.01, rel: 0.06 }), gapN(ru(0.25, 0.5)));
+    return cat(...parts); } });
+def("rodowl", { name: "a rodrigues owl", g: "bird", n: [1, 1],
+  lost: { tier: "described", by: "after tafforet, 1726: its voice imagined", r: RODRIGUES },
+  act: e => lostWin(SP.rodowl, e) * A({ doy: [1, 365], night: 1 })(e)
+    * (weather.rain > 0.05 || weather.wind > 0.6 || weather.fog > 0.3 ? 0 : 1),   /* it sang only in fine weather */
+  gap: [12, 30], dist: [0.25, 0.6], rev: 0.3,
+  gen() { const f = ru(950, 1100), parts = [];   /* at night, "always the same song" */
+    for (let k = 0, m = ri(5, 10); k < m; k++) parts.push(tone(0.22, [[0, f], [1, f * 0.98]], { harm: [1, 0.1], atk: 0.03, rel: 0.08 }), gapN(2.4));
+    return cat(...parts); } });
+def("thickbilled", { name: "thick-billed parrots", g: "bird", n: [1, 1],
+  lost: { tier: "kin", by: "alive in the sierra madre", r: [[-111, 31.3, -108, 34]] },
+  act: e => lostWin(SP.thickbilled, e) * A({ doy: [1, 365], dawn: 1, day: 0.7, dusk: 0.8 })(e),
+  gap: [60, 180], dist: [0.3, 0.7], rev: 0.25,
+  gen() { const dur = ru(5, 9);   /* a flock over the pines: harsh rolling calls, like laughter */
+    return swell(normA(lmix(dur, add => { for (let b = 0, nb = ri(4, 12); b < nb; b++) {
+      let t = ru(0, dur - 1.5), f = ru(1700, 2300);
+      for (let k = 0, m = ri(4, 8); k < m; k++) { add(squawk(0.11, f, f * 0.85, { harm: [1, 0.7, 0.45, 0.25], noise: 0.3, rough: 55 }), t, ru(0.3, 0.9)); t += 0.16; f *= 0.96; }
+    } })), 0.8); } });
+def("calyptura", { name: "kinglet calypturas", g: "bird", n: [1, 1],
+  lost: { tier: "described", by: "a few words: brief, hoarse, loud", r: [[-43.3, -22.7, -42, -21.8]] },
+  act: e => lostWin(SP.calyptura, e) * A({ doy: [1, 365], dawn: 1, day: 0.7 })(e),
+  gap: [25, 70], dist: [0.2, 0.5],
+  gen() { const parts = [];
+    for (let k = 0, m = ri(1, 3); k < m; k++) parts.push(rasp(ru(0.1, 0.16), ru(3500, 4500), 1.5, { am: 60, amd: 0.6 }), gapN(ru(0.15, 0.4)));
+    return cat(...parts); } });
+def("jamwoodrail", { name: "jamaican wood rails", g: "bird", n: [1, 1],
+  lost: { tier: "described", by: "after gosse, 1847", r: [[-78.4, 17.7, -76.15, 18.55]] },
+  act: e => lostWin(SP.jamwoodrail, e) * (site.water.marsh || site.water.stream ? 1 : 0.3) * A({ doy: [1, 365], dawn: 1, day: 0.6, dusk: 0.9 })(e),
+  gap: [3, 7], dist: [0.15, 0.45],
+  gen() { /* "as it roams, it utters at intervals of a few seconds, a cluck, like a hen" */
+    return tone(0.06, [[0, ru(600, 700)], [1, 450]], { harm: [1, 0.6, 0.3], noise: 0.3, atk: 0.004, rel: 0.025 }); } });
+
+lostKin("gibbons_cn", "gibbons", "gibbon", { dist: [0.4, 0.8], gap: [90, 240], by: "known from the old gazetteers; the voice from kin", r: [
+  [98.9, 23.1, 99.4, 23.6], [101, 21.1, 102.7, 23], [103, 21.5, 122, 34]] });
+def("sumatranrhino", { name: "a sumatran rhinoceros, singing", g: "beast", n: [1, 1],
+  lost: { tier: "recorded", by: "measured by von muggenthaler, 2001", r: [[100, 1.2, 104.5, 6.7], [115.3, 4.1, 119.3, 7.4]] },
+  act: e => lostWin(SP.sumatranrhino, e) * A({ doy: [1, 365], dawn: 1, dusk: 1, night: 0.5, day: 0.3 })(e),
+  gap: [30, 100], dist: [0.25, 0.65], rev: 0.35,
+  gen() { /* three calls, given almost without pause: the eep, a yelp; the
+             whale, 4-7 s and songlike; the whistle-blow, a whistle and a burst of air */
+    const r = Math.random();
+    if (r < 0.4) { const parts = [];
+      for (let k = 0, m = ri(1, 4); k < m; k++) parts.push(tone(ru(0.5, 1), [[0, 350], [0.4, ru(900, 1300)], [1, 500]], { harm: [1, 0.6, 0.35, 0.2], noise: 0.1, atk: 0.04, rel: 0.15 }), gapN(ru(0.3, 0.9)));
+      return cat(...parts); }
+    if (r < 0.75) return tone(ru(4, 7), [[0, 220], [0.25, ru(500, 700)], [0.6, ru(300, 450)], [0.85, ru(600, 900)], [1, 250]], { harm: [1, 0.5, 0.25, 0.1], vib: [4, 35], atk: 0.4, rel: 0.8 });
+    const blow = normA(lpA(noiseA((0.5 * SR) | 0), 1800)); env3(blow, 0.01, 0.35);
+    return cat(tone(ru(1.5, 2), [[0, 900], [1, ru(2200, 3000)]], { harm: [1, 0.3], atk: 0.1, rel: 0.05 }), blow); } });
+def("saiga", { name: "saiga, roaring through the nose", g: "beast", n: [1, 2],
+  lost: { tier: "kin", by: "measured by frey, volodin & volodina, 2007", r: [[24, 45, 45, 51, { d: [330, 35] }], [80, 43, 92, 48, { d: [330, 35] }]] },
+  act: e => lostWin(SP.saiga, e) * A({ doy: [1, 365], day: 0.9, dawn: 0.8, dusk: 0.6 })(e),
+  gap: [20, 70], dist: [0.2, 0.55],
+  gen() { /* the december rut: a roar with the mouth closed, 44.5 hz, 0.42 s, the nose its trumpet */
+    const parts = [];
+    for (let k = 0, m = ri(2, 6); k < m; k++) {
+      const d = ru(0.3, 0.55), n = (d * SR) | 0, x = new Float32Array(n), per = SR / ru(40, 50);
+      for (let i = 0; i < n; i += per) { const p = knockBuf(ru(350, 410), 0.02, 2.5); addTo(x, p, i | 0); }
+      parts.push(env3(normA(x), 0.03, 0.1), gapN(ru(0.5, 1.6)));
+    } return cat(...parts); } });
+def("dhole", { name: "dholes, whistling", g: "beast", n: [1, 1],
+  lost: { tier: "kin", by: "measured by volodin & volodina", r: [[124, 34, 140, 52], [68, 38, 100, 53]] },
+  act: e => lostWin(SP.dhole, e) * A({ doy: [1, 365], dawn: 1, dusk: 1, day: 0.4 })(e),
+  gap: [120, 400], dist: [0.3, 0.7], rev: 0.3,
+  gen() { const dur = ru(3, 6);   /* a pack keeping touch in the brush: two voices at once, a low note and a high whistle over it */
+    return normA(lmix(dur, add => { for (let a = 0, na = ri(2, 5); a < na; a++) { let t = ru(0, dur - 1);
+      for (let k = 0, m = ri(1, 3); k < m; k++) { const d = ru(0.2, 0.4), f = ru(700, 1300);
+        add(tone(d, [[0, f * 0.9], [0.5, f * 1.1], [1, f]], { harm: [1, 0.3], atk: 0.02, rel: 0.05 }), t, ru(0.4, 1));
+        add(tone(d, [[0, ru(6000, 8000)], [1, ru(6500, 9000)]], { harm: [1], atk: 0.02, rel: 0.05 }), t, 0.35); t += d + ru(0.1, 0.3); } } })); } });
+def("redwolf", { name: "red wolves", g: "beast", n: [1, 1],
+  lost: { tier: "kin", by: "a few survive in north carolina", r: [[-88, 25, -80, 32], [-99, 27, -77.5, 40]] },
+  act: e => lostWin(SP.redwolf, e) * A({ doy: [1, 365], night: 1, dusk: 0.6, dawn: 0.4 })(e),
+  gap: [600, 1800], dist: [0.45, 0.85], rev: 0.5,
+  gen() { /* higher than a wolf's and looping, nearer the coyote's, and ending on a sharp fall */
+    const dur = ru(10, 18);
+    return normA(lmix(dur, add => { for (let v = 0, nv = ri(1, 3); v < nv; v++) { let t = v * ru(0.8, 3);
+      for (let h = 0, hm = ri(1, 3); h < hm && t < dur - 4; h++) { const f = ru(480, 720), d = ru(2.5, 4.5), loops = ri(2, 4), pts = [[0, f * 0.8]];
+        for (let i = 1; i <= loops * 2; i++) pts.push([0.9 * i / (loops * 2), f * (i % 2 ? 1.18 : 0.98)]);
+        pts.push([1, f * 0.55]);
+        add(tone(d, pts, { harm: [1, 0.45, 0.2, 0.08], vib: [5, 25], atk: 0.25, rel: 0.2 }), t, ru(0.5, 0.9)); t += d + ru(0.5, 1.5); } } })); } });
+def("jaguar_us", { name: "a jaguar, sawing", g: "beast", n: [1, 1],
+  lost: { tier: "kin", by: "the borderlands' last female", r: [[-115, 31.3, -103, 36]] },
+  act: e => lostWin(SP.jaguar_us, e) * A({ doy: [1, 365], night: 1, dusk: 0.7, dawn: 0.5 })(e),
+  gap: [1200, 3000], dist: [0.4, 0.8], rev: 0.45,
+  gen() { const parts = [];   /* a run of deep coughs, like a saw drawn through wood */
+    for (let k = 0, m = ri(6, 12); k < m; k++) { const c = normA(bpA(noiseA((0.2 * SR) | 0), ru(260, 340), 0.9)); env3(c, 0.02, 0.1);
+      addTo(c, scaleA(tone(0.2, [[0, 120], [1, 95]], { harm: [1, 0.8, 0.5, 0.3], atk: 0.02, rel: 0.1 }), 0.6));
+      parts.push(scaleA(normA(c), 1 - 0.4 * k / m), gapN(ru(0.3, 0.42))); }
+    return cat(...parts); } });
+def("cougar_east", { name: "a cougar, screaming", g: "beast", n: [1, 1],
+  lost: { tier: "kin", by: "gone from the east", r: [[-90, 34, -64, 48]] },
+  act: e => lostWin(SP.cougar_east, e) * A({ doy: [1, 365], night: 1, dusk: 0.4 })(e),
+  gap: [2400, 5400], dist: [0.55, 0.9], rev: 0.5,
+  gen() { return squawk(ru(1.5, 2.4), ru(600, 800), ru(1400, 1800), { arc: 1.4, noise: 0.4, rough: 30 }); } });
+def("walrus_gsl", { name: "walruses on the sand", g: "beast", n: [1, 2],
+  lost: { at: "coast", tier: "kin", by: "gone from the gulf of st lawrence", r: [[-66, 45.5, -57, 50.5], [-60.4, 43.8, -59.5, 44.1]] },
+  act: e => lostWin(SP.walrus_gsl, e) * A({ doy: [1, 365], day: 0.8, dawn: 0.8, dusk: 0.8, night: 0.5 })(e),
+  gap: [20, 70], dist: [0.3, 0.7], rev: 0.2,
+  gen() { /* the hauled-out herd roaring and grunting; from the water, knocks and the bell */
+    if (Math.random() < 0.35) { const bell = tone(ru(0.8, 1.3), [[0, ru(500, 1100)], [1, ru(480, 1050)]], { harm: [1, 0.2], atk: 0.005, rel: 0.5, decay: 0.8 });
+      return scaleA(lpA(cat(pulses(ri(6, 30), ru(2, 14), () => knockBuf(ru(600, 1500), 0.012, 2), { jit: 0.15 }), gapN(0.3), bell), 2500), 0.6); }
+    const dur = ru(4, 8);
+    return normA(lmix(dur, add => { for (let t = 0; t < dur - 1; t += ru(0.5, 1.6)) { const f = ru(120, 190);
+      add(tone(ru(0.5, 1.2), [[0, f], [0.4, f * 1.2], [1, f * 0.8]], { harm: [1, 0.9, 0.7, 0.5, 0.3], noise: 0.4, nfc: 500, vib: [22, 60], atk: 0.05, rel: 0.2 }), t, ru(0.3, 1)); } })); } });
+def("dugong_cn", { name: "a dugong, heard through the water", g: "beast", n: [1, 1],
+  lost: { at: "coast", tier: "kin", by: "alive in other seas", r: [[106, 18, 121, 25]] },
+  act: e => lostWin(SP.dugong_cn, e) * A({ doy: [1, 365], day: 0.6, dawn: 0.7, dusk: 0.7, night: 0.6 })(e),
+  gap: [40, 120], dist: [0.2, 0.5],
+  gen() { const parts = [];   /* over the seagrass: bird-like chirps, a trill, short barks */
+    for (let k = 0, m = ri(3, 9); k < m; k++) { const r = Math.random();
+      parts.push(r < 0.6 ? tone(ru(0.03, 0.06), [[0, ru(4000, 9000)], [1, ru(5000, 12000)]], { harm: [1, 0.2], atk: 0.003, rel: 0.01 })
+        : r < 0.8 ? pulses(ri(10, 30), 40, () => tone(0.015, [[0, 5000], [1, 6000]], { harm: [1], atk: 0.002, rel: 0.005 }))
+        : tone(ru(0.06, 0.12), [[0, ru(900, 1800)], [1, ru(600, 1200)]], { harm: [1, 0.6, 0.3], noise: 0.3, atk: 0.005, rel: 0.03 }));
+      parts.push(gapN(ru(0.1, 0.6))); }
+    const x = cat(...parts); addTo(x, scaleA(normA(lpA(noiseA(x.length), 500)), 0.2)); return scaleA(lpA(x, 9000), 0.6); } });
+def("waldroncolobus", { name: "miss waldron's red colobus", g: "beast", n: [1, 1],
+  lost: { tier: "described", by: "a few words: loud calls, shrieks, chattering", r: [[-4.5, 5, -1, 7.5]] },
+  act: e => lostWin(SP.waldroncolobus, e) * A({ doy: [1, 365], dawn: 1.2, day: 0.6, dusk: 0.7 })(e),
+  gap: [60, 200], dist: [0.3, 0.7], rev: 0.35,
+  gen() { const dur = ru(4, 8);   /* a troop of twenty, high in the canopy */
+    return normA(lmix(dur, add => { for (let t = 0; t < dur - 0.4; t += ru(0.08, 0.5)) { const r = Math.random();
+      add(r < 0.3 ? squawk(ru(0.2, 0.4), ru(1600, 2600), ru(1200, 2000), { noise: 0.4 }) : r < 0.5 ? tone(0.14, [[0, 700], [1, 500]], { harm: [1, 0.8, 0.5, 0.3], noise: 0.35, atk: 0.005, rel: 0.04 })
+        : tone(ru(0.03, 0.07), [[0, ru(1500, 3000)], [1, ru(1200, 2500)]], { harm: [1, 0.5], noise: 0.3, atk: 0.003, rel: 0.015 }), t, ru(0.2, 1)); } })); } });
+
+def("kihansi", { name: "kihansi spray toads", g: "frog", n: [2, 4],
+  lost: { tier: "recorded", by: "measured by arch et al., 2011, from captive toads", r: [[35.7, -8.75, 36, -8.45]] },
+  act: e => lostWin(SP.kihansi, e) * A({ doy: [1, 365], day: 1, dawn: 0.7, dusk: 0.5 })(e),
+  gap: [1, 18], dist: [0.03, 0.2],
+  gen() { /* in the spray of the falls, almost too soft to hear: ticks of 37 ms
+             at 4,071 hz, two to seven to a bout, 85 ms apart */
+    const parts = [];
+    for (let b = 0, nb = ri(1, 3); b < nb; b++) {
+      for (let k = 0, m = ri(2, 7); k < m; k++) parts.push(tone(0.037, [[0, ru(3950, 4180)], [1, 4050]], { harm: [1, 0.3, 0.15], atk: 0.004, rel: 0.012 }), gapN(0.085));
+      parts.push(gapN(0.85));
+    } return scaleA(cat(...parts), 0.35); } });
+def("goldencoqui", { name: "golden coquís", g: "frog", n: [1, 3],
+  lost: { tier: "recorded", by: "after drewry's recordings of the 1970s", r: [[-66.2, 18.02, -65.95, 18.17]] },
+  act: e => lostWin(SP.goldencoqui, e) * A({ doy: [1, 365], night: 1.1, dusk: 0.5, dawn: 0.9 })(e),
+  gap: [3, 9], dist: [0.1, 0.4],
+  gen() { const parts = [], f = ru(4850, 5150);   /* from the bromeliads, midnight to dawn: two to six pure notes at 5 khz */
+    for (let k = 0, m = ri(2, 6); k < m; k++) parts.push(tone(0.09, [[0, f], [1, f]], { harm: [1, 0.03], atk: 0.012, rel: 0.03 }), gapN(0.13));
+    return scaleA(cat(...parts), 0.6); } });
+def("darwinsfrog_n", { name: "northern darwin's frogs", g: "frog", n: [1, 2],
+  lost: { tier: "recorded", by: "from penna & veloso, 1990, at second hand", r: [[-73.3, -37.8, -71.2, -33.5]] },
+  act: e => lostWin(SP.darwinsfrog_n, e) * (["tfor", "toce", "med"].includes(site.biome) ? 1 : 0.3) * A({ doy: [1, 365], day: 1, dawn: 0.6, dusk: 0.5 })(e),
+  gap: [10, 30], dist: [0.1, 0.4],
+  gen() { const parts = [], f = ru(2900, 3200);   /* pip, pip, pip, pip — and a long pause */
+    for (let k = 0, m = ri(3, 7); k < m; k++) parts.push(tone(0.05, [[0, f], [1, f * 1.04]], { harm: [1, 0.25], atk: 0.005, rel: 0.02 }), gapN(0.17));
+    return cat(...parts); } });
+def("poyntontoad", { name: "poynton's forest toads", g: "frog", n: [1, 2],
+  lost: { tier: "recorded", by: "from the one description, 2004", r: [[35.75, -8.48, 36.05, -8.25]] },
+  act: e => lostWin(SP.poyntontoad, e) * A({ doy: [1, 365], dusk: 1.2, night: 1 })(e),
+  gap: [2.5, 3.5], dist: [0.1, 0.4],
+  gen() { const f = ru(2800, 3000);   /* after sunset, from the leaves by the stream: a second of pulses near 2.9 khz */
+    return pulses(ri(34, 44), 40, () => tone(0.012, [[0, f], [1, f]], { harm: [1, 0.3], atk: 0.002, rel: 0.006 }), { jit: 0.04 }); } });
+def("mucubaji", { name: "mucubají stubfoot toads", g: "frog", n: [1, 1],
+  lost: { tier: "recorded", by: "measured by lötters et al., 2019", r: [[-71, 8.65, -70.65, 8.95]] },
+  act: e => lostWin(SP.mucubaji, e) * A({ doy: [1, 365], day: 1, dawn: 0.5 })(e),
+  gap: [20, 70], dist: [0.1, 0.4],
+  gen() { /* on the páramo by day: a whistle of a quarter second near 2.4 khz, or a short falling note */
+    return Math.random() < 0.7 ? tone(ru(0.2, 0.29), [[0, 2380], [1, 2460]], { harm: [1, 0.1], atk: 0.02, rel: 0.05 })
+      : tone(0.041, [[0, 2700], [1, 2200]], { harm: [1, 0.2], atk: 0.004, rel: 0.015 }); } });
+def("chiriqui", { name: "chiriquí harlequin frogs", g: "frog", n: [1, 2],
+  lost: { tier: "described", by: "numbers at second hand from jaslow, 1979", r: [[-83.9, 8.6, -82.2, 9.8]] },
+  act: e => lostWin(SP.chiriqui, e) * A({ doy: [1, 365], day: 1, dawn: 0.6 })(e) * (inDoy(e.rdoy ?? e.doy, 120, 215) ? 1 : 0.4),
+  gap: [10, 30], dist: [0.1, 0.4],
+  gen() { /* two males facing across a stream bank, trading buzzes: about thirty pulses in 0.39 s */
+    const buzz = f => pulses(ri(26, 32), 74, () => tone(0.008, [[0, f], [1, f]], { harm: [1, 0.4, 0.2], atk: 0.001, rel: 0.004 }));
+    const f = ru(2300, 2700);
+    return Math.random() < 0.5 ? buzz(f) : cat(buzz(f), gapN(ru(0.4, 0.8)), scaleA(buzz(f * ru(0.94, 1.06)), 0.6), gapN(ru(0.4, 0.8)), buzz(f)); } });
+def("sdayfrog", { name: "southern day frogs, almost unheard", g: "frog", n: [1, 2],
+  lost: { tier: "described", by: "after liem & hosmer, 1973", r: [[152.4, -27.5, 153, -26.4]] },
+  act: e => lostWin(SP.sdayfrog, e) * A({ doy: [1, 365], day: 1, dawn: 0.6, dusk: 0.5 })(e),
+  gap: [240, 300], dist: [0.05, 0.25],
+  gen() { const parts = [];   /* "a very soft chuckling sound", lost under the rush of the creek */
+    for (let k = 0, m = pick([1, 2, 4, 5]); k < m; k++) parts.push(tone(0.04, [[0, ru(1400, 1800)], [1, 1300]], { harm: [1, 0.4], noise: 0.2, atk: 0.004, rel: 0.015 }), gapN(0.09));
+    return scaleA(cat(...parts), 0.3); } });
+def("mistfrog", { name: "mountain mistfrogs", g: "frog", n: [1, 2],
+  lost: { tier: "described", by: "after liem, 1974", r: [[145.2, -18.3, 146, -16.1, { d: [274, 90] }]] },
+  act: e => lostWin(SP.mistfrog, e) * A({ doy: [1, 365], night: 1, dusk: 0.7 })(e),
+  gap: [8, 25], dist: [0.1, 0.4],
+  gen() { const parts = [];   /* a rasping single note, steadily repeated, by the fast rocky streams */
+    for (let k = 0, m = ri(4, 10); k < m; k++) parts.push(rasp(0.16, ru(1900, 2300), 1.6, { am: 55, amd: 0.8 }), gapN(0.9));
+    return cat(...parts); } });
+def("calligator", { name: "chinese alligators, bellowing", g: "beast", n: [1, 1],
+  lost: { tier: "kin", by: "a few ponds in anhui still hold them", r: [[112, 28.5, 121.5, 32.5, { d: [120, 205] }]] },
+  act: e => lostWin(SP.calligator, e) * (site.water.marsh || site.water.lake || site.water.stream ? 1 : 0.4) * A({ doy: [1, 365], dawn: 1.2, day: 0.5, dusk: 0.6, night: 0.4 })(e),
+  gap: [300, 900], dist: [0.25, 0.65], rev: 0.3,
+  gen() { /* a chorus that starts all at once, lasts, and stops all at once:
+             everything below 500 hz, pulsing near 35 */
+    const dur = ru(16, 26);
+    const x = normA(lmix(dur, add => { for (let a = 0, na = ri(6, 16); a < na; a++) for (let t = ru(0, 2); t < dur - 2; t += ru(2.5, 5)) {
+      const d = ru(1, 1.6), n = (d * SR) | 0, b = lpA(noiseA(n), ru(300, 450)), f = ru(70, 110); let ph = 0;
+      for (let i = 0; i < n; i++) { ph += 2 * Math.PI * f / SR;
+        b[i] = (b[i] * 2.5 + Math.sin(ph) + 0.6 * Math.sin(2 * ph)) * (0.25 + 0.75 * Math.pow(0.5 + 0.5 * Math.sin(2 * Math.PI * 35 * i / SR), 2)) * Math.sin(Math.PI * i / n); }
+      add(normA(b), t, ru(0.2, 1)); } }));
+    return env3(x, 0.3, 0.3); } });
+def("gianttortoise", { name: "giant tortoises", g: "beast", n: [1, 1],
+  lost: { tier: "inferred", by: "imagined from smaller tortoises", r: [
+    [-90.9, 0.45, -90.6, 0.7], [-90.6, -1.45, -90.25, -1.15], ...RODRIGUES, ...MAURITIUS, ...REUNION] },
+  act: e => lostWin(SP.gianttortoise, e) * A({ doy: [1, 365], day: 0.7, dawn: 0.5 })(e),
+  gap: [200, 600], dist: [0.15, 0.5],
+  gen() { const parts = [], f = ru(85, 110);   /* the slow, rhythmic groans of a mating male */
+    for (let k = 0, m = ri(5, 12); k < m; k++)
+      parts.push(tone(ru(0.5, 0.9), [[0, f * 1.1], [1, f * 0.85]], { harm: [1, 0.8, 0.55, 0.35, 0.2], noise: 0.25, nfc: 400, atk: 0.08, rel: 0.25 }), gapN(ru(0.9, 1.6)));
+    return cat(...parts); } });
+
+def("nfcicada", { name: "new forest cicadas", g: "bug", n: [1, 2],
+  lost: { tier: "kin", by: "measured on the continent", r: [[-1.85, 50.72, -1.25, 51]] },
+  act: e => lostWin(SP.nfcicada, e) * A({ doy: [135, 205], tMin: 66, day: 1.1 })(e),
+  gap: [8, 25], dist: [0.05, 0.3],
+  gen() { /* at the edge of hearing, 12-14 khz: short echemes of 26 ms, eleven
+             a second, for many seconds, and one long one to end */
+    const ech = d => { const n = (d * SR) | 0, x = bpA(noiseA(n), ru(12200, 13800), 4);
+      for (let i = 0; i < n; i++) x[i] *= Math.pow(Math.sin(Math.PI * i / n), 0.4); return normA(x); };
+    const parts = [];
+    for (let k = 0, m = ri(50, 130); k < m; k++) parts.push(ech(0.026), gapN(0.065));
+    parts.push(ech(0.161));
+    return scaleA(cat(...parts), 0.6); } });
+def("brood7", { name: "brood vii cicadas", g: "bug", n: [1, 2],
+  lost: { tier: "kin", by: "the brood's lost outliers", r: [
+    [-78, 42.9, -77.2, 43.4, { cyc: [2001, 17] }], [-76.6, 43.2, -75.8, 43.7, { cyc: [2001, 17] }], [-75.9, 42.75, -75.4, 43.15, { cyc: [2001, 17] }]] },
+  act: e => lostWin(SP.brood7, e) * A({ doy: [148, 186], tMin: 64, day: 1.2, dawn: 0.2 })(e),
+  gap: [2, 6], dist: [0.2, 0.6],
+  gen(e) { return SP.brood11.gen(e); } });
+def("bermudacicada", { name: "bermuda cicadas", g: "bug", n: [1, 2],
+  lost: { tier: "inferred", by: "imagined from the lyric cicada", r: [[-65, 32.15, -64.55, 32.5]] },
+  act: e => lostWin(SP.bermudacicada, e) * A({ doy: [150, 270], tMin: 68, day: 0.9, dusk: 1.1 })(e),
+  gap: [6, 20], dist: [0.15, 0.5],
+  gen() { /* the singer in the cedars: one long unpulsed zing */
+    return swell(buzzNote(ru(6, 12), ru(6200, 7200), 500, ru(190, 230), { atk: 1, rel: 1.5, decay: 0 }), 0.5); } });
+def("yellowcroaker", { name: "yellow croakers spawning, through the hull", g: "beast", n: [1, 1],
+  lost: { at: "coast", tier: "kin", by: "the fish survive in ponds; the chorus is nearly gone", r: [
+    [121.6, 29.8, 123, 30.8, { d: [120, 185] }], [119.4, 26.2, 120.4, 27, { d: [120, 185] }]] },
+  act: e => lostWin(SP.yellowcroaker, e) * A({ doy: [1, 365], dusk: 1.2, night: 0.9, day: 0.5 })(e),
+  gap: [4, 15], dist: [0.15, 0.45],
+  gen() { /* fishermen found the shoal with an ear to the planks: gu-gu-gu-gu,
+             thick and close, about 550-800 hz */
+    const dur = ru(8, 13);
+    return scaleA(lpA(normA(lmix(dur, add => { for (let v = 0; v < 40; v++) { let t = ru(0, dur - 1.5); const f = ru(550, 800);
+      for (let k = 0, m = ri(3, 8); k < m; k++) { add(pulses(ri(3, 5), 60, () => knockBuf(f, 0.012, 3)), t, ru(0.2, 1)); t += ru(0.2, 0.3); } } })), 1800), 0.8); } });
+
+def("dnieperrapids", { name: "the dnieper rapids", g: "air", n: [2, 2],
+  lost: { tier: "described", by: "after those who heard them: the roarer", r: [[34.85, 47.85, 35.5, 48.55]] },
+  act: e => lostWin(SP.dnieperrapids, e), gap: [0, 1], dist: [0.5, 0.8], rev: 0.2,
+  gen() { return rapidsBuf(); } });
+def("drownedrapids", { name: "the rapids, before the dam", g: "air", n: [2, 2],
+  lost: { tier: "inferred", by: "imagined: no one wrote the sound down", r: [
+    [22.2, 44.4, 22.9, 44.9], [7.9, 47.4, 8.25, 47.7], [33, 0.25, 33.4, 0.6], [31, 21.6, 31.5, 22.05], [110.3, 30.6, 111.3, 31.2]] },
+  act: e => lostWin(SP.drownedrapids, e), gap: [0, 1], dist: [0.5, 0.8], rev: 0.2,
+  gen() { return rapidsBuf(); } });
+function rapidsBuf() {   /* white water heard from a distance: a roar that never repeats */
+  const dur = ru(11, 16), n = (dur * SR) | 0, lo = lpA(noiseA(n), 140), mid = lpA(noiseA(n), 900), hi = bpA(noiseA(n), 2600, 0.5);
+  let w = 0; const x = new Float32Array(n);
+  for (let i = 0; i < n; i++) { w = 0.9997 * w + 0.0003 * (Math.random() * 2 - 1);
+    x[i] = (lo[i] * 5 + mid[i] * 1.6 + hi[i] * 0.25) * (1 + 8 * w); }
+  return env3(normA(x), 2, 2.5);
+}
+def("trekbokke", { name: "the springbok, trekking", g: "beast", n: [1, 1],
+  lost: { tier: "described", by: "after fraser, 1849", r: [[20.5, -32.8, 24.5, -29]], chance: 0.4 },
+  act: e => lostWin(SP.trekbokke, e) * A({ doy: [1, 365], day: 1, dawn: 0.7, dusk: 0.7, night: 0.3 })(e),
+  gap: [10, 60], dist: [0.3, 0.8], rev: 0.2,
+  gen() { /* "a sound as of strong wind before a thunderstorm, followed by the trampling of thousands" */
+    const dur = ru(16, 26), n = (dur * SR) | 0;
+    return swell(normA(lmix(dur, add => {
+      add(normA(bpA(noiseA(n), 500, 0.4)), 0, 0.5); add(normA(lpA(noiseA(n), 90)), 0, 0.9);
+      for (let t = dur * 0.15; t < dur; t += ru(0.004, 0.03)) add(thud(ru(70, 190), 0.05), t, ru(0.05, 0.3) * Math.sin(Math.PI * t / dur));
+    })), 0.9); } });
+def("deadglacier", { name: "a glacier", g: "air", n: [1, 2],
+  lost: { tier: "inferred", by: "imagined: no one recorded it", r: [
+    [-21.1, 64.5, -20.65, 64.7], [9.25, 46.85, 9.55, 47.05], [-71.15, 8.4, -70.85, 8.7], [-68.3, -16.5, -68, -16.2],
+    [-123.5, 47.6, -123.2, 47.85], [-121.95, 43.95, -121.6, 44.25], [-98.8, 19.05, -98.5, 19.3], [5.98, 45, 6.28, 45.25]] },
+  act: e => lostWin(SP.deadglacier, e) * (0.4 + 0.6 * Math.max(0, Math.min(1, (e.tF - 25) / 30))) * A({ doy: [1, 365], day: 1, dawn: 0.5, dusk: 0.7, night: 0.35 })(e),
+  gap: [8, 40], dist: [0.15, 0.6], rev: 0.35,
+  gen() { /* the honest rendering is quiet: meltwater, the ice easing, a crack now and then */
+    const r = Math.random();
+    if (r < 0.55) { const dur = ru(5, 10);   /* the melt */
+      return scaleA(env3(normA(lmix(dur, add => { add(normA(bpA(noiseA((dur * SR) | 0), 3200, 0.6)), 0, 0.12);
+        for (let t = 0; t < dur; t += ru(0.03, 0.25)) { const f = ru(1800, 5200);
+          add(tone(0.02, [[0, f], [1, f * 1.5]], { harm: [1], atk: 0.002, rel: 0.012 }), t, ru(0.1, 0.6)); } })), 1, 1.5), 0.9); }
+    if (r < 0.85) { const tail = normA(lpA(noiseA((1.2 * SR) | 0), 1500));   /* a crack running through the ice */
+      for (let i = 0; i < tail.length; i++) tail[i] *= Math.exp(-i / (SR * 0.25));
+      return cat(knockBuf(ru(700, 1800), 0.05, 0.8), scaleA(tail, 0.4)); }
+    return tone(ru(1.5, 3), [[0, ru(60, 90)], [0.5, ru(80, 120)], [1, ru(50, 80)]], { harm: [1, 0.7, 0.4, 0.2], noise: 0.3, nfc: 250, vib: [3, 60], atk: 0.4, rel: 0.8 }); } });
+
 /* when each was last heard — or last seen, where no one wrote of hearing
    it; in a cage, where the last one died in one. this is what the page
    says beside the name. a list follows the order of the voice's ranges.
@@ -5462,27 +5961,42 @@ def("raiateathrush", { name: "raiatea thrushes", g: "bird", n: [1, 1],
 const LOST_LAST = {
   ppigeon: "1914", ppigeonroost: "1914", cparakeet: "1918", heathhen: "1932", greatauk: "1844",
   labduck: "1875", ivorybill: ["1944", "1987"], bachman: "1962", eskcurlew: "1963", duskysparrow: "1987",
-  rmlocust: "1904", wolves_lost: ["1786", "c. 1680", "c. 1500", "1905", "c. 1900", "in the 1930s"],
-  elk_east: "in the 1870s", bisonrut: ["in the 1880s", "c. 1830"], brood11: "1954", brood21: "1870",
+  rmlocust: "1904", wolves_lost: ["1786", "c. 1680", "c. 1500", "1905", "c. 1900", "c. 1900", "in the 1930s"],
+  elk_east: "in the 1870s", bisonrut: ["in the 1880s", "in the 1880s", "c. 1830"], brood11: "1954", brood21: "1870",
   imperialwp: "1956", sbgrackle: "1910",
   cubanmacaw: "1864", monkseal: "1952", webcoqui: "1976", goldentoad: "1989", rabbs: "2016",
   goldenfrog: "2009 in the wild", spix: "2000 in the wild", glaucousmacaw: "1951", alagoasfg: "2011",
   treehunter: "2007", pernowl: "2001", atitlangrebe: "1989", warrah: "1876",
   aurochs: "1627", tarpan: "1909", slbcurlew: "1995", baiji: "2002", jsealion: "1974", pinkduck: "1935",
   himquail: "1876", arabostrich: "1966", syrianass: "1927",
-  lions_lost: ["1942", "1942", "in the 1880s", "in the 1860s"], tiger_lost: ["in the 1950s", "1976", "1937"],
+  lions_lost: ["1942", "1942", "in the 1880s", "in the 1860s"], tiger_lost: ["in the 1950s", "1976", "1937", "2007", "1997", "2013", "in the 1980s"],
   cheetah_in: "1947", quagga: "1883", nwrhino: "2008 in the wild", stellercow: "1768",
   graywhale_atl: "c. 1700", codchorus: "1992",
   dodo: "1662", rsolitaire: "before 1755", greyparrots: ["1764", "1732"], rodstarling: "1726",
   hoopoestarling: "c. 1840", mblupigeon: "1826", redrail: "1693", flyingfoxes: ["1859", "1862", "1968"],
   seyparakeet: "1893", alaotragrebe: "1985",
   thylacine: "1936", gbfrog: ["1981", "1985"], ssdayfrog: "1997", paradiseparrot: "1927", ratkangaroo: "1935",
-  pigfoot: "in the 1950s", toolache: "1939", islandemu: ["1822", "c. 1827"], melomys: "2009",
+  pigfoot: "in the 1950s", toolache: "1939", islandemu: ["1822", "c. 1827", "c. 1865"], melomys: "2009",
   cipipistrelle: "26 august 2009", maclearrat: "1903",
   lhgerygone: "1928", lhthrush: ["c. 1924", "1975"], tasstarling: ["1919", "1923"], robustwe: "c. 1920",
   lhboobook: "in the 1950s", norfolkkaka: "1851", wcwhiteeye: "in the 1970s",
   bridledwe: "1983", guamflycatcher: "1983", boningrosbeak: "1828",
   tahitisandpiper: "1774", tahitirail: "1844", raiateathrush: "1774",
+  /* the second pass */
+  javanlapwing: "1939", bahamanuthatch: "2018", pwgrounddove: "1985", gpetrel: "1912", gkinglet: "1953",
+  gtowhee: "c. 1900", gcaracara: "1900", gflicker: "1906", corncrake_lost: ["in the 1940s", "in the 1980s"],
+  pchicken_lost: ["1987", "c. 1900"], siberiancrane: "2002", buttonquail: "1981", wncrow: "1963", rodrail: "1726",
+  whoopingcrane: "1922", caper_ie: "in the 1700s", boeuf: ["1761", "1668"], wakerail: "1945", marianacrow: "2011",
+  rodowl: "1726", thickbilled: "1938", calyptura: "1996", jamwoodrail: "1881",
+  gibbons_cn: ["1992", "c. 2000", "c. 1950"], sumatranrhino: ["2019", "2019"], saiga: ["in the 1700s", "in the 1960s"],
+  dhole: ["1978", "1946"], redwolf: ["1908", "1980 in the wild"], jaguar_us: "1963", cougar_east: "1938",
+  walrus_gsl: "1800", dugong_cn: "2008", waldroncolobus: "1978",
+  kihansi: "2004 in the wild", goldencoqui: "1981", darwinsfrog_n: "1981", poyntontoad: "2003", mucubaji: "2004",
+  chiriqui: "1996", sdayfrog: "1979", mistfrog: "1990", calligator: "in the 1980s",
+  gianttortoise: ["2012", "c. 1850", "1795", "c. 1700", "c. 1840"],
+  nfcicada: "in the 1990s", brood7: ["1916", "1933", "1899"], bermudacicada: "in the 1990s", yellowcroaker: "in the 1970s",
+  dnieperrapids: "1932", drownedrapids: ["1972", "1914", "1954", "1964", "2003"], trekbokke: "1896",
+  deadglacier: ["2014", "2019", "2024", "2009", "2015", "2020", "2018", "2023"],
 };
 function lostLast(sp, r) {
   const L = LOST_LAST[sp.id];
@@ -6283,7 +6797,7 @@ function lostList(s) {
     if (!r) continue;
     /* the sea's voices only at sea, the shore's only on a shore */
     if (sp.lost.at === "sea" && s.biome !== "sea") continue;
-    if (sp.lost.at === "coast" && !(s.biome === "sea" || s.coastDeg < 0.6)) continue;
+    if (sp.lost.at === "coast" && !(s.biome === "sea" || (s.coastDeg < 0.3 && s.coastType !== "l"))) continue;
     /* some years the swarm came, some nights the roost was near */
     if (sp.lost.chance != null && mulberry32(fnv("lostchance:" + sp.id + ":" + s.key + ":"
         + dayStr.slice(0, 4)))() >= sp.lost.chance) continue;
@@ -6350,6 +6864,11 @@ const TRACES = [
   [145.35, -40.95, 25, "thylacine", "mawbanna, the last wild thylacine, 1930", e => e.night > 0.5],
   [147.33, -42.87, 10, "thylacine", "hobart, the last thylacine, 7 september 1936", e => e.night > 0.5],
   [105.62, -10.49, 25, "cipipistrelle", "the last pipistrelle, 26 august 2009", e => e.dusk > 0.3 || e.night > 0.5],
+  [77.52, 27.17, 20, "siberiancrane", "keoladeo, the last pair, the winter of 2002", e => inDoy(e.rdoy, 305, 75) && e.day > 0.3],
+  [-1.54, 50.86, 12, "nfcicada", "denny wood, the last of the cicadas", e => inDoy(e.rdoy, 140, 200) && e.day > 0.6 && e.tF > 66],
+  [-90.76, 0.58, 20, "gianttortoise", "lonesome george, 2012", e => e.day > 0.5],
+  [-78.4, 26.6, 40, "bahamanuthatch", "grand bahama, before the hurricane, 2018", e => e.dawn > 0.3 || e.day > 0.5],
+  [35.86, -8.58, 15, "kihansi", "the kihansi gorge, january 2004", e => e.day > 0.5],
 ];
 const TRACE = { key: "", here: [], next: 0 };
 function stepTraces(now, e) {
