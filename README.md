@@ -127,9 +127,9 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   island, guam, tahiti, bering island) are now places to stand. hawaiʻi
   and aotearoa are left unsung: their lost birds live on in the
   knowledge of their own people, and are theirs to voice. where nothing
-  lost is known, there is only the wind. the research behind every voice,
-  its sources and its doubts, is in `reports/Extinct species sound
-  catalogue.md`
+  lost is known, there is only the wind. every voice was researched
+  source by source, and its doubts kept: the line it sings under says
+  where it comes from
 - **[ ride the dawn ]** stands you where the sun is just rising at your
   latitude and carries you west with it, fifteen degrees an hour, so the
   chorus never ends: the realms and biomes pass beneath, and over the sea
