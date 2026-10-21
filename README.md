@@ -191,7 +191,9 @@ the field research behind the casts — species by species, with
 frequencies and timing for synthesis — is in the album's `notes/usa.md`
 and `notes/global.md`. the maps are built from public-domain data: US
 census state outlines (`tools/make_map.py`), natural earth 110m
-countries + the köppen–geiger climate grid (`tools/make_world.py`).
+countries + the köppen–geiger climate grid (`tools/make_world.py`), and
+natural earth 10m states & provinces, which name every place but are
+never drawn (`tools/make_regions.py`).
 
 it is a PWA: add it to your home screen and it opens fullscreen, works
 entirely offline after the first visit (the whole world is one file),
