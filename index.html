@@ -81,7 +81,10 @@
   .g { color: var(--s2); }
 
   #stage { position: relative; }
-  #map { display: block; width: 100%; height: 380px; cursor: crosshair; touch-action: none; }
+  #map { display: block; width: 100%; height: 380px; cursor: crosshair; touch-action: none;
+    /* the earth's edges breathe out into the words above and below, no hard line */
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 78%, transparent);
+    mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 78%, transparent); }
   #map:focus-visible { outline: 1px solid var(--focus); outline-offset: -2px; }
   #begin {
     /* a small centered button: the globe stays touchable around it */
@@ -7545,6 +7548,30 @@ function drawGlobeFrame(fine) {
   gCtx.putImageData(gImg, 0, 0);
   return gCanvas;
 }
+/* film grain over the earth: one noise tile, laid at a fresh offset each frame */
+let grainTile = null;
+function globeGrain(g, W, H) {
+  if (!grainTile) {
+    const n = 256, c = document.createElement("canvas"); c.width = n; c.height = n;
+    const cx2 = c.getContext("2d"), im = cx2.createImageData(n, n), px = new Uint32Array(im.data.buffer);
+    for (let i = 0; i < px.length; i++) {
+      const v = (128 + (Math.random() + Math.random() + Math.random() - 1.5) * 110) | 0;
+      px[i] = 0xFF000000 | (v << 16) | (v << 8) | v;
+    }
+    cx2.putImageData(im, 0, 0);
+    grainTile = g.createPattern(c, "repeat");
+  }
+  const { Rd, cx, cy } = globeGeom(W, H);
+  const s = Math.max(1, devicePixelRatio * 0.75);   /* a grain about a pixel wide */
+  g.save();
+  g.beginPath(); g.arc(cx, cy, Rd, 0, 6.284); g.clip();
+  g.globalCompositeOperation = "overlay";
+  g.globalAlpha = isDark() ? 0.26 : 0.22;
+  g.translate(Math.random() * 256 * s, Math.random() * 256 * s); g.scale(s, s);
+  g.fillStyle = grainTile;
+  g.fillRect(-256, -256, W / s + 512, H / s + 512);
+  g.restore();
+}
 /* globe <-> screen, in device pixels of the display canvas */
 function globeGeom(W, H) {
   const disp = Math.min(W, H);
@@ -7640,7 +7667,10 @@ function drawMap() {
     }
     g2.clearRect(0, 0, W, H);
     g2.imageSmoothingEnabled = true;
+    g2.filter = "blur(" + (2 * devicePixelRatio).toFixed(2) + "px)";   /* a haze over the earth; the marks drawn after stay sharp */
     g2.drawImage(gCanvas, 0, 0, W, H);
+    g2.filter = "none";
+    globeGrain(g2, W, H);
   }
   if (LOST.on) {   /* the small islands where lost voices lived, too small for the map */
     g2.fillStyle = cssVar("--s2");
