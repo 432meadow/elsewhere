@@ -7418,17 +7418,24 @@ function globeTexture() {
   const tint = id => hueCache[id] || (hueCache[id] = mixHue(BIOME_INFO[id].hue));
   g.fillStyle = `rgb(${landBase[0]},${landBase[1]},${landBase[2]})`;
   paths(COUNTRIES); g.fill();
-  g.save(); paths(COUNTRIES); g.clip();
+  /* the biomes on a layer of their own, so they can melt into one another */
+  const bc = document.createElement("canvas"); bc.width = w; bc.height = h;
+  const bg = bc.getContext("2d");
   for (let gy = 0; gy < 180; gy++) for (let gx = 0; gx < 360; gx++) {
     const v = KG[gy * 360 + gx]; if (v === 255) continue;
-    g.fillStyle = tint(kgBiome(KG_CLASSES[v]));
-    g.fillRect(gx / 360 * w, (179 - gy) / 180 * h, w / 360 + 1, h / 180 + 1);
+    bg.fillStyle = tint(kgBiome(KG_CLASSES[v]));
+    bg.fillRect(gx / 360 * w, (179 - gy) / 180 * h, w / 360 + 1, h / 180 + 1);
   }
   for (let la = 24.5; la < 49.5; la += 0.5) for (let lo = -125; lo < -66.5; lo += 0.5) {
     if (!stateAt(lo + 0.25, la + 0.25)) continue;   /* US at finer grain */
-    g.fillStyle = tint(biomeAt(lo + 0.25, la + 0.25, true).biome);
-    g.fillRect(X(lo), Y(la + 0.5), w / 720 + 1, h / 360 + 1);
+    bg.fillStyle = tint(biomeAt(lo + 0.25, la + 0.25, true).biome);
+    bg.fillRect(X(lo), Y(la + 0.5), w / 720 + 1, h / 360 + 1);
   }
+  g.save(); paths(COUNTRIES); g.clip();
+  g.drawImage(bc, 0, 0);   /* sharp underneath, so the coasts keep their colour */
+  g.filter = "blur(" + (w / 360 * 1.4).toFixed(1) + "px)";   /* then softened: one biome fades into the next */
+  g.drawImage(bc, 0, 0);
+  g.filter = "none";
   g.restore(); g.globalAlpha = 1;
   g.strokeStyle = dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"; g.lineWidth = 1;
   g.beginPath();
