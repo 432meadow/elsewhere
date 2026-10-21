@@ -82,9 +82,9 @@
 
   #stage { position: relative; }
   #map { display: block; width: 100%; height: 380px; cursor: crosshair; touch-action: none;
-    /* the earth's edges breathe out into the words above and below, no hard line */
-    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 78%, transparent);
-    mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 78%, transparent); }
+    /* the earth's lower edge breathes out into the words below, no hard line */
+    -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent);
+    mask-image: linear-gradient(to bottom, #000 78%, transparent); }
   #map:focus-visible { outline: 1px solid var(--focus); outline-offset: -2px; }
   #begin {
     /* a small centered button: the globe stays touchable around it */
@@ -7566,7 +7566,7 @@ function globeGrain(g, W, H) {
   g.save();
   g.beginPath(); g.arc(cx, cy, Rd, 0, 6.284); g.clip();
   g.globalCompositeOperation = "overlay";
-  g.globalAlpha = isDark() ? 0.26 : 0.22;
+  g.globalAlpha = isDark() ? 0.24 : 0.2;
   g.translate(Math.random() * 256 * s, Math.random() * 256 * s); g.scale(s, s);
   g.fillStyle = grainTile;
   g.fillRect(-256, -256, W / s + 512, H / s + 512);
