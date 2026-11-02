@@ -95,7 +95,7 @@
   #map:focus-visible { outline: 1px solid var(--focus); outline-offset: -2px; }
   #begin {
     /* a small centered button: the globe stays touchable around it */
-    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    position: absolute; left: 50%; top: 60%; transform: translate(-50%, -50%);   /* below the centre: a shared place stands there */
     padding: 10px 16px; background: transparent; border: 0; cursor: pointer;
     color: var(--s1); font: inherit; letter-spacing: 0.02em;
   }
@@ -117,6 +117,8 @@
   .sect { padding: 18px 16px 2px; color: var(--s2); font-size: 13px; }
   .ctl { display: block; padding: 12px 16px 10px; }
   .ctl .row2 { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .ctl .side { display: flex; gap: 18px; align-items: baseline; }   /* a readout with a small act beside it */
+  .ctl .side .act { font-size: 14px; }
   .ctl label { font-size: 16px; }
   .ctl output { font-size: 14px; color: var(--s2); font-variant-numeric: tabular-nums; }
   .ctl.warm output { color: var(--warm); }
@@ -164,6 +166,12 @@
             padding: 12px 16px; }
   .inline.between { justify-content: space-between; }
   .inline[hidden] { display: none; }
+  .inline .hint { font-size: 13px; }   /* a word of guidance, no louder than a section label */
+  .foot { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap;
+          padding: 36px 16px 8px; font-size: 13px; color: var(--s3); }
+  .foot a { color: var(--s2); text-decoration: none; }
+  .foot a:focus-visible { outline: 1px solid var(--focus); outline-offset: 4px; }
+  @media (hover: hover) { .foot a:hover { color: var(--s1); } }
   #dubDepthWrap { display: inline-flex; align-items: center; gap: 10px; align-self: center; }
   #dubDepthWrap[hidden] { display: none; }
   #dubDepthWrap input[type="range"] { width: 110px; }
@@ -222,7 +230,7 @@
 </div>
 
 <div class="sect">when</div>
-<div class="inline between">
+<div class="inline">
   <div class="seg">
     <button class="switch" id="now" role="switch" aria-checked="true"
       aria-label="Follow the actual time at the site">[ now ]</button>
@@ -230,14 +238,7 @@
       aria-label="Time-lapse: a day passes in an hour">[ a day in an hour ]</button>
     <button class="switch" id="yearlapse" role="switch" aria-checked="false"
       aria-label="Season-lapse: a year passes in an hour">[ a year in an hour ]</button>
-    <button class="switch" id="moth" role="switch" aria-checked="false"
-      aria-label="The moth variation: deep night, and only the moths">[ moth variation ]</button>
-    <button class="switch" id="lost" role="switch" aria-checked="false"
-      aria-label="What can no longer be heard: a separate world where lost species sing on their old ranges">[ what can no longer be heard ]</button>
-    <button class="switch" id="under" role="switch" aria-checked="false"
-      aria-label="Under the surface: a hydrophone world, the water's own voices">[ under the surface ]</button>
   </div>
-  <button class="act" id="today" aria-label="Set the season to today">[ today ]</button>
 </div>
 <div class="ctl warm">
   <div class="row2"><label for="hour">hour</label><output id="hourV">--:--</output></div>
@@ -245,16 +246,28 @@
          aria-label="Local solar time at the site">
 </div>
 <div class="ctl cool">
-  <div class="row2"><label for="doy">season</label><output id="doyV">—</output></div>
+  <div class="row2"><label for="doy">season</label>
+    <span class="side"><button class="act" id="today" aria-label="Set the season to today">[ today ]</button><output id="doyV">—</output></span></div>
   <input type="range" id="doy" min="1" max="365" step="1" value="160"
          aria-label="Day of the year">
 </div>
 
+<div class="sect">otherwise</div>
+<div class="inline">
+  <div class="seg">
+    <button class="switch" id="moth" role="switch" aria-checked="false"
+      aria-label="The moth variation: deep night, and only the moths">[ moth variation ]</button>
+    <button class="switch" id="lost" role="switch" aria-checked="false"
+      aria-label="What can no longer be heard: a separate world where lost species sing on their old ranges">[ what can no longer be heard ]</button>
+    <button class="switch" id="under" role="switch" aria-checked="false"
+      aria-label="Under the surface: a hydrophone world, the water's own voices">[ under the surface ]</button>
+  </div>
+</div>
 <div class="sect">listening</div>
 <div class="inline" id="headRow" hidden>
   <button class="switch" id="head" role="switch" aria-checked="false"
     aria-label="Turn with the phone: every voice stays where it is in the world as you turn">[ turn your head ]</button>
-  <span class="g">the phone is the compass · headphones on</span>
+  <span class="g hint">the phone is the compass · headphones on</span>
 </div>
 <div class="ctl"><div class="row2"><label for="density">density</label><output id="densityV">60</output></div>
   <input type="range" id="density" min="0" max="100" value="60" aria-label="How many voices"></div>
@@ -274,6 +287,10 @@
   <input type="range" id="vFauna" min="0" max="100" value="70" aria-label="Mammal and beast level"></div>
 <div class="ctl"><div class="row2"><label for="vAir">air &amp; water</label><output id="vAirV">70</output></div>
   <input type="range" id="vAir" min="0" max="100" value="70" aria-label="Wind and water level"></div>
+<div class="foot">
+  <a href="about.html">[ about ]</a>
+  <span>© 2026 Simon Toolin Remiszewski · CC BY-NC-SA 4.0</span>
+</div>
 
 <script>
 "use strict";
@@ -8608,6 +8625,11 @@ function releaseHead() {
 
 /* ------------------------------------------------------------- UI -------- */
 const el = new Proxy({}, { get: (t, k) => document.getElementById(k) });
+/* every button already says what it does for a screen reader; on a desk, say it on hover too */
+for (const b of document.querySelectorAll("button[aria-label]")) {
+  const t = b.getAttribute("aria-label");
+  b.title = t.charAt(0).toLowerCase() + t.slice(1);
+}
 const out = id => document.getElementById(id + "V");
 function fmtHour(mins) {
   return String((mins / 60) | 0).padStart(2, "0") + ":" + String((mins % 60) | 0).padStart(2, "0");

@@ -242,6 +242,9 @@ countries + the köppen–geiger climate grid (`tools/make_world.py`), and
 natural earth 10m states & provinces, which name every place but are
 never drawn (`tools/make_regions.py`).
 
+`about.html` says, in a page, what each of the buttons does; [ about ]
+at the foot of the page reaches it, and every button says it on hover.
+
 it is a PWA: add it to your home screen and it opens fullscreen, works
 entirely offline after the first visit (the whole world is one file),
 and wears an icon rendered from its own map data — the atlantic

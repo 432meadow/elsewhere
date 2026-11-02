@@ -2,8 +2,8 @@
    stale-while-revalidate — you hear the cached world at once, and any
    newer deploy is fetched behind it for the next visit. */
 "use strict";
-const CACHE = "elsewhere-v1";
-const CORE = ["./", "./index.html", "./manifest.webmanifest",
+const CACHE = "elsewhere-v2";
+const CORE = ["./", "./index.html", "./about.html", "./manifest.webmanifest",
               "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png"];
 
 self.addEventListener("install", e => {
