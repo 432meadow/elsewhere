@@ -46,14 +46,45 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   hardwood forest, boreal lakes, southern pine, the everglades, tallgrass
   and shortgrass prairie, three deserts, sagebrush, mountain conifer, the
   coastal rainforest, oak & chaparral, and both shores — each with its own
-  cast (now ~310 species worldwide: birds, insects, frogs, mammals — the
+  cast (now ~340 species worldwide: birds, insects, frogs, mammals — the
   waterside pass added mallards, kingfishers, herons, winnowing snipe and
   displaying woodcock wherever there is water, old-world frog choruses to
   european and japanese nights, swallows over every meadow, and the
   southern cone's tero-tero) and its own wind
+- **[ here ]** stands you where you are: the page asks the phone once,
+  keeps nothing, sends nothing, and the clock was already the real one
+- **the tide**: the moon's pull twice a day with the sun's smaller pull
+  beside it — springs at new and full moon, neaps between, each port
+  with its own seeded lag, the enclosed seas barely rising and the gulf
+  of mexico rising once a day, not twice. the surf comes up the beach
+  and goes back down it, the waders feed on the ebb, the status line
+  says which way the water is going, and [ a day in an hour ] runs it
+  through its whole cycle
+- **the periodical cicadas**, on the real brood calendar: fifteen broods
+  of magicicada, each with its cycle of seventeen or thirteen years, a
+  year it came, and its ground drawn by hand from the brood maps. stand
+  in indiana in late may 2038 and brood x roars; stand there in 2039 and
+  the forest is itself again. the ground warms to 64 °f later the
+  farther north, so the south emerges in late april and new england in
+  june; three species in every brood — the pharaoh's weeee-ooo, cassini's
+  ticks and buzzes in step, decula's rough phrases — and the brood is
+  named while it sings
+- **antarctica** is on the globe and its own realm, no cricket, no gull,
+  no jet, no bell: adélies braying their ecstatic display through the
+  austral summer, emperors trumpeting in two voices through the dark of
+  the winter, skuas, snow petrels, wilson's storm-petrels, the weddell
+  seal's trill up through the ice, the leopard seal's moan under it,
+  elephant seals on the peninsula beaches, the ice calving far off and
+  the brash grinding in the swell; inland only the katabatic wind, the
+  snow settling, and a snow petrel far from the sea, sixty below on the
+  plateau
 - **the clock is real**: [ now ] follows the actual solar time at the
   site; the dawn chorus assembles in the true order (robins first);
   insects gate on modeled temperature; season comes from the date
+- **[ a year in an hour ]** runs the seasons on their own carousel,
+  365 days an hour: the spring arrivals one species at a time, the
+  cicada succession, the frogs' order, the first frost crack, each
+  day's weather planned afresh as it comes round
 - **[ a day in an hour ]** runs the sun 24× so you can listen to a whole
   day — the pre-dawn lull, the chorus, the midday cicadas, the dusk
   thrushes, the katydid wall — in one sitting
@@ -140,6 +171,22 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   or tradition, the drowned falls of the columbia among them. where nothing
   lost is known, there is only the wind. every voice was researched
   source by source, and its doubts kept
+- **[ under the surface ]** is a hydrophone world: where there is
+  water, you go below it. the floor's rumble and the surface overhead,
+  the surf a low thud from underneath, rain a high hiss on the roof of
+  the water; then the water's own voices by place and season — snapping
+  shrimp crackling in warm shallows, the fish choruses at dusk, dolphins
+  whistling and clicking, the humpback's song on its winter breeding
+  grounds (and so in the austral winter off australia and tonga), the
+  fin whale's twenty-hertz pulse and the sperm whale's slow clicks in
+  deep water, orcas where orcas are, the bearded seal's long spring
+  trill and the walrus's knocks and bell under the arctic ice, weddell
+  and leopard seals under the antarctic, the sea ice cracking, a ship's
+  propeller far off. in fresh water the water boatmen singing (the
+  loudest animal on earth for its size), the frogs heard through the
+  water, a freshwater drum, the lake ice singing overhead in winter; in
+  a stream, the gravel rolling. the page goes under with you; walk
+  ashore and it lets you up
 - **[ ride the dawn ]** stands you where the sun is just rising at your
   latitude and carries you west with it, fifteen degrees an hour, so the
   chorus never ends: the realms and biomes pass beneath, and over the sea

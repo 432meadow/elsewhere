@@ -65,8 +65,6 @@ def main():
         p = f["properties"]
         name = p.get("NAME_EN") or p.get("NAME") or p.get("ADMIN")
         cont = p.get("CONTINENT", "")
-        if name == "Antarctica":
-            continue
         rings = []
         for ring in rings_of(f["geometry"]):
             xs = [q[0] for q in ring]; ys = [q[1] for q in ring]
@@ -76,6 +74,11 @@ def main():
                 a = (round(ring[i][0], 3), round(ring[i][1], 3))
                 b = (round(ring[i + 1][0], 3), round(ring[i + 1][1], 3))
                 if a == b:
+                    continue
+                # antarctica's polygon runs along the pole and the antimeridian: not a coast
+                if a[1] <= -89 and b[1] <= -89:
+                    continue
+                if abs(a[0]) >= 179.9 and abs(b[0]) >= 179.9:
                     continue
                 k = (a, b) if a < b else (b, a)
                 all_edges[k] = all_edges.get(k, 0) + 1
