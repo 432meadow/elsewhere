@@ -300,6 +300,9 @@
   <input type="range" id="vFauna" min="0" max="100" value="70" aria-label="Mammal and beast level"></div>
 <div class="ctl"><div class="row2"><label for="vAir">air &amp; water</label><output id="vAirV">70</output></div>
   <input type="range" id="vAir" min="0" max="100" value="70" aria-label="Wind and water level"></div>
+<div class="ctl moth-idle"><div class="row2"><label for="vPeople">people</label><output id="vPeopleV">70</output></div>
+  <input type="range" id="vPeople" min="0" max="100" value="70"
+         aria-label="The human traces: trains, bells, the call to prayer, jets, foghorns, farms, the mains hum"></div>
 <div class="foot">
   <a href="about.html">[ about ]</a>
   <span>© 2026 Simon Toolin Remiszewski · CC BY-NC-SA 4.0</span>
@@ -1007,7 +1010,7 @@ const P = {
     return Math.max(1, Math.min(365, Math.round((d - new Date(d.getFullYear(), 0, 0)) / 86400000))); })(),
   density: 0.6, wind: 0.35, space: 0.4, drift: false,
   dub: false, dubDepth: 0.55,
-  vBird: 0.7, vBug: 0.7, vFrog: 0.7, vFauna: 0.7, vAir: 0.7,
+  vBird: 0.7, vBug: 0.7, vFrog: 0.7, vFauna: 0.7, vAir: 0.7, vPeople: 0.7,
 };
 /* the moth variation: deep night; the world's voices yield to the moths,
    heard as through a bat detector */
@@ -2169,7 +2172,7 @@ def("sooty", { name: "sooty grouse", g: "bird",
         { harm: [1, 0.5, 0.15], atk: 0.03, rel: 0.06 }), 1.6));
       parts.push(gapN(ru(0.25, 0.4)));
     } return cat(...parts); } });
-def("rooster", { name: "a distant rooster", g: "beast",
+def("rooster", { name: "a distant rooster", g: "human",
   act: A({ doy: [1, 365], dawn: 1.5, day: 0.15 }), gap: [40, 100], dist: [0.75, 0.92], n: [1, 1],
   gen() { const H = [1, 0.8, 0.6, 0.5, 0.4, 0.3, 0.22];
     return cat(
@@ -2465,12 +2468,12 @@ def("elk", { name: "elk bugling", g: "beast",
       parts.push(scaleA(tone(ru(0.15, 0.25), [[0, 130], [1, 90]],
         { harm: [1, 0.8, 0.5, 0.3], noise: 0.25, nfc: 300, atk: 0.01, rel: 0.05 }), 0.8));
     } return cat(...parts); } });
-def("cattle", { name: "distant cattle", g: "beast",
+def("cattle", { name: "distant cattle", g: "human",
   act: A({ doy: [1, 365], day: 0.4, dawn: 0.5 }), gap: [90, 240], dist: [0.75, 0.92], n: [1, 1],
   gen() { const f = ru(180, 320);
     return tone(ru(0.8, 1.5), [[0, f * 0.85], [0.3, f * 1.15], [1, f * 0.8]],
       { harm: [1, 0.8, 0.55, 0.35, 0.2], noise: 0.15, nfc: f * 3, atk: 0.08, rel: 0.25, decay: 0.2 }); } });
-def("fardog", { name: "a farm dog", g: "beast",
+def("fardog", { name: "a farm dog", g: "human",
   act: A({ doy: [1, 365], dusk: 0.7, night: 0.5, day: 0.3 }), gap: [180, 480], dist: [0.75, 0.92], n: [1, 1],
   gen() { const parts = []; const f = ru(600, 800);
     for (let k = 0, m = ri(3, 9); k < m; k++) {
@@ -2501,7 +2504,7 @@ def("rattler", { name: "a rattlesnake", g: "beast",
     } return normA(x); } });
 
 /* ================================================== human distants ======= */
-def("jet", { name: "a high jet", g: "air",
+def("jet", { name: "a high jet", g: "human",
   act: A({ doy: [1, 365], day: 0.5, night: 0.3, dawn: 0.4, dusk: 0.4 }), gap: [1200, 2600], dist: [0.9, 0.98], n: [1, 1], pass: 75,
   gen() { const dur = 75, n = (dur * SR) | 0;
     const x = bpA(noiseA(n), 220, 0.4);
@@ -2510,7 +2513,7 @@ def("jet", { name: "a high jet", g: "air",
       const tf = i / n, sw = Math.pow(Math.sin(Math.PI * tf), 2.2);
       x[i] = (x[i] * 2.2 + x2[i] * (0.5 + 0.7 * tf)) * sw;   /* doppler-ish brightening */
     } return normA(x); } });
-def("train", { name: "a far train horn", g: "air",
+def("train", { name: "a far train horn", g: "human",
   act: A({ doy: [1, 365], night: 0.8, dusk: 0.4 }), gap: [900, 2400], dist: [0.85, 0.95], n: [1, 1], rev: 0.5,
   gen() { /* each railway has its own voice: the american minor cluster,
              europe's two high tones, japan's near-unison pair */
@@ -2535,7 +2538,7 @@ def("train", { name: "a far train horn", g: "air",
                blast(ru(1.5, 2.2), 0.995), gapN(ru(0.4, 0.8)),
                blast(ru(0.7, 1), 0.99), gapN(ru(0.5, 0.9)),
                blast(ru(2.5, 3.5), 0.985)); } });
-def("foghorn", { name: "a foghorn", g: "air",
+def("foghorn", { name: "a foghorn", g: "human",
   act: A({ doy: [1, 365], dawn: 1.2, night: 0.7, day: 0.3 }), gap: [18, 30], dist: [0.8, 0.92], n: [1, 1],
   gen() { const n = (2.6 * SR) | 0, x = new Float32Array(n);
     let p1 = 0, p2 = 0;
@@ -2544,7 +2547,7 @@ def("foghorn", { name: "a foghorn", g: "air",
       p1 += 2 * Math.PI * 122 / SR; p2 += 2 * Math.PI * (tf < 0.6 ? 152 : 118) / SR;
       x[i] = (Math.sin(p1) + 0.6 * Math.sin(p2) + 0.35 * Math.sin(2 * p1) + 0.18 * Math.sin(3 * p1)) / 2;
     } return env3(x, 0.15, 0.4, 0.1); } });
-def("bellbuoy", { name: "a bell buoy", g: "air",
+def("bellbuoy", { name: "a bell buoy", g: "human",
   act: A({ doy: [1, 365], day: 0.8, night: 0.8, dawn: 0.8, dusk: 0.8 }), gap: [4, 14], dist: [0.7, 0.88], n: [1, 1],
   gen() { const parts = [];
     for (let k = 0, m = ri(1, 3); k < m; k++) {
@@ -2849,7 +2852,7 @@ def("swifts", { name: "swifts screaming over", g: "bird",
     }
     for (let i = 0; i < n; i++) x[i] *= Math.pow(Math.sin(Math.PI * i / n), 0.9);   /* the pass */
     return normA(x); } });
-def("churchbell", { name: "a village bell", g: "air",
+def("churchbell", { name: "a village bell", g: "human",
   act: A({ doy: [1, 365], day: 0.25, dawn: 0.4 }), gap: [900, 2400], dist: [0.8, 0.93], n: [1, 1], rev: 0.5,
   gen() { const parts = []; const f0 = pick([392, 440, 466]) * ru(0.99, 1.01);
     for (let k = 0, m = ri(5, 9); k < m; k++) {
@@ -2909,7 +2912,7 @@ def("otdove", { name: "oriental turtle dove", g: "bird",
       { harm: [1, 0.3, 0.08], noise: 0.1, atk: 0.03, rel: 0.06, decay: 0.2 });
     return cat(syl(0.18, b * 1.05), gapN(0.08), syl(0.18, b * 1.05), gapN(0.1),
       syl(0.3, b * 0.9), gapN(0.09), syl(0.32, b * 0.88)); } });
-def("templebell", { name: "a temple bell, far off", g: "air",
+def("templebell", { name: "a temple bell, far off", g: "human",
   act: A({ doy: [1, 365], dawn: 0.5, dusk: 0.5 }), gap: [1200, 2800], dist: [0.85, 0.95], n: [1, 1], rev: 0.6,
   gen() { const n = (6 * SR) | 0, x = new Float32Array(n);
     const f0 = ru(85, 110);
@@ -4482,7 +4485,7 @@ def("andsolitaire", { name: "a solitaire's flute on the mountainside", g: "bird"
       parts.push(gapN(ru(0.15, 0.4)));
     } return cat(...parts); } });
 
-def("muezzin", { name: "the call to prayer, far off", g: "air",
+def("muezzin", { name: "the call to prayer, far off", g: "human",
   act(e) { /* the five times, by the sun; the small hours are silent */
     if (e.night > 0.85) return 0;
     return Math.min(1, Math.max(e.dawn * 1.4, e.dusk * 1.2,
@@ -4501,7 +4504,7 @@ def("muezzin", { name: "the call to prayer, far off", g: "air",
           atk: 0.15, rel: 0.3, decay: 0.15 }));
       parts.push(gapN(ru(0.6, 1.5)));
     } return cat(...parts); } });
-def("cowbells", { name: "cowbells on the high meadow", g: "air",
+def("cowbells", { name: "cowbells on the high meadow", g: "human",
   act: A({ doy: [120, 290], day: 1, dawn: 0.6, dusk: 0.5 }), gap: [30, 90], dist: [0.5, 0.8], n: [1, 1], rev: 0.4,
   gen() { /* a few animals grazing: dull clonks in no hurry at all */
     const dur = ru(4, 8), n2 = (dur * SR) | 0, x = new Float32Array(n2);
@@ -4944,7 +4947,7 @@ def("seaice", { name: "the sea ice, cracking", g: "air",
     if (r < 0.75) { const f = ru(90, 220);
       return tone(ru(0.6, 2), [[0, f], [1, f * 0.7]], { harm: [1, 0.6, 0.4], noise: 0.2, nfc: f * 3, atk: 0.1, rel: 0.3 }); }
     return SP.icewhine.gen(); } });
-def("shipfar", { name: "a ship's propeller, far off", g: "air",
+def("shipfar", { name: "a ship's propeller, far off", g: "human",
   act: A({ doy: [1, 365], day: 0.7, night: 0.7, dawn: 0.7, dusk: 0.7 }), gap: [500, 1500], dist: [0.6, 0.9], n: [1, 1],
   gen() { /* the blade-rate throb under a low drone, swelling as it passes */
     const dur = ru(25, 40), n = (dur * SR) | 0, x = new Float32Array(n);
@@ -5058,7 +5061,7 @@ def("vlfchorus", { name: "the dawn chorus of the magnetosphere", g: "air",
       const f = ru(600, 2500), d = ru(0.15, 0.5);
       add(tone(d, [[0, f], [1, f * ru(1.6, 3)]], { harm: [1, 0.05], atk: 0.02, rel: 0.04, decay: 0.3 }),
         ru(0, dur - d), ru(0.2, 0.8)); } }), 0.7); } });
-def("mainshum", { name: "the mains hum, from the lines", g: "air",
+def("mainshum", { name: "the mains hum, from the lines", g: "human",
   act: () => 1, gap: [0.5, 2], dist: [0.3, 0.5], n: [1, 1],
   gen() { const f = site && SIXTY_HZ(site.lon, site.lat) ? 60 : 50, dur = 30, n = (dur * SR) | 0, x = new Float32Array(n);
     let ph = 0;
@@ -6662,8 +6665,8 @@ function lostLast(sp, r) {
 let running = false, wetGain, echoNode, echoGain, comp, master, conv = null;
 let sum = null, space = null;   /* linear pre-comp mix bus + the reverb/echo return */
 const groups = {};          /* bird/bug/frog/fauna/air -> {dry, wet} */
-const GROUP_OF = { bird: "bird", bug: "bug", frog: "frog", beast: "fauna", air: "air" };
-const FADER_OF = { bird: "vBird", bug: "vBug", frog: "vFrog", fauna: "vFauna", air: "vAir" };
+const GROUP_OF = { bird: "bird", bug: "bug", frog: "frog", beast: "fauna", air: "air", human: "people" };
+const FADER_OF = { bird: "vBird", bug: "vBug", frog: "vFrog", fauna: "vFauna", air: "vAir", people: "vPeople" };
 let arng = Math.random;     /* scheduling rng, reseeded per site+day */
 let wrng = Math.random;     /* weather rng */
 
@@ -6714,7 +6717,7 @@ function play(x, when, o = {}) {
     const ds = ctx.createGain();
     ds.gain.value = MOTH.on && (o.group === "bug")
       ? 0.75   /* in the moth variation, the moths are what the dub eats */
-      : ({ bird: 0.9, frog: 0.7, fauna: 0.6, bug: 0.22, air: 0.12 }[o.group || "air"] ?? 0.3);
+      : ({ bird: 0.9, frog: 0.7, fauna: 0.6, bug: 0.22, air: 0.12, people: 0.35 }[o.group || "air"] ?? 0.3);
     pan.connect(ds); ds.connect(DUB.n.throw);
   }
   src.start(when);
@@ -8140,7 +8143,7 @@ function tick() {
           /* rain quiets the singers (except a couple of rain-singers) */
           if (weather.rain > 0.15 && sp.g === "bird" && !["vthrush", "pacwren"].includes(sp.id))
             act *= Math.max(0, 1 - weather.rain * 1.6);
-          if (weather.snow > 0.05 && sp.g !== "air") act *= WINTER_HARDY.includes(sp.id) ? 0.65 : 0.25;
+          if (weather.snow > 0.05 && sp.g !== "air" && sp.g !== "human") act *= WINTER_HARDY.includes(sp.id) ? 0.65 : 0.25;
           if (inDoy(e.doy, 335, 50)) {   /* midwinter courting */
             if (sp.id === "ghowl") act = Math.min(1, act * 1.6);
             if (sp.id === "wolf") act = Math.min(1, act * 1.5);
@@ -9019,6 +9022,7 @@ bind("vBug", "vBug", v => Math.round(v * 100));
 bind("vFrog", "vFrog", v => Math.round(v * 100));
 bind("vFauna", "vFauna", v => Math.round(v * 100));
 bind("vAir", "vAir", v => Math.round(v * 100));
+bind("vPeople", "vPeople", v => Math.round(v * 100));
 el.drift.addEventListener("click", () => {
   P.drift = !P.drift;
   el.drift.setAttribute("aria-checked", String(P.drift));
@@ -9090,7 +9094,7 @@ el.moth.addEventListener("click", () => {
   el.moth.setAttribute("aria-checked", String(MOTH.on));
   document.documentElement.classList.toggle("moth", MOTH.on);
   /* the blurred faders should be unreachable by keyboard too */
-  ["vBird", "vFrog", "vFauna"].forEach(id => {
+  ["vBird", "vFrog", "vFauna", "vPeople"].forEach(id => {
     const f = document.getElementById(id); if (f) f.disabled = MOTH.on;
   });
   GLOBE.fineKey = null;   /* the globe darkens with the page */
@@ -9184,7 +9188,7 @@ el.begin.addEventListener("click", async () => {
   sum = ctx.createGain(); sum.connect(comp);
   space = ctx.createGain(); space.connect(sum);
   wetGain = ctx.createGain(); wetGain.gain.value = P.space * 0.9;
-  for (const gname of ["bird", "bug", "frog", "fauna", "air"]) {
+  for (const gname of ["bird", "bug", "frog", "fauna", "air", "people"]) {
     const dry = ctx.createGain(), wet = ctx.createGain();
     dry.gain.value = 0.85; wet.gain.value = 1;
     dry.connect(sum); wet.connect(wetGain);

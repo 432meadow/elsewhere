@@ -106,6 +106,10 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   chipmunks, prairie-dog towns, raccoons at night, bison on the
   shortgrass — alongside the coyotes, wolves and september elk — on
   their own fader
+- **a people stem**: every human trace — the train, the church and
+  temple bells, the muezzin, cowbells, the farm's rooster, dog and
+  cattle, jets, foghorns, the bell buoy, a ship's propeller, the mains
+  hum — on its own fader, so a place can be heard with no one in it
 - **[ ∞ drift ]** sets the listener wandering anywhere on the landmass:
   a slow seeded walk whose bearing meanders and reflects off the coasts —
   creeks come and go, and every ten or twenty minutes you cross into
