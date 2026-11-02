@@ -46,7 +46,7 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   hardwood forest, boreal lakes, southern pine, the everglades, tallgrass
   and shortgrass prairie, three deserts, sagebrush, mountain conifer, the
   coastal rainforest, oak & chaparral, and both shores — each with its own
-  cast (now ~340 species worldwide: birds, insects, frogs, mammals — the
+  cast (now ~350 species worldwide: birds, insects, frogs, mammals — the
   waterside pass added mallards, kingfishers, herons, winnowing snipe and
   displaying woodcock wherever there is water, old-world frog choruses to
   european and japanese nights, swallows over every meadow, and the
@@ -88,6 +88,10 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
 - **[ a day in an hour ]** runs the sun 24× so you can listen to a whole
   day — the pre-dawn lull, the chorus, the midday cicadas, the dusk
   thrushes, the katydid wall — in one sitting
+- **[ share this place ]** copies the whole listening — the place and
+  day, a frozen or turning hour, the year carousel, the world, the walk,
+  the dub and its depth — and the link restores it all. the status line
+  reads celsius everywhere but the one country that reads fahrenheit
 - **weather is seeded by site and day**: everyone listening to the same
   place on the same day gets the same wind, the same afternoon
   thunderstorm, the same fog morning; `?lat=&lon=&day=` replays a place
@@ -187,6 +191,30 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   water, a freshwater drum, the lake ice singing overhead in winter; in
   a stream, the gravel rolling. the page goes under with you; walk
   ashore and it lets you up
+- **[ natural radio ]** is the earth heard through a very-low-frequency
+  receiver: every lightning stroke on the planet a crackle (loud when the
+  storm is yours), the night's tweeks ringing in the earth–ionosphere
+  waveguide, whistlers gliding down from the far hemisphere with their
+  dispersion made audible, and at high latitude on a disturbed morning
+  the magnetosphere's own dawn chorus; wherever there are people, the
+  mains hum from the lines at fifty hertz or sixty. the day's geomagnetic
+  weather is one seeded number for the whole planet, kp, and stands in
+  the status line. the page turns to the dial's amber
+- **the time machine**: a `?day=` in an earlier year, and whoever was
+  still singing here then joins the living cast — passenger pigeons over
+  a living ohio forest, the parakeet among the cardinals, wolves in an
+  irish wood — each at the distance its evidence allows, and the sounds
+  not yet invented stay out: no jet before 1950, no train before 1835,
+  no foghorn or bell buoy before the 1850s. the year stands beside the
+  date
+- **[ duet ]**: with the microphone on, a whistle in the room is
+  answered from across the field a beat later — a bird to a high
+  whistle, a beast to a low one, a dolphin under the water. nothing is
+  recorded and nothing leaves the page
+- **winter**: the ptarmigan's go-back chuckle, redpoll flocks over (one
+  winter in three irrupting south), snow sliding off a branch, the owls
+  and wolves at their midwinter courting, and the birds that stay singing
+  on through a snowfall that hushes everyone else
 - **[ ride the dawn ]** stands you where the sun is just rising at your
   latitude and carries you west with it, fifteen degrees an hour, so the
   chorus never ends: the realms and biomes pass beneath, and over the sea
