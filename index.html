@@ -277,6 +277,11 @@
     aria-label="Turn with the phone: every voice stays where it is in the world as you turn">[ turn your head ]</button>
   <span class="g hint">the phone is the compass · headphones on</span>
 </div>
+<div class="inline" id="duetRow">
+  <button class="switch" id="duet" role="switch" aria-checked="false"
+    aria-label="Duet: with the microphone on, a whistle in the room is answered from across the field">[ duet ]</button>
+  <span class="g hint">whistle, and something answers</span>
+</div>
 <div class="ctl"><div class="row2"><label for="density">density</label><output id="densityV">60</output></div>
   <input type="range" id="density" min="0" max="100" value="60" aria-label="How many voices"></div>
 <div class="ctl"><div class="row2"><label for="wind">wind</label><output id="windV">light airs</output></div>
@@ -7929,6 +7934,73 @@ function answer(ag, x, ends, e, fader) {
   if (arng() >= fam.same && x.length < 4 * SR) synth({ sp, e }, reply); else reply(x);
 }
 
+/* ------------------------------------------------------------- the duet -- */
+/* [ duet ]: the microphone listens for a whistle — one clear tone held a
+   quarter of a second — and someone awake in the cast answers it from
+   across the field, a beat late, the way a neighbour would. nothing is
+   recorded and nothing leaves the page: the microphone feeds an analyser,
+   the analyser yields one number, and the room is never played back */
+const DUET = { on: false, stream: null, an: null, buf: null, hot: 0, nextT: 0, timer: 0 };
+async function engageDuet() {
+  if (!running) { announce("press [ begin ] first", 0); return; }
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true }, video: false });
+  } catch (err) { announce("the page is not allowed to listen", 0); return; }
+  if (!running) { for (const t of stream.getTracks()) t.stop(); return; }
+  DUET.stream = stream;
+  const src = ctx.createMediaStreamSource(stream);
+  DUET.an = ctx.createAnalyser(); DUET.an.fftSize = 2048; DUET.an.smoothingTimeConstant = 0.5;
+  src.connect(DUET.an);   /* and nowhere else */
+  DUET.buf = new Float32Array(DUET.an.frequencyBinCount);
+  DUET.on = true; DUET.hot = 0; DUET.nextT = 0;
+  el.duet.setAttribute("aria-checked", "true");
+  DUET.timer = setInterval(duetListen, 90);
+  announce("whistle", 0);
+}
+function releaseDuet() {
+  DUET.on = false; clearInterval(DUET.timer);
+  if (DUET.stream) for (const t of DUET.stream.getTracks()) t.stop();
+  DUET.stream = null; DUET.an = null;
+  el.duet.setAttribute("aria-checked", "false");
+}
+function duetListen() {
+  if (!DUET.on || !DUET.an || SLEEP.asleep) return;
+  DUET.an.getFloatFrequencyData(DUET.buf);
+  const binHz = SR / DUET.an.fftSize, lo = Math.floor(700 / binHz), hi = Math.min(DUET.buf.length - 4, Math.ceil(4500 / binHz));
+  let peak = -200, pi = lo, sum = 0;
+  for (let i = lo; i < hi; i++) { const v = DUET.buf[i]; if (v > peak) { peak = v; pi = i; } sum += v; }
+  const mean = sum / (hi - lo);
+  /* a whistle is one narrow line standing well above the rest of the band; speech and traffic are wide */
+  const narrow = peak - Math.max(DUET.buf[pi - 3], DUET.buf[pi + 3]);
+  if (peak > -58 && peak - mean > 22 && narrow > 10) DUET.hot++; else DUET.hot = Math.max(0, DUET.hot - 1);
+  if (DUET.hot >= 3 && ctx.currentTime > DUET.nextT) {
+    DUET.hot = 0; DUET.nextT = ctx.currentTime + 9;   /* one answer, then a rest */
+    duetAnswer(pi * binHz);
+  }
+}
+function duetAnswer(hz) {
+  const e = envNow();
+  const roster = RADIO.on || MOTH.on ? [] : UNDER.on ? underAgents : LOST.on ? lostAgents : agents;
+  const awake = roster.filter(a => (a.sp.g === "bird" || a.sp.g === "beast") && !a.sp.omni && !a.sp.sky
+    && a.sp.gap[1] < 120 && a.sp.act(e) > 0.08);
+  if (!awake.length) { announce("no one answers", 0); return; }
+  /* the higher the whistle, the smaller the singer: birds to a high one, the beasts to a low one */
+  const birds = awake.filter(a => a.sp.g === "bird"), beasts = awake.filter(a => a.sp.g === "beast");
+  const ag = pick(hz > 1500 && birds.length ? birds : beasts.length && hz <= 1500 ? beasts : awake);
+  const fader = P[FADER_OF[GROUP_OF[ag.sp.g]]];
+  if (fader < 0.02) return;
+  const gen0 = SYNTH.gen;
+  synth({ sp: ag.sp, e }, x => {
+    if (!x || !running || gen0 !== SYNTH.gen) return;
+    const dur = play(x, ctx.currentTime + ru(0.5, 1.6), {
+      dist: ru(0.2, 0.42), pan: ru(-0.8, 0.8), gain: fader * (ag.tg ?? 1), group: GROUP_OF[ag.sp.g],
+      rev: (ag.sp.rev ?? 0.15) + (ag.tr || 0), echo: ag.sp.echo, name: ag.sp.name });
+    announce(ag.sp.name + ", answering", 0, dur);
+  });
+}
+
 /* --------------------------------------------------- the chorus clocks --- */
 /* frogs sing in unison bouts and fall silent together: a seeded clock of
    bout and hush per site and night, the hushes shorter when it is warm or
@@ -8901,6 +8973,9 @@ el.ride.addEventListener("click", () => { RIDE.on ? releaseRide() : engageRide()
 /* the compass row only where there is a compass to turn */
 if ("DeviceOrientationEvent" in window && matchMedia("(pointer: coarse)").matches) el.headRow.hidden = false;
 el.head.addEventListener("click", () => { HEAD.on ? releaseHead() : engageHead(); });
+/* the duet only where there is a microphone to ask for */
+if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) el.duetRow.hidden = true;
+el.duet.addEventListener("click", () => { DUET.on ? releaseDuet() : engageDuet(); });
 function setLost(on) {
   LOST.on = on;
   el.lost.setAttribute("aria-checked", String(on));
