@@ -739,6 +739,10 @@ function tideNow(hour) {
   if (sign && TIDE.lastSign && sign !== TIDE.lastSign && TIDE.amp >= 0.3) announce("the tide turns", 0);
   if (sign) TIDE.lastSign = sign;
 }
+/* the birds that stay, and sing on through a snowfall */
+const WINTER_HARDY = ["chickadee", "mtchick", "greattit", "wbnut", "rbnut", "bluejay", "stellers", "raven", "crow",
+                      "crow_eu", "jcrow", "redpolls", "crossbill", "ptarmigan", "snowbunting", "junco", "kinglet_gc",
+                      "robin_eu", "wren_eu", "ghowl", "wolf"];
 /* the shorebirds feed on the ebb and the flats it leaves */
 const WADERS = ["peeps", "willet", "oyster", "curlew", "heron", "greyheron", "rail", "hadada",
                 "gulls", "gull_herring", "gull_laugh", "fisheagle"];
@@ -3298,14 +3302,14 @@ const CASTS = {
          "mallard","kingfisher","heron","woodcock",
          "barred","screech","ghowl","whip","rooster","fardog","coyote",
          "deer","squirrelG","chipmunk","raccoon","brush",
-         "leafrustle","creak","acorn","frostcrack",
+         "leafrustle","creak","acorn","frostcrack","snowload","redpolls",
          "fcricket","treecricket","katydid","groundcricket","cicada_dd","cicada_sg","mosquito","flypass",
          "peeper","woodfrog","toad","graytree","greenfrog","bullfrog","jet","train"],
   bor: ["loon","hermitthrush","wtsparrow","pacwren","rbnut","raven","swainson","kinglet_gc",
         "chickadee","junco","rgrouse","drummer","olive_sided","crossbill","redtail",
         "snipe","mallard","kingfisher","heron",
         "barred","ghowl","wolf","moose","squirrelR","deer","brush",
-        "creak","frostcrack","icewhine","mosquito","fcricket","treecricket",
+        "creak","frostcrack","icewhine","snowload","ptarmigan","redpolls","mosquito","fcricket","treecricket",
         "peeper","toad","jet"],
   sepine: ["mocker","carwren","cardinal","titmouse","bluejay","etowhee","trillbird","thrasher",
            "bobwhite","modove","redtail","rshoulder","chuck","barred","ghowl","screech","rooster","fardog","coyote",
@@ -3343,11 +3347,11 @@ const CASTS = {
          "crossbill","hummer","flicker","drummer","olive_sided","redtail","pika",
          "mallard","kingfisher",
          "sawwhet","ghowl","coyote","elk","wolf","squirrelR","deer","brush",
-         "aspen","creak","rockfall","frostcrack","icewhine",
+         "aspen","creak","rockfall","frostcrack","icewhine","snowload","ptarmigan",
          "fcricket","ghopper","jet"],
   pnw: ["vthrush","pacwren","swainson","kinglet_gc","raven","sooty","murrelet","eagle",
         "mallard","kingfisher","heron",
-        "barred","ghowl","squirrelR","brush","creak","pacfrog","mosquito","jet"],
+        "barred","ghowl","squirrelR","brush","creak","snowload","pacfrog","mosquito","jet"],
   cal: ["wrentit","calquail","caltowhee","spottowhee","scrubjay","acornwood","annas","mocker",
         "meadowlark_w","modove","redtail","wscreech","ghowl","coyote","fardog","deer","brush",
         "swallows","goldfinch","mallard","kingfisher","heron",
@@ -4066,8 +4070,8 @@ const WBASE = {
   tfor: ["fcricket", "treecricket", "katydid", "groundcricket", "brush", "deer",
          "leafrustle", "creak", "acorn", "frostcrack", "swallows",
          "mallard", "greyheron", "jet", "train"],
-  bor: ["fcricket", "brush", "creak", "frostcrack", "icewhine", "snipe", "mosquito", "jet"],
-  tundra: ["snipe", "mosquito", "jet"],
+  bor: ["fcricket", "brush", "creak", "frostcrack", "icewhine", "snowload", "ptarmigan", "snipe", "mosquito", "jet"],
+  tundra: ["snipe", "ptarmigan", "mosquito", "jet"],
   ice: ["jet"],
   shore: ["gulls", "tern", "peeps", "oyster", "foghorn", "swallows", "jet"],
 };
@@ -4077,7 +4081,7 @@ const WREALM = {
     tfor: ["blackbird_eu", "songthrush", "blackcap", "chaffinch", "greattit", "cuckoo",
            "nightingale", "robin_eu", "wren_eu", "goldenoriole", "woodpigeon", "tawny",
            "yaffle", "magpie_eu", "jackdaw", "wolf", "squirrelR", "geese",
-           "moorhen", "marshfrog", "eurotoad", "cowbells"],
+           "moorhen", "marshfrog", "eurotoad", "cowbells", "redpolls", "snowload"],
     toce: ["blackbird_eu", "songthrush", "blackcap", "chaffinch", "greattit", "cuckoo",
            "robin_eu", "wren_eu", "yellowhammer", "collared_dove", "woodpigeon", "tawny",
            "yaffle", "skylark", "swifts", "magpie_eu", "jackdaw", "corncrake", "geese",
@@ -4089,7 +4093,7 @@ const WREALM = {
               "eurotree", "marshfrog"],
     steppe: ["skylark", "hornedlark", "cuckoo", "wolf", "hoopoe", "crane_da", "marshfrog",
              "beeeater", "cowbells"],
-    bor: ["diver", "cuckoo", "raven", "wolf", "rgrouse", "swainson", "junco", "mallard"],
+    bor: ["diver", "cuckoo", "raven", "wolf", "rgrouse", "swainson", "junco", "mallard", "redpolls"],
     sav: ["ringdove", "skylark", "hoopoe", "beeeater"],
     des: ["hornedlark", "raven", "modove"],
     tundra: ["snowbunting", "diver", "raven", "wolf"],
@@ -4099,13 +4103,13 @@ const WREALM = {
     all: ["jcrow", "fardog", "rooster", "cattle", "templebell"],
     tfor: ["uguisu", "bulbul_je", "otdove", "cuckoo", "greattit", "tawny",
            "higurashi", "minmin", "suzumushi", "matsumushi", "squirrelR", "geese",
-           "moorhen", "snipe", "paddyfrogs", "kajika"],
+           "moorhen", "snipe", "paddyfrogs", "kajika", "redpolls", "snowload"],
     toce: ["uguisu", "bulbul_je", "otdove", "cuckoo", "greattit", "tawny", "higurashi",
            "suzumushi", "matsumushi", "geese", "moorhen", "paddyfrogs", "kajika"],
     subtrop: ["uguisu", "koel", "bulbul_je", "otdove", "minmin", "higurashi", "suzumushi",
               "matsumushi", "myna", "moorhen", "paddyfrogs", "kajika"],
     steppe: ["skylark", "cuckoo", "wolf", "hornedlark", "crane_da"],
-    bor: ["diver", "cuckoo", "raven", "wolf", "rgrouse", "mallard"],
+    bor: ["diver", "cuckoo", "raven", "wolf", "rgrouse", "mallard", "redpolls"],
     des: ["hornedlark", "raven"],
     tundra: ["snowbunting", "diver", "raven", "wolf"],
     med: [], sav: [], shore: ["greyheron"],
@@ -4186,7 +4190,7 @@ function castWorld(biome, realm) {
     const map = { bor: "bor", tfor: "efor", toce: "pnw", steppe: "sage", des: "son",
                   sav: "chih", subtrop: "sepine", med: "cal", shore: "pcoast" };
     if (map[biome]) return CASTS[map[biome]];
-    if (biome === "tundra") return [...WBASE.tundra, "snowbunting", "diver", "raven", "wolf", "coyote"];
+    if (biome === "tundra") return [...WBASE.tundra, "snowbunting", "diver", "raven", "wolf", "coyote", "redpolls"];
     if (biome === "trf") return [...WBASE.trf, "parrots", "gecko"];
     return WBASE[biome] || [];
   }
@@ -5064,6 +5068,50 @@ def("mainshum", { name: "the mains hum, from the lines", g: "air",
       x[i] = (Math.sin(ph) + 0.6 * Math.sin(2 * ph) + 0.45 * Math.sin(3 * ph) + 0.3 * Math.sin(5 * ph) + 0.15 * Math.sin(7 * ph)) * sag;
     }
     return scaleA(env3(normA(x), 2, 2), 0.22); } });
+
+/* ============================================================ winter ======= */
+/* snow was silence; now it is a season. the ptarmigan's go-back chuckle
+   on the tundra and in the high spruce, redpoll flocks chattering over
+   (always in the north, and one winter in three irrupting south into
+   the hardwoods and the european beech), the snow sliding off a branch
+   with a soft whump, the great horned owls and the wolves at their
+   midwinter courting, and the birds that stay — chickadees, nuthatches,
+   jays, ravens, crossbills, juncos — singing on through the snowfall
+   that hushes everyone else */
+def("ptarmigan", { name: "a ptarmigan", g: "bird",
+  act: e => A({ doy: [1, 365], dawn: 1, day: 0.5, dusk: 0.6 })(e) * (inDoy(e.doy, 90, 160) ? 1.4 : 0.6),
+  gap: [20, 60], dist: [0.3, 0.7], n: [1, 2],
+  gen() { /* the willow ptarmigan's go-back, go-back: a guttural chuckle that quickens, then a few slow knocks */
+    const f = ru(480, 700);
+    const kuk = tone(0.14, [[0, f * 0.9], [1, f * 0.7]], { harm: [1, 0.9, 0.7, 0.5, 0.3], noise: 0.5, nfc: f * 2.2, atk: 0.01, rel: 0.04 });
+    const run = pulses(ri(8, 16), ru(9, 13), k => scaleA(tone(0.05, [[0, f * (1 + 0.01 * k)], [1, f * 0.8]],
+      { harm: [1, 0.9, 0.7, 0.5, 0.3], noise: 0.5, nfc: f * 2.2, atk: 0.004, rel: 0.015 }), 0.7 + 0.02 * k), { accel: 0.93, jit: 0.08 });
+    const tail = pulses(ri(2, 4), ru(3, 4), () => scaleA(tone(0.07, [[0, f * 0.95], [1, f * 0.75]],
+      { harm: [1, 0.9, 0.7, 0.5, 0.3], noise: 0.5, nfc: f * 2.2, atk: 0.006, rel: 0.03 }), 0.8), { accel: 1.25 });
+    return cat(kuk, gapN(0.12), run, gapN(0.1), tail); } });
+def("redpolls", { name: "redpolls, over", g: "bird",
+  act: e => (!site ? 0 : (site.biome === "bor" || site.biome === "tundra") ? 1
+    : mulberry32(fnv("redpoll:" + site.key + ":" + dayStr.slice(0, 4)))() < 0.35 ? 1 : 0)   /* an irruption winter */
+    * A({ doy: [300, 80], day: 1, dawn: 0.8 })(e),
+  gap: [25, 70], dist: [0.2, 0.6], n: [1, 2],
+  gen() { /* a flock passing: dry chet-chet-chet in several voices, and a buzzy trill among them */
+    const dur = ru(3, 5);
+    return normA(lmix(dur, add => {
+      for (let v = 0, nv = ri(3, 6); v < nv; v++) {
+        let t = ru(0, 0.8); const f = ru(3200, 3900);
+        while (t < dur - 0.3) {
+          add(pulses(ri(3, 6), ru(9, 14), () => tone(0.035, [[0, f * 1.08], [1, f * 0.85]], { harm: [1, 0.3], atk: 0.003, rel: 0.01 }), { jit: 0.1 }), t, ru(0.3, 0.7));
+          t += ru(0.4, 1.1);
+        }
+      }
+      if (Math.random() < 0.7) add(rasp(ru(0.35, 0.6), ru(3800, 4600), 2, { am: ru(26, 34), amd: 1.4, win: 0.6 }), ru(0.5, dur - 0.7), 0.5);
+    })); } });
+def("snowload", { name: "snow sliding off a branch", g: "air",
+  act: e => weather.snow > 0.02 ? 1 : (e.tF < 34 && inDoy(e.doy, 320, 70)) ? 0.25 : 0,
+  gap: [60, 240], dist: [0.1, 0.5], n: [1, 2],
+  gen() { const h = lpA(noiseA((ru(0.5, 0.9) * SR) | 0), 900);
+    for (let i = 0; i < h.length; i++) { const tf = i / h.length; h[i] *= 0.6 * Math.pow(Math.sin(Math.PI * Math.min(1, tf * 1.2)), 1.3) * (1 - 0.5 * tf); }
+    return scaleA(normA(cat(scaleA(thud(70, 0.25), 0.7), h)), 0.55); } });
 
 /* ================================= what can no longer be heard ======= */
 /* a separate world: the voices that are gone, singing again on their old
@@ -6801,7 +6849,7 @@ function steerBed(now) {
     set(t.fum.g.gain, 0.03 * site.geo.fum * breath);
     set(t.fumLow.g.gain, 0.03 * site.geo.fum);
   }
-  set(t.rain.g.gain, weather.rain * 0.05);
+  set(t.rain.g.gain, weather.rain * 0.05 + weather.snow * 0.006);   /* snow: the faintest hiss on the needles */
   if (t.rxhiss) {   /* on the radio nothing of the air is heard at all */
     set(t.veg.g.gain, 0); set(t.hiss.g.gain, 0); set(t.moan.g.gain, 0); set(t.low.g.gain, 0);
     if (t.rumble) set(t.rumble.g.gain, 0);
@@ -7283,7 +7331,12 @@ function stepWeather(e) {
     if (dh < w.len) { rain = w.int * Math.sin(Math.PI * Math.min(1, dh / w.len)); thunder = w.thunder; }
     else if (dh < w.len + 1.5) weather.drip = Math.max(weather.drip, 0.5 * (1 - (dh - w.len) / 1.5));
   }
-  weather.rain += (rain - weather.rain) * 0.1;
+  /* below freezing the window falls as snow, and the snow is allowed to build —
+     it used to be zeroed each tick and never got past a flurry */
+  const cold = e.tF < 33;
+  weather.rain += ((cold ? 0 : rain) - weather.rain) * 0.1;
+  weather.snow += ((cold ? rain : 0) - weather.snow) * 0.1;
+  if (weather.snow < 0.005) weather.snow = 0;
   weather.thunder = thunder && weather.rain > 0.15;
   weather.drip *= 0.995;
   /* wind: windier afternoons, day-biased, plus the plan's own character */
@@ -7291,8 +7344,6 @@ function stepWeather(e) {
   weather.wind = pl.windBias * diurnal * (1 + weather.rain * 0.8);
   /* fog: pre-dawn through mid-morning where the day has it */
   weather.fog = pl.fogDay ? Math.max(0, Math.min(1, (12 - e.el) / 14)) * (e.hour < 13 ? 1 : 0.2) : 0;
-  weather.snow = (e.tF < 33 && weather.rain > 0.05) ? weather.rain : 0;
-  if (weather.snow) weather.rain = 0;   /* snow is silence, not hiss */
 }
 let thunderNext = 0;
 
@@ -8089,7 +8140,11 @@ function tick() {
           /* rain quiets the singers (except a couple of rain-singers) */
           if (weather.rain > 0.15 && sp.g === "bird" && !["vthrush", "pacwren"].includes(sp.id))
             act *= Math.max(0, 1 - weather.rain * 1.6);
-          if (weather.snow > 0.05 && sp.g !== "air") act *= 0.25;
+          if (weather.snow > 0.05 && sp.g !== "air") act *= WINTER_HARDY.includes(sp.id) ? 0.65 : 0.25;
+          if (inDoy(e.doy, 335, 50)) {   /* midwinter courting */
+            if (sp.id === "ghowl") act = Math.min(1, act * 1.6);
+            if (sp.id === "wolf") act = Math.min(1, act * 1.5);
+          }
           if (ECL.dim > 0 && sp.g === "bird")   /* hushed as the light goes; a chorus as it comes back */
             act *= ECL.total ? 0.05 : ECL.phase < 0 ? Math.max(0, 1 - ECL.dim * 1.3) : Math.min(1, 1 + ECL.dim);
           if (sp.id === "foghorn") act *= weather.fog > 0.25 ? 1 : 0;
