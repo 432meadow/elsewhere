@@ -195,6 +195,7 @@
 <div class="inline between">
   <div class="seg">
     <button class="act" id="jump" aria-label="Go somewhere else at random">[ elsewhere ]</button>
+    <button class="act" id="here" aria-label="Stand where you are: the page asks for your location">[ here ]</button>
     <button class="switch" id="drift" role="switch" aria-checked="false"
       aria-label="Drift: the listener wanders the land">[ &infin; drift ]</button>
     <button class="switch" id="ride" role="switch" aria-checked="false"
@@ -220,6 +221,8 @@
       aria-label="Follow the actual time at the site">[ now ]</button>
     <button class="switch" id="lapse" role="switch" aria-checked="false"
       aria-label="Time-lapse: a day passes in an hour">[ a day in an hour ]</button>
+    <button class="switch" id="yearlapse" role="switch" aria-checked="false"
+      aria-label="Season-lapse: a year passes in an hour">[ a year in an hour ]</button>
     <button class="switch" id="moth" role="switch" aria-checked="false"
       aria-label="The moth variation: deep night, and only the moths">[ moth variation ]</button>
     <button class="switch" id="lost" role="switch" aria-checked="false"
@@ -646,12 +649,53 @@ const dayStr = (params.get("day") || (() => { const d = new Date();
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0")
        + "-" + String(d.getDate()).padStart(2, "0"); })()).slice(0, 10);
 /* the moon, for its nights: illuminated fraction on the seeded day */
-const MOONF = (() => {
+const MOONAGE = (() => {   /* 0 at new moon, 0.5 at full */
   const d = (Date.parse(dayStr + "T22:00:00Z") - Date.parse("2000-01-06T18:14:00Z")) / 86400000;
-  const ph = (((d % 29.530588) + 29.530588) % 29.530588) / 29.530588;
-  return (1 - Math.cos(2 * Math.PI * ph)) / 2;
+  return (((d % 29.530588) + 29.530588) % 29.530588) / 29.530588;
 })();
+const MOONF = (1 - Math.cos(2 * Math.PI * MOONAGE)) / 2;
 const FULLMOON = MOONF > 0.97;
+
+/* ------------------------------------------------------------- the tide -- */
+/* the moon's pull, twice a day, with the sun's smaller pull beside it:
+   springs when they line up at new and full moon, neaps when they cross.
+   the moon crosses the meridian later than the sun by its age — at noon
+   when new, at midnight when full — and each port has its own lag behind
+   that, seeded by the coast. the enclosed seas barely rise; the gulf of
+   mexico rises once a day, not twice. on the solar clock, so [ a day in
+   an hour ] runs the tide through its whole cycle */
+const TIDE = { on: false, h: 0, rate: 0, amp: 1, word: "", lastSign: 0 };
+function tideSetup(s) {
+  TIDE.on = !!(s && s.water && s.water.surf && !s.water.lakeSurf && s.biome !== "sea");
+  if (!TIDE.on) { TIDE.h = 0; TIDE.rate = 0; TIDE.word = ""; return; }
+  const lon = s.lon, lat = s.lat;
+  const enclosed = (lon > -6 && lon < 37 && lat > 30 && lat < 46)      /* mediterranean, black sea */
+    || (lon > 9 && lon < 31 && lat > 53 && lat < 66)                  /* baltic */
+    || (lon > 127 && lon < 142 && lat > 34 && lat < 52)               /* sea of japan */
+    || (lon > -89 && lon < -60 && lat > 9 && lat < 23);               /* caribbean */
+  TIDE.amp = enclosed ? 0.12 : 1;
+  TIDE.diurnal = s.coastType === "g";
+  TIDE.lag = mulberry32(fnv("tide:" + s.key))() * 2 * Math.PI;
+  TIDE.lastSign = 0;
+}
+function tideNow(hour) {
+  if (!TIDE.on) return;
+  const Hs = 2 * Math.PI * (hour - 12) / 24, Hm = Hs - 2 * Math.PI * MOONAGE;
+  const k = TIDE.diurnal ? 1 : 2;
+  const h = (Math.cos(k * Hm - TIDE.lag) + 0.46 * Math.cos(k * Hs - TIDE.lag)) / 1.46;
+  const r = -(k * Math.sin(k * Hm - TIDE.lag) + 0.46 * k * Math.sin(k * Hs - TIDE.lag)) / 1.46;
+  TIDE.h = h * TIDE.amp; TIDE.rate = r * TIDE.amp;
+  /* today's own range: a neap's high water is still high water */
+  const A = Math.sqrt(1 + 0.46 * 0.46 + 2 * 0.46 * Math.cos(k * 2 * Math.PI * MOONAGE)) / 1.46;
+  TIDE.word = TIDE.amp < 0.3 ? "" : h > 0.72 * A ? "high tide" : h < -0.72 * A ? "low tide"
+            : r > 0 ? "the tide coming in" : "the tide going out";
+  const sign = Math.abs(h) > 0.9 * A ? Math.sign(h) : 0;
+  if (sign && TIDE.lastSign && sign !== TIDE.lastSign && TIDE.amp >= 0.3) announce("the tide turns", 0);
+  if (sign) TIDE.lastSign = sign;
+}
+/* the shorebirds feed on the ebb and the flats it leaves */
+const WADERS = ["peeps", "willet", "oyster", "curlew", "heron", "greyheron", "rail", "hadada",
+                "gulls", "gull_herring", "gull_laugh", "fisheagle"];
 
 /* -------------------------------------------------------------- site ----- */
 let site = null;      /* {lat, lon, biome, base, coast..., state, region, water...} */
@@ -920,6 +964,18 @@ const MOTH = { on: false, night: "", nightT: 0, fam: "", rng: null, outbreak: fa
 /* [ what can no longer be heard ]: a separate world, where only the lost sing */
 const LOST = { on: false, sayT: 0, sig: "" };
 let lapseBase = null;  /* {real: performance.now()/1000, hour: minutes} */
+/* [ a year in an hour ]: the seasons on their own carousel, 365 days an
+   hour, the day's weather planned afresh as each day comes round */
+const YEAR = { on: false, real: 0, doy: 0 };
+function yearStep() {
+  if (!YEAR.on) return;
+  const f = (YEAR.doy + (performance.now() / 1000 - YEAR.real) * 365 / 3600) % 365;
+  const d = Math.max(1, Math.min(365, Math.floor(f) + 1));
+  if (d === P.doy) return;
+  P.doy = d;
+  el.doy.value = d; out("doy").textContent = doyLabel(d) + " · a year in an hour";
+  if (site) planWeather();
+}
 function solarHour() {
   /* current local solar time at the site, minutes 0..1440 */
   if (!site) return P.hour;
@@ -6203,7 +6259,8 @@ function steerBed(now) {
   set(t.low.g.gain, 0.022 + 0.02 * g);
   if (t.rumble) {
     const swell = 0.045 + 0.02 * Math.sin(now * 0.42 + 1);
-    set(t.rumble.g.gain, (site.water.lakeSurf ? 0.4 : 1) * swell);
+    const tide = TIDE.on ? 0.75 + 0.25 * TIDE.h : 1;   /* the water comes up the beach and goes back down it */
+    set(t.rumble.g.gain, (site.water.lakeSurf ? 0.4 : 1) * swell * tide);
   }
   if (t.fum) {
     const breath = 0.8 + 0.2 * Math.sin(now * 0.9 + 2) * Math.sin(now * 0.23);
@@ -6306,8 +6363,11 @@ function scheduleWater(now, horizon) {
     while (ev.nextT < now + horizon) {
       const t = ev.nextT;
       const vA = P.vAir * (MOTH.on ? 0.35 : 1);
-      if (ev.kind === "wave")
-        play(waveBuf(ru(0.7, 1.15)), t, { dist: ru(0.15, 0.35), pan: ru(-0.7, 0.7), gain: 0.75 * vA, group: "air", rev: 0.08 });
+      if (ev.kind === "wave") {
+        const ebb = TIDE.on ? (1 - TIDE.h) / 2 : 0.3;   /* at low water the break is a long way down the sand */
+        play(waveBuf(ru(0.7, 1.15)), t, { dist: ru(0.15, 0.35) + 0.22 * ebb, pan: ru(-0.7, 0.7),
+          gain: (0.85 - 0.3 * ebb) * vA, group: "air", rev: 0.08 + 0.1 * ebb });
+      }
       else if (ev.kind === "swell")
         play(swellBuf(), t, { dist: ru(0.1, 0.4), pan: ru(-0.8, 0.8), gain: 0.5 * vA, group: "air", rev: 0.12 });
       else if (ev.kind === "lakewave")
@@ -6998,6 +7058,7 @@ function driftApply(lon, lat) {
     && s.rocky === site.rocky && s.farm === site.farm && s.town === site.town;
   const crossed = s.biome !== site.biome;
   site = s;
+  if (!sameWorld) tideSetup(site);
   if (!sameWorld && running) {
     if (crossed) {
       planWeather();
@@ -7245,6 +7306,7 @@ function tick() {
   try {
     const now = ctx.currentTime, horizon = 0.7;
     stepSleep(now);
+    yearStep();
     if (P.drift && drift.rng && now > drift.nextT) {
       try { driftStep(now); } catch (err) {
         const k = "drift:" + String(err && err.message);
@@ -7259,6 +7321,7 @@ function tick() {
     }
     const e = envNow();
     stepWeather(e);
+    tideNow(e.hour);
     syncSynth(e);
     steerBed(now);
     scheduleWater(now, horizon);
@@ -7294,6 +7357,8 @@ function tick() {
           if (ECL.dim > 0 && sp.g === "bird")   /* hushed as the light goes; a chorus as it comes back */
             act *= ECL.total ? 0.05 : ECL.phase < 0 ? Math.max(0, 1 - ECL.dim * 1.3) : Math.min(1, 1 + ECL.dim);
           if (sp.id === "foghorn") act *= weather.fog > 0.25 ? 1 : 0;
+          if (TIDE.on && TIDE.amp >= 0.3 && WADERS.includes(sp.id))   /* the flats are the table */
+            act *= 0.45 + 0.8 * (1 - TIDE.h) / 2 + (TIDE.rate < 0 ? 0.25 : 0);
           if (FULLMOON && e.night > 0.3) {   /* moonlit nights carry more song */
             if (sp.id === "mocker" || sp.id === "nightingale" || sp.id === "robin_eu") act = Math.min(1, act * 1.8);
             if (["coyote", "wolf", "dingoes", "jackals"].includes(sp.id)) act = Math.min(1, act * 1.5);
@@ -7382,6 +7447,8 @@ function statusLine(e) {
   const wx = (weather.snow > 0.05 ? " · snow" : weather.rain > 0.4 ? " · rain"
     : weather.rain > 0.05 ? " · light rain" : weather.fog > 0.4 ? " · fog" : "")
     + (ECL.total ? " · totality" : ECL.obs > 0.02 ? " · eclipse" : "")
+    + (TIDE.word ? " · " + TIDE.word : "")
+    + (YEAR.on ? " · a year in an hour" : "")
     + (P.drift ? " · drifting" : "")
     + (RIDE.on ? " · riding the dawn" + (P.lapse ? ", 24×" : "") : "")
     + (P.dub ? " · dub " + DUB.state : "")
@@ -7769,7 +7836,7 @@ function setSite(lon, lat, announceIt = true) {
     if (!s) return;
   }
   site = s;
-  planWeather();
+  planWeather(); tideSetup(site);
   if (running) {
     buildBed(); buildWaterEvents(); buildCast(); buildMothCast(); buildLostCast();
     heardNames.length = 0; renderNames();
@@ -7933,7 +8000,7 @@ function wearHour(e) {
   root.setProperty("--warm", warm); root.setProperty("--cool", cool);
 }
 /* before [ begin ] there is no tick to carry the hour */
-setInterval(() => { if (!running && site) wearHour(envNow()); }, 1000);
+setInterval(() => { if (!running) { yearStep(); if (site) wearHour(envNow()); } }, 1000);
 
 /* ------------------------------------------------------------ sleep ------ */
 /* [ sleep ] — the world fades over its last minutes and goes under. the tick
@@ -8079,7 +8146,16 @@ el.hour.addEventListener("input", () => {
   el.now.setAttribute("aria-checked", "false"); el.lapse.setAttribute("aria-checked", "false");
   P.hour = +el.hour.value; out("hour").textContent = fmtHour(P.hour);
 });
+function setYear(on) {
+  YEAR.on = on;
+  el.yearlapse.setAttribute("aria-checked", String(on));
+  if (on) { YEAR.real = performance.now() / 1000; YEAR.doy = P.doy - 1; }
+  out("doy").textContent = doyLabel(P.doy) + (on ? " · a year in an hour" : "");
+  if (on) announce("a year in an hour", 0);
+}
+el.yearlapse.addEventListener("click", () => setYear(!YEAR.on));
 el.doy.addEventListener("input", () => {
+  if (YEAR.on) setYear(false);   /* a hand on the season steps off the carousel */
   P.doy = +el.doy.value; out("doy").textContent = doyLabel(P.doy);
   if (site) planWeather();
 });
@@ -8111,6 +8187,7 @@ el.lapse.addEventListener("click", () => {
   el.lapse.setAttribute("aria-checked", String(P.lapse));
 });
 el.today.addEventListener("click", () => {
+  if (YEAR.on) setYear(false);
   const d = new Date();
   P.doy = Math.max(1, Math.min(365, Math.round((d - new Date(d.getFullYear(), 0, 0)) / 86400000)));
   el.doy.value = P.doy; out("doy").textContent = doyLabel(P.doy);
@@ -8178,6 +8255,26 @@ out("doy").textContent = doyLabel(P.doy); el.doy.value = P.doy;
 out("wind").textContent = WINDWORDS[Math.min(6, (P.wind * 7) | 0)];
 
 el.jump.addEventListener("click", randomSite);
+/* [ here ]: stand where you are. the page asks once; the answer is never
+   kept, never sent anywhere, and the clock is already the real one */
+if (!("geolocation" in navigator)) el.here.hidden = true;
+el.here.addEventListener("click", () => {
+  if (!navigator.geolocation || el.here.disabled) return;
+  el.here.textContent = "[ finding you ]"; el.here.disabled = true;
+  const back = () => { el.here.textContent = "[ here ]"; el.here.disabled = false; };
+  navigator.geolocation.getCurrentPosition(pos => {
+    back();
+    const lon = pos.coords.longitude, lat = pos.coords.latitude;
+    if (P.drift) { P.drift = false; el.drift.setAttribute("aria-checked", "false"); }
+    setSite(lon, lat);
+    if (site) { globeCenter(site.lon, site.lat); announce("here", 0); }
+    else announce("there is no ground under you on this map", 0);
+  }, err => {
+    back();
+    announce(err && err.code === 1 ? "the page is not allowed to know where you are"
+                                    : "where you are could not be found", 0);
+  }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
+});
 el.sleep.addEventListener("click", () => {
   if (SLEEP.asleep) { wake(); return; }
   const i = SLEEP_STEPS.indexOf(SLEEP.min);
