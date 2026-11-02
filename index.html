@@ -67,10 +67,16 @@
     --rule: #13222a; --focus: #b4c7cf;
     --warm: #7fa39a; --cool: #5d7fa6;
   }
+  /* natural radio: the page is the receiver's dial, warm amber on near-black, in any theme */
+  :root.radio, :root.radio[data-theme="light"] {
+    --bg: #0b0a08; --s1: #d9cdb0; --s2: #7d7461; --s3: #433e34;
+    --rule: #1d1a15; --focus: #d9cdb0;
+    --warm: #c9a35f; --cool: #8f8470;
+  }
   /* faders that don't touch the moth atmosphere fall out of focus; under
-     the water there are no birds to fade */
-  .moth-idle, .under-idle { transition: opacity 0.7s ease, filter 0.7s ease; }
-  :root.moth .moth-idle, :root.under .under-idle { opacity: 0.22; filter: blur(1.5px); pointer-events: none; }
+     the water there are no birds to fade; on the radio there is only the air */
+  .moth-idle, .under-idle, .radio-idle { transition: opacity 0.7s ease, filter 0.7s ease; }
+  :root.moth .moth-idle, :root.under .under-idle, :root.radio .radio-idle { opacity: 0.22; filter: blur(1.5px); pointer-events: none; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
     margin: 0; background: var(--bg); color: var(--s1);
@@ -261,6 +267,8 @@
       aria-label="What can no longer be heard: a separate world where lost species sing on their old ranges">[ what can no longer be heard ]</button>
     <button class="switch" id="under" role="switch" aria-checked="false"
       aria-label="Under the surface: a hydrophone world, the water's own voices">[ under the surface ]</button>
+    <button class="switch" id="radio" role="switch" aria-checked="false"
+      aria-label="Natural radio: the earth heard through a VLF receiver — lightning, whistlers, the auroral chorus">[ natural radio ]</button>
   </div>
 </div>
 <div class="sect">listening</div>
@@ -277,13 +285,13 @@
   <input type="range" id="space" min="0" max="100" value="40" aria-label="Openness of the air"></div>
 
 <div class="sect">voices</div>
-<div class="ctl warm moth-idle under-idle"><div class="row2"><label for="vBird">birds</label><output id="vBirdV">70</output></div>
+<div class="ctl warm moth-idle under-idle radio-idle"><div class="row2"><label for="vBird">birds</label><output id="vBirdV">70</output></div>
   <input type="range" id="vBird" min="0" max="100" value="70" aria-label="Bird level"></div>
-<div class="ctl"><div class="row2"><label for="vBug">insects</label><output id="vBugV">70</output></div>
+<div class="ctl radio-idle"><div class="row2"><label for="vBug">insects</label><output id="vBugV">70</output></div>
   <input type="range" id="vBug" min="0" max="100" value="70" aria-label="Insect level"></div>
-<div class="ctl cool moth-idle"><div class="row2"><label for="vFrog">frogs</label><output id="vFrogV">70</output></div>
+<div class="ctl cool moth-idle radio-idle"><div class="row2"><label for="vFrog">frogs</label><output id="vFrogV">70</output></div>
   <input type="range" id="vFrog" min="0" max="100" value="70" aria-label="Frog level"></div>
-<div class="ctl cool moth-idle"><div class="row2"><label for="vFauna">fauna</label><output id="vFaunaV">70</output></div>
+<div class="ctl cool moth-idle radio-idle"><div class="row2"><label for="vFauna">fauna</label><output id="vFaunaV">70</output></div>
   <input type="range" id="vFauna" min="0" max="100" value="70" aria-label="Mammal and beast level"></div>
 <div class="ctl"><div class="row2"><label for="vAir">air &amp; water</label><output id="vAirV">70</output></div>
   <input type="range" id="vAir" min="0" max="100" value="70" aria-label="Wind and water level"></div>
@@ -999,6 +1007,14 @@ const MOTH = { on: false, night: "", nightT: 0, fam: "", rng: null, outbreak: fa
 const LOST = { on: false, sayT: 0, sig: "" };
 /* [ under the surface ]: the hydrophone world — sea, lake, stream or pond */
 const UNDER = { on: false, kind: "" };
+/* [ natural radio ]: the earth through a VLF receiver. the day's geomagnetic
+   weather is one number, kp, seeded for the whole planet: most days quiet,
+   a few a storm */
+const RADIO = { on: false, kp: 0, word: "" };
+(() => { const r = mulberry32(fnv("kp:" + dayStr))();
+  RADIO.kp = r < 0.5 ? 1 + 2 * r : r < 0.85 ? 2 + (r - 0.5) * 6 : 4 + (r - 0.85) * 25;
+  RADIO.word = RADIO.kp < 2 ? "a quiet magnetosphere" : RADIO.kp < 4 ? "an unsettled magnetosphere"
+             : RADIO.kp < 6 ? "a geomagnetic storm" : "a great geomagnetic storm"; })();
 let lapseBase = null;  /* {real: performance.now()/1000, hour: minutes} */
 /* [ a year in an hour ]: the seasons on their own carousel, 365 days an
    hour, the day's weather planned afresh as each day comes round */
@@ -4957,6 +4973,93 @@ def("gravel", { name: "the gravel, rolling", g: "air",
   act: A({ doy: [1, 365], day: 1, night: 1, dawn: 1, dusk: 1 }), gap: [0.5, 2], dist: [0.05, 0.3], n: [2, 3],
   gen() { return scaleA(pulses(ri(3, 10), ru(4, 12), () => knockBuf(ru(250, 1200), 0.02, 1.8), { jit: 0.4 }), 0.5); } });
 
+/* ========================================================== natural radio == */
+/* the earth heard through a very-low-frequency receiver: a wire and an
+   amplifier, nothing between it and the sky. every lightning stroke on
+   the planet arrives as a crackle — the sferics, a few thousand a minute
+   worldwide, loud when the storm is yours. at night, with the ionosphere's
+   lower layer gone, the strokes ring in the earth–ionosphere waveguide
+   and arrive as tweeks, a click with a falling tail that settles near
+   1.8 khz. some strokes escape along the magnetic field lines to the
+   other hemisphere and back, the high frequencies travelling faster, and
+   arrive as whistlers: a glide from several kilohertz down over a second
+   or two, dispersion made audible, commonest at middle latitudes and when
+   the far hemisphere is in its thunderstorm summer. at high latitude on
+   a disturbed morning the magnetosphere itself sings: the dawn chorus,
+   rising tones by the dozen, named for the birds. and wherever there are
+   people, the mains hum from the lines, at fifty hertz or sixty */
+const SIXTY_HZ = (lon, lat) => lon < -30 || (lon > 136 && lon < 146 && lat > 33 && lat < 46)   /* eastern japan */
+  || (lon > 124 && lon < 131 && lat > 33 && lat < 39)                                            /* korea */
+  || (lon > 119 && lon < 123 && lat > 21 && lat < 26) || (lon > 116 && lon < 127 && lat > 4 && lat < 20)   /* taiwan, philippines */
+  || (lon > 34 && lon < 56 && lat > 16 && lat < 32);                                             /* arabia */
+function sfericBuf(dur, rate, near) {
+  const n = (dur * SR) | 0, x = new Float32Array(n);
+  for (let k = 0, m = (dur * rate) | 0; k < m; k++) {
+    const d = ru(0.003, 0.012), c = knockBuf(ru(600, 4500), d, 0.7);
+    addTo(x, scaleA(c, ru(0.1, 1) * ru(0.1, 1)), (ru(0, dur - d) * SR) | 0);
+  }
+  if (near > 0) for (let k = 0, m = ri(1, 3); k < m; k++) {   /* the storm is here: strokes that slam */
+    const c = noiseA((0.09 * SR) | 0);
+    for (let i = 0; i < c.length; i++) c[i] *= Math.exp(-i / (SR * 0.02));
+    addTo(x, scaleA(lpA(c, 3000), 1.2 * near), (ru(0, dur - 0.1) * SR) | 0);
+  }
+  return normA(x, 0.8);
+}
+def("sferics", { name: "sferics: lightning, somewhere on earth", g: "air",
+  act: () => 1, gap: [0.1, 0.8], dist: [0.1, 0.4], n: [2, 3],
+  gen() { const near = weather.thunder ? 0.6 + 0.4 * weather.rain : 0;
+    /* the planet's storms peak in the late afternoon of the americas and africa: around 19 utc */
+    const utc = site ? ((P.hour / 60 - site.lon / 15) % 24 + 24) % 24 : 12;
+    const world = 0.6 + 0.4 * Math.cos((utc - 19) / 24 * 2 * Math.PI);
+    return scaleA(sfericBuf(ru(3, 6), (8 + 16 * world) * (1 + 3 * near), near), 0.55 + 0.45 * near); } });
+def("tweeks", { name: "tweeks: strokes ringing in the night's waveguide", g: "air",
+  act: A({ doy: [1, 365], night: 1.2, dusk: 0.5, dawn: 0.4 }), gap: [0.8, 3], dist: [0.15, 0.5], n: [1, 2],
+  gen() { const dur = ru(2, 4);
+    return normA(lmix(dur, add => { for (let k = 0, m = ri(3, 8); k < m; k++) {
+      const at = ru(0, dur - 0.12), cut = ru(1650, 1900);
+      add(knockBuf(ru(1500, 3500), 0.004, 0.8), at, 0.7);
+      add(tone(ru(0.05, 0.09), [[0, cut * 2.2], [0.15, cut * 1.35], [0.5, cut * 1.08], [1, cut]],
+        { harm: [1], atk: 0.001, rel: 0.02, decay: 0.7 }), at + 0.002, ru(0.4, 0.9)); } }), 0.8); } });
+def("whistler", { name: "a whistler", g: "air",
+  act: e => { if (!site) return 0;
+    const al = Math.abs(site.lat), band = al >= 28 && al <= 66 ? 1 : al < 28 ? 0.15 : 0.5;
+    const winter = inDoy(e.doy, 305, 75) ? 1 : inDoy(e.doy, 120, 250) ? 0.35 : 0.65;   /* the far hemisphere's storms */
+    const storm = 0.7 + 0.15 * RADIO.kp;
+    return band * winter * storm * (0.4 + 0.6 * e.night + 0.25 * e.twilight); },
+  gap: [6, 25], dist: [0.2, 0.6], n: [1, 2],
+  gen() { /* f(t) = (D / t)^2: the dispersion of a stroke that went to the far hemisphere and back along a field line */
+    const D = ru(14, 26), t0 = ru(0.12, 0.2), dur = ru(0.8, 2), n = (dur * SR) | 0, x = new Float32Array(n);
+    let ph = 0;
+    for (let i = 0; i < n; i++) {
+      const t = i / SR + t0, f = Math.max(380, Math.min(9000, Math.pow(D / t, 2)));
+      ph += 2 * Math.PI * f / SR;
+      const tf = i / n, env = Math.pow(Math.sin(Math.PI * Math.min(1, tf * 1.3)), 0.8) * (1 - 0.6 * tf);
+      x[i] = (Math.sin(ph) + 0.08 * (Math.random() * 2 - 1)) * env;
+    }
+    return scaleA(x, 0.75); } });
+def("vlfchorus", { name: "the dawn chorus of the magnetosphere", g: "air",
+  act: e => { if (!site) return 0;
+    const al = Math.abs(site.lat), band = al >= 55 && al <= 76 ? 1 : al >= 45 && al < 55 ? 0.4 : 0;
+    const morning = gauss(e.hour, 7, 3.2);                  /* local morning, magnetic time near enough */
+    const kp = Math.max(0.05, Math.min(2, Math.pow(RADIO.kp / 4, 1.5)));
+    return band * morning * kp; },
+  gap: [1.5, 6], dist: [0.2, 0.6], n: [1, 3],
+  gen() { const dur = ru(3, 6);
+    return normA(lmix(dur, add => { for (let k = 0, m = ri(6, 20); k < m; k++) {
+      const f = ru(600, 2500), d = ru(0.15, 0.5);
+      add(tone(d, [[0, f], [1, f * ru(1.6, 3)]], { harm: [1, 0.05], atk: 0.02, rel: 0.04, decay: 0.3 }),
+        ru(0, dur - d), ru(0.2, 0.8)); } }), 0.7); } });
+def("mainshum", { name: "the mains hum, from the lines", g: "air",
+  act: () => 1, gap: [0.5, 2], dist: [0.3, 0.5], n: [1, 1],
+  gen() { const f = site && SIXTY_HZ(site.lon, site.lat) ? 60 : 50, dur = 30, n = (dur * SR) | 0, x = new Float32Array(n);
+    let ph = 0;
+    for (let i = 0; i < n; i++) {
+      ph += 2 * Math.PI * f / SR;
+      const sag = 1 + 0.08 * Math.sin(2 * Math.PI * 0.3 * i / SR) * Math.sin(2 * Math.PI * 0.07 * i / SR);
+      x[i] = (Math.sin(ph) + 0.6 * Math.sin(2 * ph) + 0.45 * Math.sin(3 * ph) + 0.3 * Math.sin(5 * ph) + 0.15 * Math.sin(7 * ph)) * sag;
+    }
+    return scaleA(env3(normA(x), 2, 2), 0.22); } });
+
 /* ================================= what can no longer be heard ======= */
 /* a separate world: the voices that are gone, singing again on their old
    ranges at their old numbers. each carries how it is known — recorded
@@ -6654,6 +6757,10 @@ function buildBed() {
     t.fumLow = tap(src, "lowpass", 220, 0.6, 0.0, dest);
   }
   t.rain = tap(src, "bandpass", 3800, 0.5, 0.0, dest);      /* rain hiss */
+  if (RADIO.on) {   /* the receiver: its own hiss, and the auroral hiss on a disturbed night */
+    t.rxhiss = tap(src, "highpass", 2500, 0.5, 0.0, dest);
+    t.aurhiss = tap(src, "bandpass", 1600, 0.5, 0.0, dest);
+  }
   if (UNDER.on) {   /* the hydrophone: the floor's rumble, the surface overhead, the bubbles */
     t.urumble = tap(src, "lowpass", UNDER.kind === "stream" ? 160 : 90, 0.7, 0.0, dest);
     t.usurf = tap(src, "bandpass", 650, 0.8, 0.0, dest);
@@ -6690,6 +6797,15 @@ function steerBed(now) {
     set(t.fumLow.g.gain, 0.03 * site.geo.fum);
   }
   set(t.rain.g.gain, weather.rain * 0.05);
+  if (t.rxhiss) {   /* on the radio nothing of the air is heard at all */
+    set(t.veg.g.gain, 0); set(t.hiss.g.gain, 0); set(t.moan.g.gain, 0); set(t.low.g.gain, 0);
+    if (t.rumble) set(t.rumble.g.gain, 0);
+    set(t.rain.g.gain, 0);
+    set(t.rxhiss.g.gain, 0.006);
+    const al = site ? Math.abs(site.lat) : 0, e2 = envNow();
+    const aur = (al > 58 ? 1 : al > 50 ? 0.3 : 0) * e2.night * Math.max(0, (RADIO.kp - 2.5) / 5);
+    set(t.aurhiss.g.gain, 0.03 * aur * (0.8 + 0.2 * Math.sin(now * 0.5)));
+  }
   if (t.urumble) {   /* under the surface the air's own voice is gone; the water's takes its place */
     const k = UNDER.kind, sw = 0.7 + 0.3 * Math.sin(now * 0.38 + 2) * Math.sin(now * 0.11);
     set(t.veg.g.gain, 0); set(t.hiss.g.gain, 0); set(t.moan.g.gain, 0); set(t.low.g.gain, 0.01);
@@ -6789,6 +6905,7 @@ function buildWaterEvents() {
   buildEarthEvents();
 }
 function scheduleWater(now, horizon) {
+  if (RADIO.on) return;   /* the receiver hears no water */
   /* from under the water the surf is a low thud, the laps a dull knock; the bubbles are close */
   const uw = x => UNDER.on ? scaleA(lpA(x, 420), 1.6) : x;
   for (const ev of waterEvents) {
@@ -6914,7 +7031,7 @@ function buildEarthEvents() {
   if (g.boil) earthEvents.push({ kind: "boil", per: [2 / g.boil, 8 / g.boil], nextT: 0 });
 }
 function scheduleEarth(now, e, horizon) {
-  if (!earthEvents.length) return;
+  if (!earthEvents.length || RADIO.on) return;
   const hm = e.hour * 60, vA = P.vAir * (MOTH.on ? 0.35 : 1);
   for (const ev of earthEvents) {
     if (ev.kind === "geyser") {
@@ -7363,6 +7480,21 @@ function buildUnderCast() {
   });
 }
 
+/* ------------------------------------------------------ the radio cast ---- */
+let radioAgents = [];
+function buildRadioCast() {
+  radioAgents = [];
+  if (!RADIO.on || !site) return;
+  const rr = mulberry32(fnv("radio:" + site.key + ":" + dayStr));
+  const list = ["sferics", "tweeks", "whistler", "vlfchorus"];
+  if (site.town || site.farm) list.push("mainshum");
+  list.forEach(id => {
+    const sp = SP[id]; if (!sp) return;
+    for (let k = 0, nn = ri2(rr, sp.n ? sp.n[0] : 1, sp.n ? sp.n[1] : 1); k < nn; k++)
+      radioAgents.push({ sp, dist: ru2(rr, sp.dist[0], sp.dist[1]), pan: ru2(rr, -0.9, 0.9), nextT: -1, idx: radioAgents.length });
+  });
+}
+
 /* ------------------------------------------------------ the lost cast ----- */
 /* whoever once sang here, at their old numbers, each at the distance its
    evidence allows: a seeded shuffle so the density gate cuts different
@@ -7597,7 +7729,7 @@ function driftApply(lon, lat) {
       echoNode.delayTime.setTargetAtTime(site.rocky ? 1.1 : 1.5, ctx.currentTime, 0.5);
       announce(BIOME_INFO[site.biome].name, 0);
     }
-    buildBed(); buildWaterEvents(); buildCast(); buildMothCast(); buildLostCast(); buildUnderCast();
+    buildBed(); buildWaterEvents(); buildCast(); buildMothCast(); buildLostCast(); buildUnderCast(); buildRadioCast();
   } else if (running && lostSig(site) !== LOST.sig) buildLostCast();   /* walked into, or out of, an old range */
   else if (running && broodKey(site) !== BROOD.key) buildCast();      /* or across a brood's edge */
   globeCenter(site.lon, site.lat);   /* the globe follows the wanderer */
@@ -7757,7 +7889,7 @@ const CS_NAME = { coyote: "coyotes, answering", wolf: "wolves, answering", jacka
   kookaburra: "another family of kookaburras", indri: "another indri", laughingthrush: "laughingthrushes, answering" };
 function answer(ag, x, ends, e, fader) {
   const sp = ag.sp, fam = CS[CS_OF[sp.id]];
-  if (!fam || MOTH.on || LOST.on || UNDER.on) return;
+  if (!fam || MOTH.on || LOST.on || UNDER.on || RADIO.on) return;
   const now = ctx.currentTime;
   const live = ag.bout && ag.bout.until > now;
   if (!live) ag.bout = null;
@@ -7861,7 +7993,7 @@ function tick() {
     stepFrogs(now, e);
     dubTick(now, horizon);
     /* thunder */
-    if (weather.thunder && now > thunderNext) {
+    if (weather.thunder && now > thunderNext && !RADIO.on) {   /* on the radio the lightning is the sferics */
       const far = arng() < 0.75;
       synth({ fn: "thunderBuf", args: [far] }, x => { if (x && running)
         play(x, ctx.currentTime + ru(0.2, 2), { dist: far ? ru(0.6, 0.85) : ru(0.2, 0.45),
@@ -7869,7 +8001,7 @@ function tick() {
       thunderNext = now + ru(20, 70);
     }
     const densGate = P.density;
-    const roster = UNDER.on ? underAgents : MOTH.on ? mothAgents : LOST.on ? lostAgents : agents;
+    const roster = RADIO.on ? radioAgents : UNDER.on ? underAgents : MOTH.on ? mothAgents : LOST.on ? lostAgents : agents;
     /* the lost are few: the density fader thins them only at its low end */
     const cut = LOST.on ? densGate * 2 + 0.15 : densGate + 0.15;
     for (const ag of roster) {
@@ -7925,7 +8057,7 @@ function tick() {
                 const dur = play(x, t1, {
                   dist: ag.dist, pan: sp.omni ? 0 : ag.pan, gain: fader * (ag.tg ?? 1),
                   group: GROUP_OF[sp.g], rev: (sp.rev ?? 0.15) + (ag.tr || 0), echo: sp.echo, omni: sp.omni,
-                  sky: sp.sky, name: sp.name, fog: UNDER.on ? 0 : undefined,   /* no fog under water */
+                  sky: sp.sky, name: sp.name, fog: UNDER.on || RADIO.on ? 0 : undefined,   /* no fog under water, or on the air */
                 });
                 /* a lost voice is always named, with the year it was last heard,
                    for as long as it sounds: they are few, and the name is the point */
@@ -7948,14 +8080,14 @@ function tick() {
     }
     if (FULLMOON && e.night > 0.5 && arng() < 0.002) announce("full moon", 0);
     BROOD.win = BROOD.here.length ? broodWin(e) : 0;
-    if (BROOD.win > 0.1 && e.tF >= 64 && e.day > 0.2 && now > BROOD.sayT && !MOTH.on && !LOST.on && !UNDER.on) {
+    if (BROOD.win > 0.1 && e.tF >= 64 && e.day > 0.2 && now > BROOD.sayT && !MOTH.on && !LOST.on && !UNDER.on && !RADIO.on) {
       BROOD.sayT = now + 240;
       const b = BROOD.here[0];
       announce(b[0] + ", every " + (b[1] === 17 ? "seventeen" : "thirteen") + " years", 0, 12);
     }
     if (MOTH.on && MOTH.rng && now > MOTH.nightT) rollMothNight(now);
     lostSay(now);
-    if (!LOST.on && !MOTH.on && !UNDER.on && !PAST.on) stepTraces(now, e);
+    if (!LOST.on && !MOTH.on && !UNDER.on && !RADIO.on && !PAST.on) stepTraces(now, e);
     /* expire the event rings here, not in the draw loop — the draw stops
        when the marker faces away or the tab hides, and they'd pile up */
     for (let i = visEvents.length - 1; i >= 0; i--)
@@ -7986,7 +8118,7 @@ function statusLine(e) {
     : weather.rain > 0.05 ? " · light rain" : weather.fog > 0.4 ? " · fog" : "")
     + (ECL.total ? " · totality" : ECL.obs > 0.02 ? " · eclipse" : "")
     + (TIDE.word ? " · " + TIDE.word : "")
-    + (BROOD.win > 0.05 && !MOTH.on && !LOST.on && !UNDER.on ? " · " + BROOD.here[0][0].split(",")[0] : "")
+    + (BROOD.win > 0.05 && !MOTH.on && !LOST.on && !UNDER.on && !RADIO.on ? " · " + BROOD.here[0][0].split(",")[0] : "")
     + (YEAR.on ? " · a year in an hour" : "")
     + (P.drift ? " · drifting" : "")
     + (RIDE.on ? " · riding the dawn" + (P.lapse ? ", 24×" : "") : "")
@@ -7994,6 +8126,7 @@ function statusLine(e) {
     + (MOTH.on ? " · moth variation" : "")
     + (LOST.on ? " · what can no longer be heard" : "")
     + (UNDER.on ? " · " + UNDER_SAY[UNDER.kind] : "")
+    + (RADIO.on ? " · natural radio · kp " + RADIO.kp.toFixed(0) : "")
     + (SLEEP.asleep ? " · asleep" : "");
   const s =
     `${Math.abs(site.lat).toFixed(1)}°${site.lat < 0 ? "S" : "N"} ` +
@@ -8175,6 +8308,7 @@ function drawGlobeFrame(fine) {
         r = l * 0.94; gg = l * 0.98; b = l * 1.05;
       }
       else if (UNDER.on) { r *= 0.3; gg *= 0.52; b *= 0.62; }   /* the earth seen up through the water */
+      else if (RADIO.on) { const l = r * 0.3 + gg * 0.59 + b * 0.11; r = l * 0.78; gg = l * 0.66; b = l * 0.42; }   /* the dial's amber */
       const dd = Math.sqrt(d2);
       if (dd > 0.93) {   /* atmospheric haze inside the limb */
         const hw = ((dd - 0.93) / 0.07); const hz = hw * hw * 0.34;
@@ -8298,7 +8432,7 @@ function drawMap() {
     } else {
       const hmK = Math.round(site ? solarHour() : ((Date.now() / 60000) % 1440));
       const key = GLOBE.lam.toFixed(2) + "|" + GLOBE.phi.toFixed(2) + "|" + GLOBE.zoom.toFixed(3)
-        + "|" + hmK + "|" + P.doy + "|" + W + "|" + isDark() + "|" + MOTH.on + "|" + LOST.on + "|" + UNDER.on;
+        + "|" + hmK + "|" + P.doy + "|" + W + "|" + isDark() + "|" + MOTH.on + "|" + LOST.on + "|" + UNDER.on + "|" + RADIO.on;
       if (!gCanvas || GLOBE.fineKey !== key) {
         drawGlobeFrame(true); GLOBE.lastRender = nowMs; GLOBE.fineKey = key;
       }
@@ -8383,7 +8517,7 @@ function setSite(lon, lat, announceIt = true) {
     if (!k) setUnder(false, "ashore"); else UNDER.kind = k;
   }
   if (running) {
-    buildBed(); buildWaterEvents(); buildCast(); buildMothCast(); buildLostCast(); buildUnderCast();
+    buildBed(); buildWaterEvents(); buildCast(); buildMothCast(); buildLostCast(); buildUnderCast(); buildRadioCast();
     heardNames.length = 0; renderNames();
     conv.buffer = makeIR(BIOME_INFO[site.biome].family);
     echoNode.delayTime.setTargetAtTime(site.rocky ? 1.1 : 1.5, ctx.currentTime, 0.5);
@@ -8523,7 +8657,7 @@ const DRESS = {
 };
 function wearHour(e) {
   const root = document.documentElement.style;
-  if (MOTH.on || LOST.on || UNDER.on || DRESS.fixed) {   /* the other worlds have their own dress; a fixed pair keeps it */
+  if (MOTH.on || LOST.on || UNDER.on || RADIO.on || DRESS.fixed) {   /* the other worlds have their own dress; a fixed pair keeps it */
     if (DRESS.worn) { root.removeProperty("--warm"); root.removeProperty("--cool"); DRESS.worn = ""; }
     return;
   }
@@ -8777,7 +8911,26 @@ function setLost(on) {
 el.lost.addEventListener("click", () => {
   if (!LOST.on && MOTH.on) el.moth.click();   /* one other world at a time */
   if (!LOST.on && UNDER.on) setUnder(false);
+  if (!LOST.on && RADIO.on) setRadio(false);
   setLost(!LOST.on);
+});
+function setRadio(on) {
+  RADIO.on = on;
+  el.radio.setAttribute("aria-checked", String(on));
+  document.documentElement.classList.toggle("radio", on);
+  ["vBird", "vBug", "vFrog", "vFauna"].forEach(id => { const f = document.getElementById(id); if (f) f.disabled = on || (MOTH.on && id !== "vBug"); });
+  GLOBE.fineKey = null;   /* the globe turns to the dial's amber */
+  if (running && site) {
+    buildBed(); buildWaterEvents(); buildRadioCast();
+    heardNames.length = 0; renderNames(); statusLine(envNow());
+  }
+  if (on) announce(RADIO.word, 0);
+}
+el.radio.addEventListener("click", () => {
+  if (!RADIO.on && MOTH.on) el.moth.click();
+  if (!RADIO.on && LOST.on) setLost(false);
+  if (!RADIO.on && UNDER.on) setUnder(false);
+  setRadio(!RADIO.on);
 });
 function setUnder(on, why) {
   if (on && !underKind(site)) { announce("no water here to go under", 0); return; }
@@ -8796,11 +8949,13 @@ function setUnder(on, why) {
 el.under.addEventListener("click", () => {
   if (!UNDER.on && MOTH.on) el.moth.click();
   if (!UNDER.on && LOST.on) setLost(false);
+  if (!UNDER.on && RADIO.on) setRadio(false);
   setUnder(!UNDER.on);
 });
 el.moth.addEventListener("click", () => {
   if (!MOTH.on && LOST.on) setLost(false);
   if (!MOTH.on && UNDER.on) setUnder(false);
+  if (!MOTH.on && RADIO.on) setRadio(false);
   MOTH.on = !MOTH.on;
   el.moth.setAttribute("aria-checked", String(MOTH.on));
   document.documentElement.classList.toggle("moth", MOTH.on);
@@ -8864,6 +9019,7 @@ el.share.addEventListener("click", async () => {
   if (P.lapse) u += "&lapse=1";
   if (YEAR.on) u += "&year=1";
   if (MOTH.on) u += "&world=moth"; else if (LOST.on) u += "&world=lost"; else if (UNDER.on) u += "&world=under";
+  else if (RADIO.on) u += "&world=radio";
   if (P.drift) u += "&drift=1";
   if (P.dub) u += `&dub=${Math.round(P.dubDepth * 100)}`;
   try { await navigator.clipboard.writeText(u); el.share.textContent = "[ copied ]"; }
@@ -8918,7 +9074,7 @@ el.begin.addEventListener("click", async () => {
 
   running = true;
   buildSynth();
-  buildBed(); buildWaterEvents(); buildCast(); buildMothCast(); buildLostCast(); buildUnderCast();
+  buildBed(); buildWaterEvents(); buildCast(); buildMothCast(); buildLostCast(); buildUnderCast(); buildRadioCast();
   if (P.dub) { DUB.on = true; startDub(); }
   el.begin.remove();
   statusLine.last = "";   /* the line said "press [ begin ]"; let the first tick write it afresh */
@@ -8937,6 +9093,7 @@ el.begin.addEventListener("click", async () => {
     if (w === "moth" && !MOTH.on) el.moth.click();
     else if (w === "lost" && !LOST.on) setLost(true);
     else if (w === "under" && site && !UNDER.on) setUnder(true);
+    else if (w === "radio" && !RADIO.on) setRadio(true);
     if (params.get("drift") === "1" && !P.drift) el.drift.click();
     const qd = parseInt(params.get("dub"), 10);
     if (!isNaN(qd) && !P.dub) { P.dubDepth = Math.max(0, Math.min(100, qd)) / 100;
