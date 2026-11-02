@@ -268,7 +268,7 @@
     <button class="switch" id="under" role="switch" aria-checked="false"
       aria-label="Under the surface: a hydrophone world, the water's own voices">[ under the surface ]</button>
     <button class="switch" id="radio" role="switch" aria-checked="false"
-      aria-label="Natural radio: the earth heard through a VLF receiver — lightning, whistlers, the auroral chorus">[ natural radio ]</button>
+      aria-label="VLF: the earth heard through a very-low-frequency radio receiver — lightning, whistlers, the auroral chorus">[ vlf ]</button>
   </div>
 </div>
 <div class="sect">listening</div>
@@ -8253,7 +8253,7 @@ function statusLine(e) {
     + (MOTH.on ? " · moth variation" : "")
     + (LOST.on ? " · what can no longer be heard" : "")
     + (UNDER.on ? " · " + UNDER_SAY[UNDER.kind] : "")
-    + (RADIO.on ? " · natural radio · kp " + RADIO.kp.toFixed(0) : "")
+    + (RADIO.on ? " · vlf · kp " + RADIO.kp.toFixed(0) : "")
     + (SLEEP.asleep ? " · asleep" : "");
   const s =
     `${Math.abs(site.lat).toFixed(1)}°${site.lat < 0 ? "S" : "N"} ` +
@@ -9149,7 +9149,7 @@ el.share.addEventListener("click", async () => {
   if (P.lapse) u += "&lapse=1";
   if (YEAR.on) u += "&year=1";
   if (MOTH.on) u += "&world=moth"; else if (LOST.on) u += "&world=lost"; else if (UNDER.on) u += "&world=under";
-  else if (RADIO.on) u += "&world=radio";
+  else if (RADIO.on) u += "&world=vlf";
   if (P.drift) u += "&drift=1";
   if (P.dub) u += `&dub=${Math.round(P.dubDepth * 100)}`;
   try { await navigator.clipboard.writeText(u); el.share.textContent = "[ copied ]"; }
@@ -9223,7 +9223,7 @@ el.begin.addEventListener("click", async () => {
     if (w === "moth" && !MOTH.on) el.moth.click();
     else if (w === "lost" && !LOST.on) setLost(true);
     else if (w === "under" && site && !UNDER.on) setUnder(true);
-    else if (w === "radio" && !RADIO.on) setRadio(true);
+    else if ((w === "vlf" || w === "radio") && !RADIO.on) setRadio(true);
     if (params.get("drift") === "1" && !P.drift) el.drift.click();
     const qd = parseInt(params.get("dub"), 10);
     if (!isNaN(qd) && !P.dub) { P.dubDepth = Math.max(0, Math.min(100, qd)) / 100;

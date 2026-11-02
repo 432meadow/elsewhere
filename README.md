@@ -191,7 +191,7 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   water, a freshwater drum, the lake ice singing overhead in winter; in
   a stream, the gravel rolling. the page goes under with you; walk
   ashore and it lets you up
-- **[ natural radio ]** is the earth heard through a very-low-frequency
+- **[ vlf ]** is the earth heard through a very-low-frequency
   receiver: every lightning stroke on the planet a crackle (loud when the
   storm is yours), the night's tweeks ringing in the earth–ionosphere
   waveguide, whistlers gliding down from the far hemisphere with their
