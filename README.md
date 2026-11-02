@@ -120,8 +120,12 @@ pulse swarms, filtered noise, distance as lowpass + level + reverb.
   wobbling saturated feedback delay, over muted chord stabs and a soft
   sub pulse rooted in the site's own key (every place has one, from its
   coordinates). the treatment drifts on its own seeded weather — washing,
-  sparse, deep, receding — and the field recording underneath stays
-  untouched. a depth fader sets how deep it sits
+  sparse, deep, receding — with a hand on the filter once a bar, a
+  spring on the way out so every transient gets its boing, the echo bed
+  breathing under the sub, tape flutter over the wow, accented and
+  whole-phrase throws, and each state choosing what the echo eats (the
+  birds when sparse, the frogs and fauna when deep); the field recording
+  underneath stays untouched. a depth fader sets how deep it sits
 - **[ moth variation ]** turns the page to deep night and gives the whole
   world over to the moths, heard as through a bat detector: wingbeat
   flutter close to the ear, a tiger moth's tymbal clicks, hawk-moths

@@ -6717,7 +6717,7 @@ function play(x, when, o = {}) {
     const ds = ctx.createGain();
     ds.gain.value = MOTH.on && (o.group === "bug")
       ? 0.75   /* in the moth variation, the moths are what the dub eats */
-      : ({ bird: 0.9, frog: 0.7, fauna: 0.6, bug: 0.22, air: 0.12, people: 0.35 }[o.group || "air"] ?? 0.3);
+      : (DUB.eat[o.group || "air"] ?? 0.3);   /* what the state has the echo eat */
     pan.connect(ds); ds.connect(DUB.n.throw);
   }
   src.start(when);
@@ -7130,6 +7130,10 @@ const DUB = {
   pattern: [1, 0, 0, 1, 0, 1, 0, 0], throwLevel: 0.75,
   fb: 0.42, lpf: 1250, chordEvery: 8, chordProb: 0.6, chordSoft: false,
   voicing: 0, subLevel: 0.5, n: null,
+  /* a hand on the filter: a seeded walk, one step a bar, around the state's centre */
+  walk: 0, walkHp: 0, longThrow: 0.1,
+  /* what the echo eats, by stem, set by the state */
+  eat: { bird: 0.9, frog: 0.7, fauna: 0.6, bug: 0.22, air: 0.12, people: 0.35 },
 };
 const DUB_VOICINGS = [[0, 3, 7, 10, 14], [0, 5, 10, 15], [0, 5, 7, 12], [0, 3, 10, 17]];
 function dubRoot() {   /* the place has a key */
@@ -7154,8 +7158,9 @@ function buildDub() {
   n.dA = ctx.createDelay(3); n.dB = ctx.createDelay(3);
   n.fbA = ctx.createGain(); n.fbA.gain.value = DUB.fb;
   n.fbB = ctx.createGain(); n.fbB.gain.value = DUB.fb * 0.7;
-  for (const [d, rate, depth] of [[n.dA, 0.29, 0.0035], [n.dB, 0.21, 0.005]]) {
-    const o = ctx.createOscillator(), og = ctx.createGain();   /* tape wow */
+  for (const [d, rate, depth] of [[n.dA, 0.29, 0.0035], [n.dB, 0.21, 0.005],
+                                  [n.dA, 6.8, 0.0006], [n.dB, 7.6, 0.0005]]) {   /* tape wow, and its flutter */
+    const o = ctx.createOscillator(), og = ctx.createGain();
     o.frequency.value = rate; og.gain.value = depth;
     o.connect(og); og.connect(d.delayTime); o.start();
   }
@@ -7172,11 +7177,43 @@ function buildDub() {
   n.mix = ctx.createGain(); n.mix.gain.value = 0;
   n.echoOut.connect(n.mix);
   n.chDry = ctx.createGain(); n.chDry.gain.value = 0.16; n.chDry.connect(n.mix);
+  /* the spring: outside the loop, on the way out — every transient gets its boing */
+  n.spring = ctx.createConvolver(); n.spring.buffer = springIR();
+  n.springSend = ctx.createGain(); n.springSend.gain.value = 0.32;
+  n.echoOut.connect(n.springSend); n.chDry.connect(n.springSend);
+  n.springSend.connect(n.spring); n.spring.connect(n.mix);
   n.subG = ctx.createGain(); n.subG.gain.value = 1; n.subG.connect(n.mix);
   n.mix.connect(sum);
   n.wet = ctx.createGain(); n.wet.gain.value = 0.22;
   n.mix.connect(n.wet); n.wet.connect(wetGain);
   DUB.n = n;
+}
+function springIR() {
+  /* a spring reverb's impulse response: the signal runs the coil's length and back,
+     and in a spring the high frequencies travel slower, so each round trip arrives
+     as a downward chirp — the boing — softer and more smeared each time; under the
+     trips a short diffuse tail, and a little of the coil's own flutter */
+  const dur = 1.6, n = (dur * SR) | 0, ir = ctx.createBuffer(2, n, SR);
+  for (let c = 0; c < 2; c++) {
+    const d = ir.getChannelData(c), T = 0.041 * (c ? 1.06 : 1);
+    for (let k = 0; k < 26; k++) {
+      const t0 = T * (k + 1) * (1 + 0.004 * k), amp = Math.pow(0.78, k), len = 0.018 * (1 + 0.35 * k);
+      const i0 = (t0 * SR) | 0, L = (len * SR) | 0; let ph = 0;
+      for (let i = 0; i < L && i0 + i < n; i++) {
+        const u = i / L, f = 4200 * Math.pow(0.05, u) + 180;   /* down from 4 khz to the coil's low end */
+        ph += 2 * Math.PI * f / SR;
+        d[i0 + i] += Math.sin(ph) * amp * Math.sin(Math.PI * u) * 0.5;
+      }
+    }
+    let y = 0; const a = Math.exp(-2 * Math.PI * 3200 / SR);
+    for (let i = 0; i < n; i++) {   /* the diffuse tail */
+      const t = i / SR;
+      const nz = (Math.random() * 2 - 1) * Math.pow(10, -3 * t / 1.3) * Math.min(1, t / 0.03) * 0.18;
+      y = a * y + (1 - a) * nz; d[i] += y;
+    }
+    for (let i = 0; i < n; i++) d[i] *= 1 + 0.06 * Math.sin(2 * Math.PI * 5.5 * i / SR);
+  }
+  return ir;
 }
 function dubSpb() { return 60 / DUB.bpm; }
 function startDub() {
@@ -7254,13 +7291,20 @@ function dubDrift(first) {
   }[DUB.state];
   DUB.fb = S.fb * ru2(r, 0.92, 1.06);
   DUB.lpf = S.lpf * ru2(r, 0.85, 1.15);
+  DUB.eat = {
+    washing:  { bird: 0.9, frog: 0.7, fauna: 0.6, bug: 0.22, air: 0.12, people: 0.35 },
+    sparse:   { bird: 1.0, frog: 0.3, fauna: 0.3, bug: 0.15, air: 0.1, people: 0.3 },
+    deep:     { bird: 0.5, frog: 0.95, fauna: 0.9, bug: 0.3, air: 0.2, people: 0.4 },
+    receding: { bird: 0.6, frog: 0.5, fauna: 0.5, bug: 0.5, air: 0.35, people: 0.2 },
+  }[DUB.state];
+  DUB.longThrow = { washing: 0.12, sparse: 0.05, deep: 0.16, receding: 0.06 }[DUB.state];
   DUB.throwLevel = S.throw; DUB.chordProb = S.chordProb;
   DUB.chordEvery = S.chordEvery; DUB.chordSoft = S.soft; DUB.subLevel = S.sub;
   if (r() < 0.4) { DUB.divA = [0.75, 0.5, 1][(r() * 3) | 0]; DUB.divB = [1.5, 1, 0.75][(r() * 3) | 0]; }
   if (r() < 0.35) DUB.voicing = (r() * DUB_VOICINGS.length) | 0;
   /* reroll the throw pattern at the state's density */
-  DUB.pattern = DUB.pattern.map(() => r() < S.dens ? 1 : 0);
-  if (!DUB.pattern.includes(1)) DUB.pattern[(r() * 8) | 0] = 1;
+  DUB.pattern = DUB.pattern.map(() => r() < S.dens ? (r() < 0.35 ? 0.6 : 1) : 0);   /* some throws are accents */
+  if (!DUB.pattern.some(v => v)) DUB.pattern[(r() * 8) | 0] = 1;
   DUB.stateBeats = 32 + ((r() * 10) | 0) * 8;
   if (DUB.n && ctx) {
     const t = ctx.currentTime;
@@ -7278,13 +7322,27 @@ function dubTick(now, horizon) {
   while (DUB.nextT < now + horizon) {
     const t = DUB.nextT, b = DUB.beat;
     const g = DUB.n.throw.gain;
-    for (let e = 0; e < 2; e++) {   /* the throw gate, on eighths */
-      const open = DUB.pattern[(b * 2 + e) % DUB.pattern.length];
-      g.setTargetAtTime(open ? DUB.throwLevel : 0, t + e * spb / 2, 0.03);
+    if (b % 4 === 0) {   /* a hand on the filter, once a bar */
+      DUB.walk = Math.max(-1, Math.min(1, DUB.walk + (DUB.drng() - 0.5) * 0.5));
+      DUB.walkHp = Math.max(-1, Math.min(1, DUB.walkHp + (DUB.drng() - 0.5) * 0.4));
+      const lpf = DUB.lpf * (1 + 0.4 * DUB.walk);
+      DUB.n.lp.frequency.setTargetAtTime(lpf, t, 1.8);
+      DUB.n.lp2.frequency.setTargetAtTime(lpf * 1.4, t, 1.8);
+      DUB.n.hp.frequency.setTargetAtTime(290 * (1 + 0.35 * DUB.walkHp), t, 2.2);
+    }
+    const whole = DUB.drng() < DUB.longThrow / 4;   /* now and then a whole phrase goes into the echo */
+    for (let e = 0; e < 2; e++) {   /* the throw gate, on eighths, with accents */
+      const open = whole ? 1 : DUB.pattern[(b * 2 + e) % DUB.pattern.length];
+      g.setTargetAtTime(DUB.throwLevel * open, t + e * spb / 2, 0.03);
     }
     if (b % DUB.chordEvery === 2 && DUB.drng() < DUB.chordProb) chordStab(t);
-    if (b % 4 === 0) subPulse(t, 1);
-    else if (b % 4 === 2 && DUB.drng() < 0.3) subPulse(t + spb * 0.5, 0.55);
+    const duck = (at) => {   /* the echo bed breathes under the sub */
+      const eg = DUB.n.echoOut.gain;
+      eg.cancelScheduledValues(at); eg.setValueAtTime(1.5, at);
+      eg.linearRampToValueAtTime(1.0, at + 0.035); eg.setTargetAtTime(1.5, at + 0.06, 0.13);
+    };
+    if (b % 4 === 0) { subPulse(t, 1); duck(t); }
+    else if (b % 4 === 2 && DUB.drng() < 0.3) { subPulse(t + spb * 0.5, 0.55); duck(t + spb * 0.5); }
     if (b > 0 && b % DUB.stateBeats === 0) dubDrift();
     DUB.beat++; DUB.nextT += spb;
   }
