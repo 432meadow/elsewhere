@@ -639,8 +639,8 @@ function tempF(site, doy, hour) {
   /* crude but honest: annual mean by |latitude|, continental amplitude,
      diurnal swing by biome; degC internally, F out. doy arrives already
      season-flipped for the southern hemisphere; the amplitude fades toward
-     the equator, where there are no thermal seasons. (no elevation model —
-     high plateaus read warm; noted in notes/global.md) */
+     the equator, where there are no thermal seasons. elevation comes from
+     the hand-drawn highlands at 6.5 °C a kilometre */
   const alat = Math.abs(site.lat);
   const contin = Math.max(0, Math.min(1, site.coastDeg / 18));
   /* the ocean keeps high-latitude coasts anomalously warm (gulf stream etc.) */
@@ -657,6 +657,9 @@ function tempF(site, doy, hour) {
   const c = seasonal + alt + swing / 2 * diel - (site.elev || 0) * 0.0065;
   return c * 9 / 5 + 32;
 }
+/* the one country that reads fahrenheit gets it; everyone else, celsius */
+const CELSIUS = typeof navigator !== "undefined" && !/^en-US$/i.test(navigator.language || "");
+function fmtTemp(tF) { return CELSIUS ? Math.round((tF - 32) * 5 / 9) + "°C" : Math.round(tF) + "°F"; }
 const MONTHS = ["january","february","march","april","may","june","july",
                 "august","september","october","november","december"];
 function doyLabel(doy) {
@@ -7176,7 +7179,7 @@ let agents = [];
 /* the montane voices per realm, joining wherever the land is high enough */
 const MONTANE = { wpale: ["chough", "marmot"], epale: ["whistlingthrush", "laughingthrush"],
                   indo: ["whistlingthrush", "laughingthrush"], neotropic: ["andsolitaire"] };
-function buildCast() {
+let buildCast = function () {
   agents = []; SYNTH.gen++;   /* voices still rendering belong to the old cast */
   arng = mulberry32(fnv("cast:" + site.key + ":" + dayStr));
   /* a far island keeps only its climate's insects and its seabirds: the
@@ -7202,6 +7205,7 @@ function buildCast() {
   for (const id of list) {
     const sp = SP[id];
     if (!sp) continue;
+    if (tooNew(id)) continue;   /* not yet invented, in this year */
     /* site gating */
     if (sp.g === "frog" && !(w.marsh || w.lake || w.stream || site.biome === "flwet" || site.biome === "trf")) continue;
     if ((id === "loon" || id === "diver") && !w.lake) continue;
@@ -7232,6 +7236,14 @@ function buildCast() {
   }
 }
 function ri2(r, a, b) { return Math.floor(ru2(r, a, b + 1)); }
+/* in an earlier year, the voices of that year come first, so the density gate never cuts them */
+const _buildCast = buildCast;
+buildCast = function () {
+  _buildCast();
+  const past = pastAgents();
+  PAST.voices = past.length;
+  if (past.length) { agents = past.concat(agents); agents.forEach((a, i) => a.idx = i); }
+};
 
 /* ----------------------------------------------------- the moth cast ----- */
 let mothAgents = [];
@@ -7328,7 +7340,7 @@ function underCast() {
     if (s.lat > 62) list.push("bearded", "walrus");
     if (s.realm === "ant") list.push("weddell_u", "weddell_u", "leopard_u");
     if (al > 55) list.push("seaice");
-    list.push("shipfar");
+    if (!tooNew("shipfar")) list.push("shipfar");
   } else if (k === "lake" || k === "pond") {
     list.push("waterboatman", "waterboatman", "frogsunder", "lakeice");
     if (k === "pond") list.push("waterboatman");
@@ -7404,6 +7416,40 @@ function lostSay(now) {
   const u = lostUnsung();
   if (u) announce(u + "'s lost voices are its own people's to sing", 0);
   else if (!lostAgents.length) announce("no lost voice is known here", 0);
+}
+
+/* ---------------------------------------------------- the time machine --- */
+/* a ?day= in an earlier year: whoever was still singing here then joins
+   the living cast — passenger pigeons over a living ohio forest, the
+   parakeet among the cardinals, wolves in an irish wood — each at the
+   distance its evidence allows, and the sounds not yet invented stay out:
+   no jet before 1950, no train before 1835, no foghorn or bell buoy
+   before the 1850s, no propeller under the water before then either */
+const PAST = { year: parseInt(dayStr.slice(0, 4), 10), now: new Date().getFullYear(), voices: 0 };
+PAST.on = PAST.year < PAST.now;
+function lostYear(sp, r) {   /* the year a voice was last heard, read from its own words */
+  const L = lostLast(sp, r), m = /(\d{4})/.exec(L || "");
+  if (!m) return 0;
+  let y = +m[1];
+  if (/in the/.test(L)) y += 9;      /* "in the 1880s": give it the decade */
+  if (/before/.test(L)) y -= 1;
+  return y;
+}
+const NEWER_THAN = { jet: 1950, train: 1835, foghorn: 1855, bellbuoy: 1855, shipfar: 1850 };
+function tooNew(id) { return PAST.on && NEWER_THAN[id] && PAST.year < NEWER_THAN[id]; }
+function pastAgents() {
+  const out = [];
+  if (!PAST.on || !site) return out;
+  const lr = mulberry32(fnv("past:" + site.key + ":" + dayStr));
+  for (const [sp, r] of lostList(site)) {
+    const y = lostYear(sp, r);
+    if (!y || y <= PAST.year) continue;
+    const T = LOST_TIER[sp.lost.tier];
+    for (let k = 0, nn = ri2(lr, sp.n ? sp.n[0] : 1, sp.n ? sp.n[1] : 1); k < nn; k++)
+      out.push({ sp, tg: T.g, tr: T.r, dist: Math.min(0.95, ru2(lr, sp.dist[0], sp.dist[1]) + T.d),
+                 pan: ru2(lr, -0.9, 0.9), nextT: -1, idx: 0 });
+  }
+  return out;
 }
 
 /* ---------------------------------------------------- the last places --- */
@@ -7909,7 +7955,7 @@ function tick() {
     }
     if (MOTH.on && MOTH.rng && now > MOTH.nightT) rollMothNight(now);
     lostSay(now);
-    if (!LOST.on && !MOTH.on && !UNDER.on) stepTraces(now, e);
+    if (!LOST.on && !MOTH.on && !UNDER.on && !PAST.on) stepTraces(now, e);
     /* expire the event rings here, not in the draw loop — the draw stops
        when the marker faces away or the tab hides, and they'd pile up */
     for (let i = visEvents.length - 1; i >= 0; i--)
@@ -7953,10 +7999,10 @@ function statusLine(e) {
     `${Math.abs(site.lat).toFixed(1)}°${site.lat < 0 ? "S" : "N"} ` +
     `${Math.abs(site.lon).toFixed(1)}°${site.lon < 0 ? "W" : "E"} · ` +
     `<b>${BIOME_INFO[site.biome].name}</b> · ${site.region} · ` +
-    `${hh}:${mm} · ${phaseWord(e)} · ${Math.round(e.tF)}°F` +
+    `${hh}:${mm} · ${phaseWord(e)} · ${fmtTemp(e.tF)}` +
     ((site.elev || 0) >= 700 ? ` · ${site.elev} m` : "") +
     (site.geo ? " · " + site.geo.name : "") +
-    ` · ${doyLabel(e.rdoy ?? P.doy)}${wx}`;
+    ` · ${doyLabel(e.rdoy ?? P.doy)}${PAST.on ? " " + PAST.year : ""}${wx}`;
   if (s !== statusLine.last) { statusLine.last = s; document.getElementById("siteline").innerHTML = s; }
 }
 
@@ -8637,7 +8683,7 @@ function fmtHour(mins) {
 function reflectHour() {
   const hm = solarHour();
   el.hour.value = Math.round(hm);
-  out("hour").textContent = fmtHour(hm) + (P.lapse ? " · 24×" : "");
+  out("hour").textContent = fmtHour(hm) + (P.lapse ? " · a day in an hour" : "");
   lastTick = ctx ? ctx.currentTime : 0;
 }
 /* while the carousel turns, the hour row turns with it — the slider sweeps
@@ -8810,8 +8856,16 @@ el.sleep.addEventListener("click", () => {
 });
 el.share.addEventListener("click", async () => {
   if (!site) return;
-  const u = location.origin + location.pathname
+  /* the place and the day, and whatever else this listening is: a frozen or
+     turning hour, a world, the walk, the dub and its depth */
+  let u = location.origin + location.pathname
     + `?lat=${site.lat.toFixed(2)}&lon=${site.lon.toFixed(2)}&day=${dayStr}`;
+  if (!P.now && !RIDE.on) u += `&h=${(solarHour() / 60).toFixed(2)}`;
+  if (P.lapse) u += "&lapse=1";
+  if (YEAR.on) u += "&year=1";
+  if (MOTH.on) u += "&world=moth"; else if (LOST.on) u += "&world=lost"; else if (UNDER.on) u += "&world=under";
+  if (P.drift) u += "&drift=1";
+  if (P.dub) u += `&dub=${Math.round(P.dubDepth * 100)}`;
   try { await navigator.clipboard.writeText(u); el.share.textContent = "[ copied ]"; }
   catch { el.share.textContent = "[ " + u + " ]"; }
   setTimeout(() => el.share.textContent = "[ share this place ]", 2500);
@@ -8867,6 +8921,7 @@ el.begin.addEventListener("click", async () => {
   buildBed(); buildWaterEvents(); buildCast(); buildMothCast(); buildLostCast(); buildUnderCast();
   if (P.dub) { DUB.on = true; startDub(); }
   el.begin.remove();
+  statusLine.last = "";   /* the line said "press [ begin ]"; let the first tick write it afresh */
   reflectHour();
   tick(); drawMap();
 });
@@ -8876,11 +8931,28 @@ el.begin.addEventListener("click", async () => {
   const qlat = parseFloat(params.get("lat")), qlon = parseFloat(params.get("lon"));
   requestAnimationFrame(() => { drawMap();
     if (!isNaN(qlat) && !isNaN(qlon)) { setSite(qlon, qlat);
-      if (site) globeCenter(site.lon, site.lat); } });
+      if (site) globeCenter(site.lon, site.lat); }
+    /* the rest of a shared listening, once the place is known */
+    const w = params.get("world");
+    if (w === "moth" && !MOTH.on) el.moth.click();
+    else if (w === "lost" && !LOST.on) setLost(true);
+    else if (w === "under" && site && !UNDER.on) setUnder(true);
+    if (params.get("drift") === "1" && !P.drift) el.drift.click();
+    const qd = parseInt(params.get("dub"), 10);
+    if (!isNaN(qd) && !P.dub) { P.dubDepth = Math.max(0, Math.min(100, qd)) / 100;
+      el.dubDepth.value = Math.round(P.dubDepth * 100); out("dubDepth").textContent = Math.round(P.dubDepth * 100);
+      el.dub.click(); }
+    if (params.get("year") === "1" && !YEAR.on) setYear(true);
+  });
   const qh = parseFloat(params.get("h"));
   if (!isNaN(qh)) { P.now = false; P.hour = qh * 60;
     el.now.setAttribute("aria-checked", "false");
     el.hour.value = P.hour; out("hour").textContent = fmtHour(P.hour); }
+  if (params.get("lapse") === "1") {   /* the carousel, from where the hour was left */
+    P.lapse = true; P.now = false; el.now.setAttribute("aria-checked", "false");
+    lapseBase = { real: performance.now() / 1000, hour: isNaN(qh) ? 6 * 60 : qh * 60 };
+    el.lapse.setAttribute("aria-checked", "true");
+  }
   /* ?accent= — another pair of accents tried on for size: sun and night,
      each with its own dark and light values. coral, peach and sage keep
      the blue and change only the sun */
